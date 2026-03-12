@@ -6,7 +6,7 @@ import { StatCard, Card, T, PageHeader } from "@/components/admin/ui-pro";
 const TRAFFIC_DATA = [
     { source: "Organic Search", visits: 14420, pct: 42, color: T.green },
     { source: "Direct", visits: 8240, pct: 24, color: T.blue },
-    { source: "Social Media", visits: 5140, pct: 15, color: T.pink },
+    { source: "Social Media", visits: 5140, pct: 15, color: T.purple },
     { source: "Email Campaigns", visits: 3430, pct: 10, color: T.cyan },
     { source: "Referral", visits: 2060, pct: 6, color: T.purple },
     { source: "Paid Ads", visits: 1030, pct: 3, color: T.orange },
