@@ -1,0 +1,27 @@
+{
+  "categories": [
+    {
+      "id": "mobile",
+      "name": "Mobile Phones",
+      "templates": [
+        {
+          "id": "mobile-full",
+          "name": "Mobile CSV",
+          "file": "categories/mobile.csv",
+          "badge": "Recommended"
+        }
+      ]
+    },
+    {
+      "id": "general",
+      "name": "General",
+      "templates": [
+        {
+          "id": "simple",
+          "name": "Simple CSV",
+          "file": "products-import-template.csv"
+        }
+      ]
+    }
+  ]
+}
