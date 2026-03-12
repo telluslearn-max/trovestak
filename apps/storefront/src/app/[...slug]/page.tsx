@@ -7,16 +7,24 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-  // generateStaticParams runs in a static context, use Admin client (no cookies)
-  const supabase = createSupabaseAdminClient();
-  const { data: pages } = await supabase
-    .from("cms_pages")
-    .select("slug")
-    .eq("status", "published");
+  // Skip static generation at build time if admin env vars are not available
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return [];
+  }
 
-  return pages?.map((page: { slug: string }) => ({
-    slug: page.slug.split("/"),
-  })) || [];
+  try {
+    const supabase = createSupabaseAdminClient();
+    const { data: pages } = await supabase
+      .from("cms_pages")
+      .select("slug")
+      .eq("status", "published");
+
+    return pages?.map((page: { slug: string }) => ({
+      slug: page.slug.split("/"),
+    })) || [];
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata({ params }: PageProps) {
