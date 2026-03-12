@@ -18,10 +18,8 @@ RUN pnpm --filter agent-service build
 # This resolves all pnpm symlinks into real node_modules — no symlinks in the runner
 RUN pnpm --filter agent-service deploy --prod --legacy /prod/agent-service
 
-# Copy the shared dist into the deployed bundle so @trovestak/shared resolves at runtime
-RUN mkdir -p /prod/agent-service/node_modules/@trovestak/shared
-RUN cp -r /app/packages/shared/dist /prod/agent-service/node_modules/@trovestak/shared/dist
-RUN cp /app/packages/shared/package.json /prod/agent-service/node_modules/@trovestak/shared/package.json
+# Copy the compiled shared dist — pnpm deploy includes package.json but NOT the built JS
+RUN cp -rf /app/packages/shared/dist /prod/agent-service/node_modules/@trovestak/shared/dist
 
 # ── Production runner ─────────────────────────────────────────────────────────
 FROM node:22-slim AS runner
