@@ -35,8 +35,8 @@ const brandConfigs: Record<string, BrandInfo> = {
     },
 };
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-    const slug = params.slug;
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params;
     const supabase = await createSupabaseServerClient();
 
     const { data: brand } = await supabase
@@ -53,8 +53,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     };
 }
 
-export default async function BrandPage({ params }: { params: { slug: string } }) {
-    const slug = params.slug;
+export default async function BrandPage({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params;
     const supabase = await createSupabaseServerClient();
 
     // 1. Fetch Brand Info
