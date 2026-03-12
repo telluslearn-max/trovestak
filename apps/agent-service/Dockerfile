@@ -8,29 +8,32 @@ COPY . .
 # Install all deps (needed for build)
 RUN pnpm install --frozen-lockfile
 
-# Build the shared library first
+# Build everything
 RUN pnpm --filter @trovestak/shared build
-
-# Build the agent service
 RUN pnpm --filter agent-service build
 
-# Use pnpm deploy to create a self-contained production bundle
-# This resolves all pnpm symlinks into real node_modules — no symlinks in the runner
+# ── Production bundle creation ───────────────────────────────────────────────
+# We use pnpm deploy to get the production node_modules
 RUN pnpm --filter agent-service deploy --prod --legacy /prod/agent-service
 
-# Copy the compiled shared dist — pnpm deploy includes package.json but NOT the built JS
-RUN cp -rf /app/packages/shared/dist /prod/agent-service/node_modules/@trovestak/shared/dist
+# CRITICAL: pnpm deploy often creates symlinks for workspace packages. 
+# We must replace the @trovestak/shared symlink with the real built package.
+RUN rm -rf /prod/agent-service/node_modules/@trovestak/shared
+RUN mkdir -p /prod/agent-service/node_modules/@trovestak/shared
+RUN cp -a /app/packages/shared/package.json /prod/agent-service/node_modules/@trovestak/shared/
+RUN cp -a /app/packages/shared/dist /prod/agent-service/node_modules/@trovestak/shared/
 
 # ── Production runner ─────────────────────────────────────────────────────────
 FROM node:22-slim AS runner
 WORKDIR /app
 
-# Copy the self-contained bundle from the base stage
+# Copy the self-contained bundle (node_modules + package.json)
 COPY --from=base /prod/agent-service ./
 
-# Copy built JS output (pnpm deploy doesn't copy dist)
+# Copy the agent-service's own built JS
 COPY --from=base /app/apps/agent-service/dist ./dist
 
 EXPOSE 8080
 ENV NODE_ENV=production
+# Force ES modules if needed, though package.json type:module should handle it
 CMD ["node", "dist/index.js"]
