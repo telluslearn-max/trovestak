@@ -116,14 +116,14 @@ export function transformProduct(csvRow: string[], header: string[]): ProductInp
   
   // Build variants object
   const variants: ProductInput['variants'] = {
-    colors: colors.map(c => ({ name: c.name, hex: c.hex, hex2: c.hex2 })),
+    colors: colors.map((c: { name: string; hex: string; hex2?: string }) => ({ name: c.name, hex: c.hex, hex2: c.hex2 })),
     sizes: size ? [size] : [],
     tiers: []
   };
   
   // Add storage as tiers if detected
   if (storage.length > 0) {
-    storage.forEach((s, index) => {
+    storage.forEach((s: string, index: number) => {
       variants.tiers!.push({
         label: s,
         desc: `${ram || '8GB'} RAM / ${s} Storage`,
