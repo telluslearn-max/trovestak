@@ -1,4 +1,8 @@
-import "dotenv/config";
+// Only load .env locally — Cloud Run injects env vars directly
+if (process.env.NODE_ENV !== "production") {
+    const { config } = await import("dotenv");
+    config();
+}
 import { WebSocketServer } from "ws";
 import { 
     createLogger, 
