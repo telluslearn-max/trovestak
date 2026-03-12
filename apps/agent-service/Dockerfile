@@ -23,6 +23,12 @@ RUN mkdir -p /prod/agent-service/node_modules/@trovestak/shared
 RUN cp -a /app/packages/shared/package.json /prod/agent-service/node_modules/@trovestak/shared/
 RUN cp -a /app/packages/shared/dist /prod/agent-service/node_modules/@trovestak/shared/
 
+# Copy axios — it's in shared's deps but not in agent-service's direct deps.
+# pnpm deploy only bundles direct deps, so we must copy it manually.
+RUN mkdir -p /prod/agent-service/node_modules/axios
+RUN cp -rfa /app/node_modules/axios /prod/agent-service/node_modules/ 2>/dev/null || \
+    find /app/node_modules/.pnpm -maxdepth 4 -type d -name 'axios' | head -1 | xargs -I{} cp -rfa {} /prod/agent-service/node_modules/
+
 # ── Production runner ─────────────────────────────────────────────────────────
 FROM node:22-slim AS runner
 WORKDIR /app
