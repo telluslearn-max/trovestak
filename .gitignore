@@ -31,6 +31,7 @@ build/
 !tsconfig*.json
 !**/package.json
 !**/nest-cli.json
+!apps/storefront/src/templates/templates.json
 
 # OS
 .DS_Store

@@ -8,13 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { templates as templateConfig, getTemplates, getCategories, getTemplateFilePath } from "@/lib/templates";
+import { templates, getTemplates, getCategories, getTemplateFilePath } from "@/lib/templates";
 
 interface ImportResult {
   row: number;
   success: boolean;
+  status: 'created' | 'updated' | 'error';
   id?: string;
   error?: string;
+  name?: string;
 }
 
 export default function ProductImportPage() {
@@ -188,7 +190,7 @@ export default function ProductImportPage() {
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div>
                     <p className="text-sm font-medium text-[#1D1D1F]">
-                      {selectedTemplateData.fields.length} fields available
+                      {selectedTemplateData.fields?.length || 0} fields available
                     </p>
                     <p className="text-xs text-[#86868B]">
                       Use case: {selectedTemplateData.use_case}
