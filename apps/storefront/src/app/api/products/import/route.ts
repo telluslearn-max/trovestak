@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 interface ProductRow {
@@ -341,7 +341,7 @@ export async function POST(request: NextRequest) {
         // Use first variant's prices for main product
         const mainVariant = variants[0];
         const productData: any = {
-          name: row.name.replace(/\s*[-–]\s*(\d+GB|\d+TB).*/i, "").trim(), // Remove variant suffix from name
+          name: row.name.replace(/\s*[-â€“]\s*(\d+GB|\d+TB).*/i, "").trim(), // Remove variant suffix from name
           slug,
           description: row.description || null,
           short_description: row.short_description || null,
