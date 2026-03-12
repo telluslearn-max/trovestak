@@ -35,9 +35,9 @@ ENV HOSTNAME="0.0.0.0"
 RUN groupadd -r nodejs && useradd -r -g nodejs nextjs
 
 # Copy standalone output
-COPY --from=base /app/apps/storefront/public ./public
 COPY --from=base --chown=nextjs:nodejs /app/apps/storefront/.next/standalone ./
-COPY --from=base --chown=nextjs:nodejs /app/apps/storefront/.next/static ./.next/static
+COPY --from=base --chown=nextjs:nodejs /app/apps/storefront/.next/static ./apps/storefront/.next/static
+COPY --from=base /app/apps/storefront/public ./apps/storefront/public
 
 USER nextjs
 EXPOSE 8080
