@@ -16,7 +16,7 @@ RUN pnpm --filter agent-service build
 
 # Use pnpm deploy to create a self-contained production bundle
 # This resolves all pnpm symlinks into real node_modules — no symlinks in the runner
-RUN pnpm --filter agent-service deploy --prod /prod/agent-service
+RUN pnpm --filter agent-service deploy --prod --legacy /prod/agent-service
 
 # Copy the shared dist into the deployed bundle so @trovestak/shared resolves at runtime
 RUN mkdir -p /prod/agent-service/node_modules/@trovestak/shared
