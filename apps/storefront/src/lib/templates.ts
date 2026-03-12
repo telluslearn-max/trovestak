@@ -1,4 +1,4 @@
-import templates from '../templates/templates.json';
+import templates from '@/templates/templates.json';
 import type { DropdownGroup } from '@/components/ui/custom-dropdown';
 
 interface Template {

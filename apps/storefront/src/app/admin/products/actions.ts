@@ -568,29 +568,6 @@ export async function getProductFullAdmin(id: string) {
     };
 }
 
-/**
- * Deletes a single product. 
- */
-export async function deleteProduct(id: string) {
-    await ensureAdmin("manager");
-    const supabase = await createSupabaseServerClient();
-
-    const { error } = await supabase
-        .from("products")
-        .delete()
-        .eq("id", id);
-
-    if (error) throw new Error(error.message);
-
-    await logAdminActivity({
-        action: "DELETE_PRODUCT",
-        resource: "products",
-        resourceId: id,
-    });
-
-    revalidatePath("/admin/products");
-    return { success: true };
-}
 
 /**
  * Adds a new product relation (upsell/cross-sell).
