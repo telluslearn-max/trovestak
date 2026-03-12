@@ -25,25 +25,37 @@ fi
 
 # 1. Build and Submit to Cloud Build
 # We run from root to ensure monorepo context is available
+IMAGE_NAME="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$SERVICE_NAME:$IMAGE_TAG"
+
 gcloud builds submit . \
-    --tag "$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$SERVICE_NAME:$IMAGE_TAG" \
-    --dockerfile "$SERVICE_PATH/Dockerfile"
+    --config=cloudbuild.yaml \
+    --substitutions="_IMAGE=$IMAGE_NAME,_DOCKERFILE=$SERVICE_PATH/Dockerfile"
+
+if [ $? -ne 0 ]; then
+    echo "❌ Build failed for $SERVICE_NAME"
+    exit 1
+fi
 
 # 2. Deploy to Cloud Run
 echo "🌍 Deploying to Cloud Run..."
 if [ -n "$ENV_VARS" ]; then
     gcloud run deploy "$SERVICE_NAME" \
-        --image "$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$SERVICE_NAME:$IMAGE_TAG" \
+        --image "$IMAGE_NAME" \
         --platform managed \
         --region "$REGION" \
         --allow-unauthenticated \
         --set-env-vars "$ENV_VARS"
 else
     gcloud run deploy "$SERVICE_NAME" \
-        --image "$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$SERVICE_NAME:$IMAGE_TAG" \
+        --image "$IMAGE_NAME" \
         --platform managed \
         --region "$REGION" \
         --allow-unauthenticated
 fi
 
-echo "✅ $SERVICE_NAME is live!"
+if [ $? -eq 0 ]; then
+    echo "✅ $SERVICE_NAME is live!"
+else
+    echo "❌ Deployment failed for $SERVICE_NAME"
+    exit 1
+fi
