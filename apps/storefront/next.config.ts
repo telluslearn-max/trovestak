@@ -56,7 +56,6 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
 
-  transpilePackages: ["@trovestak/shared"],
 
   async headers() {
     return [

@@ -3,7 +3,7 @@
 // Features and FAQ generation
 // ============================================
 
-import type { ProductFeature, FAQItem } from './types';
+import type { ProductFeature, FAQItem } from './types.js';
 
 export function generateFeatures(
   productName: string,

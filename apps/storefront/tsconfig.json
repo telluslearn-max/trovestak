@@ -26,10 +26,10 @@
         "./src/*"
       ],
       "@trovestak/shared": [
-        "../../packages/shared/lib/index.ts"
+        "../../packages/shared/dist/index.d.ts"
       ],
       "@trovestak/shared/*": [
-        "../../packages/shared/lib/*"
+        "../../packages/shared/dist/*.d.ts"
       ]
     },
     "target": "ES2017"

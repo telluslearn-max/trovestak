@@ -6,11 +6,11 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { detectVariants, generateShortName, generateSlug, extractColors, extractStorage, extractSize, extractRAM, extractChip } from './variant-detector';
-import { generateSEOTitle, generateSEODescription, generateOverview, generateSubtitle, generateBreadcrumb } from './seo-generator';
-import { generateSpecs, getAddonEligibility, getDefaultWarranty } from './spec-generator';
-import { generateFeatures, generateFAQ } from './content-generator';
-import type { ProductInput, ProductFeature, FAQItem } from './types';
+import { detectVariants, generateShortName, generateSlug, extractColors, extractStorage, extractSize, extractRAM, extractChip } from './variant-detector.js';
+import { generateSEOTitle, generateSEODescription, generateOverview, generateSubtitle, generateBreadcrumb } from './seo-generator.js';
+import { generateSpecs, getAddonEligibility, getDefaultWarranty } from './spec-generator.js';
+import { generateFeatures, generateFAQ } from './content-generator.js';
+import type { ProductInput, ProductFeature, FAQItem } from './types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
