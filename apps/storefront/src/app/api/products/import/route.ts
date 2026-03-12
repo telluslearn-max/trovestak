@@ -83,7 +83,7 @@ function parseCSV(text: string): ProductRow[] {
     // Skip rows without a name (these are section headers or metadata rows)
     if (!name || name === "") continue;
     
-    rows.push(values as ProductRow);
+    rows.push(values as unknown as ProductRow);
   }
 
   return rows;
@@ -169,7 +169,7 @@ async function ensureCategories(supabaseAdmin: any, categoryPath: string): Promi
       finalCategoryId = existing.id;
     } else {
       // Create category
-      const { data: newCategory, error: createError } = await supabaseAdmin
+      const { data: newCategory, error: createError }: { data: { id: string } | null, error: any } = await supabaseAdmin
         .from("categories")
         .insert({
           name: part,
@@ -522,7 +522,7 @@ export async function POST(request: NextRequest) {
           ];
 
           for (const addon of addonTypes) {
-            const isEnabled = row[addon.key as keyof ProductRow]?.toLowerCase() === "true";
+            const isEnabled = String(row[addon.key as keyof ProductRow] ?? "").toLowerCase() === "true";
             
             // Check if addon exists
             const { data: existingAddon } = await supabaseAdmin
