@@ -1,5 +1,5 @@
 import { LlmAgent } from "@google/adk";
-import { conciergeTools } from "./tools";
+import { conciergeTools } from "./tools.js";
 
 /**
  * The high-end Shopping Concierge persona.
