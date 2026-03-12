@@ -1,5 +1,5 @@
 import axios from "axios";
-import { createLogger } from "./logger.js";
+import { createLogger } from "./logger";
 
 const log = createLogger("daraja-helpers");
 

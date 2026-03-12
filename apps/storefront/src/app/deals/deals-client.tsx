@@ -49,7 +49,7 @@ export function DealsClient({ dealOfDay, topDeals, clearance }: DealsClientProps
                         transition={{ delay: 0.2 }}
                         className="text-lg text-muted-foreground max-w-2xl mx-auto"
                     >
-                        Unbeatable prices on premium tech. Deals expire daily — grab them before they're gone.
+                        Unbeatable prices on premium tech. Deals expire daily — grab them before they&apos;re gone.
                     </motion.p>
                 </div>
 

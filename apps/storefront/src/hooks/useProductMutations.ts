@@ -129,12 +129,13 @@ export function useProductMutations() {
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/(^-|-$)/g, "");
 
+      const { data: { user } } = await supabase.auth.getUser();
       const { data: product, error: createError } = await supabase
         .from("products")
         .insert({
           ...data,
           slug,
-          created_by: (await supabase.auth.getUser()).data.user?.id,
+          created_by: user?.id,
         })
         .select()
         .single();
@@ -167,7 +168,7 @@ export function useProductMutations() {
           .from("products")
           .update({
             ...data,
-            updated_by: (await supabase.auth.getUser()).data.user?.id,
+            updated_by: (await supabase.auth.getSession()).data.session?.user.id,
             updated_at: new Date().toISOString(),
           })
           .eq("id", id)
@@ -199,12 +200,13 @@ export function useProductMutations() {
     setDeleteState({ loading: true, error: null, data: null });
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
       const { error: deleteError } = await supabase
         .from("products")
         .update({
           status: "archived",
           deleted_at: new Date().toISOString(),
-          updated_by: (await supabase.auth.getUser()).data.user?.id,
+          updated_by: user?.id,
         })
         .eq("id", id);
 
@@ -334,12 +336,13 @@ export function useVariationMutations() {
   // Create variation
   const createVariation = useCallback(
     async (data: CreateVariationData) => {
+      const { data: { user } } = await supabase.auth.getUser();
       try {
         const { data: variation, error: createError } = await supabase
           .from("product_variations")
           .insert({
             ...data,
-            created_by: (await supabase.auth.getUser()).data.user?.id,
+            created_by: user?.id,
           })
           .select()
           .single();
@@ -372,12 +375,13 @@ export function useVariationMutations() {
   // Update variation
   const updateVariation = useCallback(
     async (id: string, data: UpdateVariationData) => {
+      const { data: { user } } = await supabase.auth.getUser();
       try {
         const { data: variation, error: updateError } = await supabase
           .from("product_variations")
           .update({
             ...data,
-            updated_by: (await supabase.auth.getUser()).data.user?.id,
+            updated_by: user?.id,
             updated_at: new Date().toISOString(),
           })
           .eq("id", id)
@@ -495,7 +499,7 @@ export function useVariationMutations() {
             .map(([, v]) => v)
             .join(" / ");
 
-          const { data: variation, error: varError } = await supabase
+          const { data: variation, error: varError }: { data: any, error: any } = await supabase
             .from("product_variations")
             .insert({
               product_id: productId,

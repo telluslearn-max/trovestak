@@ -1,5 +1,5 @@
 import { PubSub } from "@google-cloud/pubsub";
-import { createLogger } from "./logger.js";
+import { createLogger } from "./logger";
 
 const log = createLogger("pubsub-publisher");
 

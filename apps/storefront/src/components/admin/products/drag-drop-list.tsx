@@ -78,8 +78,8 @@ export function DragDropList({ items, onReorder, renderItem }: DragDropListProps
     })
   );
 
-  const handleDragStart = (event: { active: { id: string } }) => {
-    setActiveId(event.active.id as string);
+  const handleDragStart = (event: any) => {
+    setActiveId(event.active.id);
   };
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ProductCard } from "@/components/product-card";
 import { StoreFilters } from "@/components/store-filters";
@@ -87,7 +88,7 @@ export function StoreClient({
                 {/* Category Navigation - Premium Scroller */}
                 <div className="mt-16 relative">
                     <div className="flex items-center gap-4 overflow-x-auto pb-4 no-scrollbar scroll-smooth">
-                        <a
+                        <Link
                             href="/store"
                             className={cn(
                                 "whitespace-nowrap px-8 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all duration-500 border",
@@ -97,9 +98,9 @@ export function StoreClient({
                             )}
                         >
                             All Equipment
-                        </a>
+                        </Link>
                         {categories.filter((c: any) => !c.parent_id).map((cat: any) => (
-                            <a
+                            <Link
                                 key={cat.id}
                                 href={`/store?category=${cat.slug}`}
                                 className={cn(
@@ -110,7 +111,7 @@ export function StoreClient({
                                 )}
                             >
                                 {cat.name}
-                            </a>
+                            </Link>
                         ))}
                     </div>
                 </div>
@@ -125,7 +126,7 @@ export function StoreClient({
                         {categories
                             .filter((c: Category) => c.parent_id && categories.find((p: Category) => p.slug === category && p.id === c.parent_id))
                             .map((sub: Category) => (
-                                <a
+                                <Link
                                     key={sub.id}
                                     href={`/store?category=${category}&subcategory=${sub.slug}`}
                                     className={cn(
@@ -136,7 +137,7 @@ export function StoreClient({
                                     )}
                                 >
                                     {sub.name}
-                                </a>
+                                </Link>
                             ))}
                     </motion.div>
                 )}
@@ -173,7 +174,7 @@ export function StoreClient({
                         >
                             <h3 className="text-3xl font-black tracking-tighter text-foreground mb-4">No Gear Found</h3>
                             <p className="text-muted-foreground max-w-sm mx-auto font-medium">
-                                We couldn't find any products matching your current filters. Try expanding your search.
+                                We couldn&apos;t find any products matching your current filters. Try expanding your search.
                             </p>
                         </motion.div>
                     )}

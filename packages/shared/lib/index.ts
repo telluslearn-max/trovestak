@@ -3,36 +3,36 @@
 // ============================================
 
 // Product normalizer types (existing)
-export * from './types.js';
-export * from './variant-detector.js';
-export * from './seo-generator.js';
-export * from './spec-generator.js';
-export * from './content-generator.js';
-export { transformProduct, processCSV, generateIndex } from './transform-engine.js';
+export * from './types';
+export * from './variant-detector';
+export * from './seo-generator';
+export * from './spec-generator';
+export * from './content-generator';
+export { transformProduct, processCSV, generateIndex } from './transform-engine';
 
 // Commerce domain types (new - for microservices)
-export * from './commerce-types.js';
+export * from './commerce-types';
 
 // Formatting utilities
-export * from './formatters.js';
+export * from './formatters';
 
 // Cloud Pub/Sub event contracts
-export * from './events.js';
+export * from './events';
 
 // Structured logger (Google Cloud Logging compatible)
-export * from './logger.js';
+export * from './logger';
 
 // Environment variable validation
-export * from './env.js';
+export * from './env';
 
 // Supabase clients
-export * from './supabase.js';
+export * from './supabase';
 
 // Daraja M-Pesa helpers
-export * from './daraja.js';
+export * from './daraja';
 
 // Pub/Sub Event Publisher
-export * from './publisher.js';
+export * from './publisher';
 
 
 

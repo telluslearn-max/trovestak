@@ -181,7 +181,7 @@ export function EnhancedProductEditor({ productData }: EnhancedProductEditorProp
       <div className="glass-nav" style={{
         position: "sticky", top: 0, zIndex: 100,
         background: colors.navBg, borderBottom: `1px solid ${colors.cardBorder}`,
-        height: 64, px: "24px", display: "flex", alignItems: "center", gap: 16,
+        height: 64, paddingLeft: "24px", paddingRight: "24px", display: "flex", alignItems: "center", gap: 16,
         padding: "0 24px"
       }}>
         <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
@@ -207,7 +207,7 @@ export function EnhancedProductEditor({ productData }: EnhancedProductEditorProp
 
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{
-            display: "none", md: "flex", alignItems: "center", gap: 8,
+            display: "flex", alignItems: "center", gap: 8,
             padding: "6px 14px", background: isDark ? "#1e293b" : "#f1f5f9",
             borderRadius: 20, border: `1px solid ${colors.cardBorder}`
           }}>
@@ -343,7 +343,9 @@ export function EnhancedProductEditor({ productData }: EnhancedProductEditorProp
       {/* Global Media Library Overlay */}
       {showMediaLibrary && (
         <MediaLibrary
-          onSelect={(assets) => {
+          isOpen={!!showMediaLibrary}
+          onClose={() => setShowMediaLibrary(null)}
+          onSelect={(assets: any[]) => {
             const urls = assets.map(a => a.url);
             if (showMediaLibrary === "main") {
               setImagesForm({ ...imagesForm, thumbnail_url: urls[0] });

@@ -24,6 +24,12 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@trovestak/shared": [
+        "../../packages/shared/lib/index.ts"
+      ],
+      "@trovestak/shared/*": [
+        "../../packages/shared/lib/*"
       ]
     },
     "target": "ES2017"

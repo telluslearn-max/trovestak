@@ -110,7 +110,7 @@ export function CommandPalette() {
                                 </div>
                             ) : results.orders.length === 0 && results.products.length === 0 && results.customers.length === 0 && !loading ? (
                                 <div className="py-12 text-center">
-                                    <p className="text-sm text-muted-foreground">No results found for "{query}"</p>
+                                    <p className="text-sm text-muted-foreground">No results found for &quot;{query}&quot;</p>
                                 </div>
                             ) : (
                                 <div className="space-y-4 py-2">

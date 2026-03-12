@@ -122,7 +122,7 @@ export default function CategoriesPage() {
             </div>
           ) : filteredCategories.length === 0 ? (
             <div style={{ gridColumn: "span 5", padding: "40px", textAlign: "center", color: T.textMuted }}>
-              No categories found matching "{searchQuery}"
+              No categories found matching &quot;{searchQuery}&quot;
             </div>
           ) : (
             filteredCategories.map((c, i) => [

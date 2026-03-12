@@ -355,7 +355,7 @@ export function ProductTable() {
                     </div>
                   </TableCell>
                   <TableCell className="text-right font-medium">
-                    {formatPrice(product.regular_price || product.price)}
+                    {formatPrice(product.regular_price || (product as any).price)}
                   </TableCell>
                   <TableCell>
                     <Badge variant={product.is_active ? "success" : "secondary"}>

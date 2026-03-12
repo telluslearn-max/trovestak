@@ -473,7 +473,7 @@ export default function BundlesPage() {
                                                     </div>
                                                 ))}
                                                 {slot.bundle_slot_options?.length === 0 && (
-                                                    <span style={{ fontSize: 11, color: T.textMuted }}>Search above and click "→ {slot.slot_name.split(" ")[0]}" to add options</span>
+                                                    <span style={{ fontSize: 11, color: T.textMuted }}>Search above and click &quot;→ {slot.slot_name.split(" ")[0]}&quot; to add options</span>
                                                 )}
                                             </div>
                                         </div>

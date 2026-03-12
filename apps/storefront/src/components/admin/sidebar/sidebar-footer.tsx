@@ -2,6 +2,7 @@
 
 import { LogOut, Store, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { cn } from "@/lib/utils";
@@ -53,7 +54,7 @@ export function SidebarFooter({ user, role, collapsed }: SidebarFooterProps) {
       "border-t border-zinc-800 p-3 space-y-1",
       collapsed && "p-2"
     )}>
-      <a
+      <Link
         href="/store"
         className={cn(
           "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200 transition-colors",
@@ -62,7 +63,7 @@ export function SidebarFooter({ user, role, collapsed }: SidebarFooterProps) {
       >
         <Store className="h-4 w-4" />
         {!collapsed && <span>View Storefront</span>}
-      </a>
+      </Link>
       
       <button
         onClick={handleLogout}

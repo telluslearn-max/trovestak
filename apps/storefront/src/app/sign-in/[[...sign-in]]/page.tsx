@@ -6,6 +6,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { signInAction } from "@/app/auth/actions";
 import { motion } from "framer-motion";
 import { Loader2, ArrowRight, Mail, Lock } from "lucide-react";
+import { createBrowserClient } from "@supabase/ssr";
+
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");

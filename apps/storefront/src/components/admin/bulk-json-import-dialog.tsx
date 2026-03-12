@@ -184,7 +184,7 @@ export function BulkJSONImportDialog({
               </div>
               <Progress value={progress} className="h-2" />
               <p className="text-sm text-muted-foreground text-center">
-                Please don't close this dialog
+                Please don&apos;t close this dialog
               </p>
             </div>
           )}

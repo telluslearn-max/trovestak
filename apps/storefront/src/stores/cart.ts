@@ -32,7 +32,6 @@ interface CartState {
   setCart: (cart: Cart) => void;
   addItem: (item: CartItem) => void;
   removeItem: (itemId: string) => void;
-  removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   toggleVat: (enabled: boolean) => void;
   setTradeInCredit: (amount: number) => void;

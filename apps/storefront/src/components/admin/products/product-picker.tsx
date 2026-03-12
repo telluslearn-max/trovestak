@@ -8,6 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { formatKES } from "@/lib/formatters";
 import type { Product } from "@/types/product";
+import { createBrowserClient } from "@supabase/ssr";
+
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 interface ProductPickerProps {
   mode: "single" | "multiple";
@@ -39,7 +45,7 @@ export function ProductPicker({ mode, selectedIds = [], onSelect, trigger }: Pro
       }
 
       const { data } = await query.limit(50);
-      setProducts(data || []);
+      setProducts((data as any) || []);
       setLoading(false);
     }
 

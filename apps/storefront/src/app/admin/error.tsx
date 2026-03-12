@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 
 /**
@@ -112,7 +113,7 @@ export default function AdminError({
                     Try again
                 </button>
 
-                <a
+                <Link
                     href="/admin"
                     style={{
                         display: "flex",
@@ -133,7 +134,7 @@ export default function AdminError({
                 >
                     <Home size={15} />
                     Admin Home
-                </a>
+                </Link>
             </div>
         </div>
     );

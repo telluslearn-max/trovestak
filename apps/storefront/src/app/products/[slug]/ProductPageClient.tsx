@@ -12,6 +12,8 @@ import { ReviewList } from '@/components/reviews/ReviewList'
 import { ReviewForm } from '@/components/reviews/ReviewForm'
 import { ShoppingBag, Smartphone, CreditCard, Truck, Shield, Package, Rocket, Diamond, GitCompare } from 'lucide-react'
 
+function fmt(n: number) { return formatKES(n) }
+
 // ── Types ──────────────────────────────────────────────────────────────────
 interface FeatureCard { icon: string; title: string; desc: string }
 interface SpecGroup { [key: string]: string }
@@ -170,8 +172,8 @@ export default function ProductPageClient({ product, variants, pricing, specs: d
     const [savedToWishlist, setSaved] = useState(false)
 
     // Use pricing from new product_pricing table if available, otherwise fallback to variant price
-    const pricingData = pricing && pricing.sell_price > 0 ? pricing : null
-    const basePrice = pricingData ? pricingData.sell_price : (activeVariant ? Math.round(activeVariant.price_kes / 100) : 0)
+    const pricingData = pricing && pricing.sell_price && pricing.sell_price > 0 ? pricing : null
+    const basePrice: number = pricingData?.sell_price || (activeVariant ? Math.round((activeVariant.price_kes || 0) / 100) : 0) || 0
 
     // Compare state
     const { addProduct, removeProduct, isInCompare, canAddMore } = useCompareStore()
@@ -179,7 +181,7 @@ export default function ProductPageClient({ product, variants, pricing, specs: d
 
     const handleCompare = useCallback(() => {
         if (!product.id) return
-        const currentPrice = pricingData ? pricingData.sell_price : (activeVariant ? Math.round(activeVariant.price_kes / 100) : 0)
+        const currentPrice = pricingData ? pricingData.sell_price || 0 : (activeVariant ? Math.round((activeVariant.price_kes || 0) / 100) : 0)
         if (inCompare) {
             removeProduct(product.id)
         } else if (canAddMore()) {
@@ -211,11 +213,11 @@ export default function ProductPageClient({ product, variants, pricing, specs: d
     const comparePrice = pricingData?.compare_price ?? meta.compare_price
     const discountPercent = pricingData?.discount_percent ?? 0
     const totalStock = variants.reduce((s, v) => s + (v.stock_quantity ?? 0), 0)
-    const { label: stockLbl, cls: stockCls } = stockLabel(activeVariant?.stock_quantity ?? totalStock)
+    const { label: stockLbl, cls: stockCls } = stockLabel(activeVariant?.stock_quantity ?? totalStock ?? 0)
 
     const bnplFee = bnplMonths === 3 ? 1.0 : bnplMonths === 6 ? 1.03 : 1.06
-    const bnplAmt = basePrice > 0 ? Math.ceil(basePrice * bnplFee / bnplMonths) : 0
-    const effectivePrice = Math.max(0, basePrice - tradeInCredit)
+    const bnplAmt = (basePrice || 0) > 0 ? Math.ceil((basePrice || 0) * bnplFee / bnplMonths) : 0
+    const effectivePrice = Math.max(0, (basePrice || 0) - tradeInCredit)
 
     const breadcrumb: string[] = meta.breadcrumb ?? [
         'Home',
@@ -233,7 +235,7 @@ export default function ProductPageClient({ product, variants, pricing, specs: d
             variant_id: activeVariant.id,
             title: `${product.name}${activeVariant.options?.storage ? ` — ${activeVariant.options.storage}` : ''}${activeColor ? ` (${activeColor.name})` : ''}`,
             quantity: 1,
-            unit_price: basePrice,
+            unit_price: basePrice || 0,
             thumbnail: product.thumbnail_url || undefined,
         })
 
@@ -828,7 +830,7 @@ export default function ProductPageClient({ product, variants, pricing, specs: d
                 {/* Features */}
                 {features.length > 0 && (
                     <div className="content-sec">
-                        <span className="section-tag">Why it's different</span>
+                        <span className="section-tag">Why it&apos;s different</span>
                         <h2 className="section-heading">Built to stand out.</h2>
                         {product.content_overview && (
                             <p className="section-sub">{product.content_overview}</p>
@@ -1074,7 +1076,7 @@ export default function ProductPageClient({ product, variants, pricing, specs: d
                         <div className="pm-label">Join the waitlist</div>
                         <input type="email" placeholder="your@email.com" className="pm-email" />
                         <button className="btn-primary" style={{ width: '100%' }}>Notify Me</button>
-                        <div className="pm-note">Pro membership is coming soon. You'll be first to know.</div>
+                        <div className="pm-note">Pro membership is coming soon. You&apos;ll be first to know.</div>
                     </div>
                 </div>
             </div>

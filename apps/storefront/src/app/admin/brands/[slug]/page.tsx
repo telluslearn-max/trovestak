@@ -415,7 +415,7 @@ export default function BrandDetailPage() {
                             <div style={{ padding: "32px 40px", borderBottom: `1px solid ${colors.cardBorder}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                 <div>
                                     <h2 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: colors.text }}>Pipeline Preview & Correction</h2>
-                                    <p style={{ margin: "4px 0 0", fontSize: 13, color: colors.textMuted }}>Review and adjust the engine's findings before applying to catalog</p>
+                                    <p style={{ margin: "4px 0 0", fontSize: 13, color: colors.textMuted }}>Review and adjust the engine&apos;s findings before applying to catalog</p>
                                 </div>
                                 <button onClick={() => setShowReview(false)} style={{ background: "none", border: "none", color: colors.text, cursor: "pointer", padding: 8, opacity: 0.5 }}><X className="w-6 h-6" /></button>
                             </div>

@@ -1,7 +1,7 @@
 export interface NavItem {
   href: string;
   label: string;
-  icon: string;
+  icon: string | any;
   badge?: number | null;
 }
 

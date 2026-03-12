@@ -16,6 +16,8 @@ export function SidebarItem({ item, collapsed }: SidebarItemProps) {
   const isActive = pathname === item.href || 
     (item.href !== "/admin" && pathname.startsWith(item.href));
 
+  const Icon: any = item.icon;
+
   return (
     <Link
       href={item.href}
@@ -40,7 +42,21 @@ export function SidebarItem({ item, collapsed }: SidebarItemProps) {
           collapsed && "justify-center w-full"
         )}
       >
-        <item.icon className={cn("h-4 w-4 flex-shrink-0", isActive ? "text-zinc-50" : "text-zinc-500 group-hover:text-zinc-300")} />
+        {typeof Icon === "string" ? (
+          <span className={cn(
+            "flex h-4 w-4 items-center justify-center text-base flex-shrink-0",
+            isActive ? "text-zinc-50" : "text-zinc-500 group-hover:text-zinc-300"
+          )}>
+            {Icon}
+          </span>
+        ) : (
+          <Icon 
+            className={cn(
+              "h-4 w-4 flex-shrink-0", 
+              isActive ? "text-zinc-50" : "text-zinc-500 group-hover:text-zinc-300"
+            )} 
+          />
+        )}
         {!collapsed && <span>{item.label}</span>}
       </span>
 

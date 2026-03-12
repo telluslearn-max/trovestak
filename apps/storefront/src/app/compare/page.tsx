@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { formatKES } from '@/lib/formatters'
+import { useCompareStore } from '@/stores/compare'
+import { useCartStore } from '@/stores/cart'
+import { Trash2, X, ShoppingBag } from 'lucide-react'
 
-function fmt(n: number) {
-    return formatKES(n)
-}
+function fmt(n: number) { return formatKES(n) }
 
 export default function ComparePage() {
     const { products, removeProduct, clearCompare } = useCompareStore()
@@ -54,7 +55,7 @@ export default function ComparePage() {
 
     // Collect all unique spec keys from all products
     const allSpecKeys = new Set<string>()
-    products.forEach(p => {
+    products.forEach((p: any) => {
         if (p.specs && typeof p.specs === 'object') {
             Object.values(p.specs).forEach(group => {
                 if (group && typeof group === 'object') {
@@ -280,12 +281,12 @@ export default function ComparePage() {
                                     }}>
                                         {specKey}
                                     </td>
-                                    {products.map(product => {
+                                    {products.map((product: any) => {
                                         let value = '-'
                                         if (product.specs && typeof product.specs === 'object') {
-                                            Object.values(product.specs).forEach(group => {
-                                                if (group && typeof group === 'object' && group[specKey]) {
-                                                    value = String(group[specKey])
+                                            Object.values(product.specs).forEach((group: any) => {
+                                                if (group && typeof group === 'object' && (group as Record<string, unknown>)[specKey]) {
+                                                    value = String((group as Record<string, unknown>)[specKey])
                                                 }
                                             })
                                         }

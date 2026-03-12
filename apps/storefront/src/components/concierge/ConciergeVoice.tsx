@@ -26,6 +26,7 @@ export function ConciergeVoice({ onClose }: Props) {
     useEffect(() => {
         initConcierge();
         return () => cleanup();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const initConcierge = async () => {
@@ -172,7 +173,7 @@ export function ConciergeVoice({ onClose }: Props) {
                                 {agentSpeaking ? "TroveVoice is speaking..." : "Listening to you..."}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                                "What are the best gaming laptops under 200k?"
+                                &quot;What are the best gaming laptops under 200k?&quot;
                             </p>
                         </div>
                     )}

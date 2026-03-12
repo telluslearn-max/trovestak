@@ -200,7 +200,7 @@ export function BulkImportDialog({ open, onClose, onSuccess }: BulkImportDialogP
                                         <div className="w-[240px]">
                                             <Select
                                                 value={mappings[field.key] || "__ignore__"}
-                                                onValueChange={(val) => setMappings({ ...mappings, [field.key]: val === "__ignore__" ? null : val })}
+                                                onValueChange={(val) => setMappings(prev => ({ ...prev, [field.key]: val === "__ignore__" ? "" : val }))}
                                             >
                                                 <SelectTrigger className="h-10 bg-card border-border/30 rounded-xl px-4 text-[10px] font-black uppercase tracking-widest">
                                                     <SelectValue placeholder="Ignore field" />

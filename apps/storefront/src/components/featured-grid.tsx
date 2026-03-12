@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ProductCard } from "./product-card";
+import Link from "next/link";
 
 interface Product {
   id: string;
@@ -32,12 +33,12 @@ export function FeaturedGrid({ products, title = "Featured Products" }: Featured
         <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
           {title}
         </h2>
-        <a
+        <Link
           href="/store"
           className="text-primary hover:underline text-sm font-medium mb-1 transition-colors"
         >
           View All Products
-        </a>
+        </Link>
       </motion.div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">

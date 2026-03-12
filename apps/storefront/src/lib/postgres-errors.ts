@@ -107,7 +107,7 @@ export interface ParsedError {
 export function interpretPostgresError(error: PostgrestError): ParsedError {
   // Handle unique constraint violations (23505)
   if (error.code === "23505") {
-    const mapping = CONSTRAINT_ERROR_MAP[error.constraint];
+    const mapping = CONSTRAINT_ERROR_MAP[(error as any).constraint];
     if (mapping) {
       return {
         field: mapping.field,
@@ -135,7 +135,7 @@ export function interpretPostgresError(error: PostgrestError): ParsedError {
 
   // Handle not null violations (23502)
   if (error.code === "23502") {
-    const field = error.column?.replace(/_/g, " ") || "field";
+    const field = (error as any).column?.replace(/_/g, " ") || "field";
     return {
       message: `${field} is required`,
       code: error.code,

@@ -395,7 +395,7 @@ export function AttributeManager() {
                   placeholder="e.g., blue-red"
                 />
               </div>
-              {watchGroup?.() === "color" && (
+              {watchGroup("type") === "color" && (
                 <div className="grid gap-2">
                   <Label htmlFor="term-value">Color Value</Label>
                   <div className="flex items-center gap-2">

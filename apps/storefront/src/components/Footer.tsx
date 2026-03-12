@@ -127,7 +127,7 @@ export function Footer() {
                                 </span>
                             </Link>
                             <p className="mt-3 text-sm text-muted-foreground max-w-xs">
-                                Kenya's trusted source for premium electronics with official warranties.
+                                Kenya&apos;s trusted source for premium electronics with official warranties.
                             </p>
                             <div className="mt-6 flex gap-6">
                                 {socialLinks.map((link) => (

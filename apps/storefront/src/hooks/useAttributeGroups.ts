@@ -10,6 +10,12 @@ import {
 } from "@/app/admin/products/actions";
 import { interpretPostgresError, type ParsedError } from "@/lib/postgres-errors";
 import type { ProductAttributeGroup, ProductAttributeTerm } from "@/types/product";
+import { createBrowserClient } from "@supabase/ssr";
+
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 interface UseAttributeGroupsReturn {
   groups: ProductAttributeGroup[];
