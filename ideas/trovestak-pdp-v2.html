@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trovestak – MacBook Air 15" M4</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bb-blue: #0046be;
+  --bb-yellow: #ffe000;
+  --bb-dark: #1d1d1b;
+  --bb-red: #c40404;
+  --bb-green: #1a7a1a;
+  --bb-gray: #f5f5f5;
+  --bb-border: #ddd;
+  --bb-text: #1d1d1b;
+  --bb-muted: #555;
+  --bb-light-muted: #767676;
+  --surface: #fff;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--bb-text);
+  background: #fff;
+  line-height: 1.4;
+}
+
+a { color: var(--bb-blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--bb-dark);
+  color: #ccc;
+  font-size: 12px;
+  padding: 6px 16px;
+  display: flex;
+  gap: 20px;
+  justify-content: flex-end;
+}
+.topbar a { color: #ccc; }
+
+/* ── HEADER ── */
+header {
+  background: var(--bb-blue);
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  height: 56px;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+.logo {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--bb-yellow);
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.header-search {
+  flex: 1;
+  max-width: 700px;
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 2px solid rgba(255,255,255,0.3);
+}
+.header-search input {
+  flex: 1;
+  padding: 9px 14px;
+  border: none;
+  font-size: 14px;
+  outline: none;
+}
+.header-search button {
+  background: var(--bb-yellow);
+  border: none;
+  padding: 9px 16px;
+  cursor: pointer;
+  font-size: 16px;
+}
+.header-icons {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  align-items: center;
+}
+.header-icon-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transition: background 0.15s;
+}
+.header-icon-btn:hover { background: rgba(255,255,255,0.15); }
+.header-icon-btn .ico { font-size: 18px; }
+
+/* ── NAV BAR ── */
+.subnav {
+  background: var(--bb-dark);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  height: 38px;
+  gap: 0;
+  overflow-x: auto;
+}
+.subnav a {
+  color: #ccc;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 0 14px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+.subnav a:hover { color: white; text-decoration: none; }
+
+/* ── BREADCRUMB ── */
+.breadcrumb {
+  padding: 10px 20px;
+  font-size: 12px;
+  color: var(--bb-light-muted);
+  background: #fff;
+  border-bottom: 1px solid var(--bb-border);
+}
+.breadcrumb a { color: var(--bb-blue); }
+.breadcrumb a:hover { text-decoration: underline; }
+.breadcrumb span { color: var(--bb-text); }
+
+/* ── PDP LAYOUT ── */
+.pdp-outer {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 20px 20px 0;
+}
+
+/* Three-col: thumbs | main image | info+price */
+.pdp-top {
+  display: grid;
+  grid-template-columns: 64px 1fr 420px;
+  gap: 16px;
+  align-items: start;
+}
+
+/* ── THUMBNAIL STRIP (left vertical) ── */
+.thumb-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+}
+.thumb-item {
+  width: 56px;
+  height: 56px;
+  border: 1px solid var(--bb-border);
+  border-radius: 3px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: border-color 0.15s;
+  flex-shrink: 0;
+}
+.thumb-item:hover { border-color: #aaa; }
+.thumb-item.active { border-color: var(--bb-blue); border-width: 2px; }
+.thumb-item img { width: 90%; height: 90%; object-fit: contain; }
+.thumb-video {
+  font-size: 9px;
+  color: var(--bb-blue);
+  text-align: center;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.play-icon { font-size: 18px; color: var(--bb-blue); }
+
+/* ── MAIN IMAGE ── */
+.main-image-col {
+  position: relative;
+}
+.main-img-wrap {
+  background: #fff;
+  border: 1px solid var(--bb-border);
+  border-radius: 4px;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: zoom-in;
+  position: relative;
+}
+.main-img-wrap img {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  transition: transform 0.35s ease;
+}
+.main-img-wrap:hover img { transform: scale(1.07); }
+
+.img-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: var(--bb-red);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.img-badge.bestseller {
+  background: #f5a623;
+  color: #fff;
+}
+
+.img-tools {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  justify-content: center;
+}
+.img-tool-btn {
+  background: none;
+  border: 1px solid var(--bb-border);
+  border-radius: 3px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--bb-blue);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.12s;
+}
+.img-tool-btn:hover { background: #f0f5ff; }
+
+/* ── RIGHT COLUMN (info + price) ── */
+.info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Brand + title */
+.product-brand-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bb-blue);
+  text-transform: none;
+  display: block;
+  margin-bottom: 4px;
+}
+.product-title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--bb-text);
+  margin-bottom: 8px;
+}
+.model-sku {
+  font-size: 12px;
+  color: var(--bb-light-muted);
+  margin-bottom: 8px;
+}
+
+/* Rating */
+.rating-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.stars-wrap { position: relative; display: inline-block; }
+.stars-bg { color: #ddd; font-size: 17px; letter-spacing: 1px; }
+.stars-fill {
+  position: absolute;
+  top: 0; left: 0;
+  overflow: hidden;
+  color: var(--bb-yellow);
+  font-size: 17px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+.rating-num { font-size: 13px; font-weight: 700; color: var(--bb-text); }
+.rating-count { font-size: 13px; color: var(--bb-blue); cursor: pointer; }
+.rating-count:hover { text-decoration: underline; }
+.badge-bestseller {
+  background: #ff8c00;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 2px;
+}
+
+/* PRICE BOX */
+.price-box {
+  border: 1px solid var(--bb-border);
+  border-radius: 4px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.price-main {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--bb-text);
+  line-height: 1;
+}
+.price-was-row {
+  font-size: 12px;
+  color: var(--bb-muted);
+  margin-top: 4px;
+}
+.price-was-row s { color: var(--bb-light-muted); }
+.price-save { color: var(--bb-red); font-weight: 600; }
+.financing-line {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--bb-muted);
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+}
+.financing-line strong { color: var(--bb-blue); }
+
+/* AVAILABILITY */
+.avail-section {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.avail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+}
+.avail-icon { font-size: 16px; margin-top: 1px; }
+.avail-label { font-weight: 600; }
+.avail-sub { font-size: 11px; color: var(--bb-muted); }
+.avail-green { color: var(--bb-green); }
+.avail-blue { color: var(--bb-blue); }
+
+/* CTA */
+.cta-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 13px 16px;
+  border-radius: 30px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+  width: 100%;
+}
+.btn-add-cart {
+  background: var(--bb-yellow);
+  color: var(--bb-dark);
+}
+.btn-add-cart:hover { background: #e6ca00; }
+.btn-buy-now {
+  background: var(--bb-dark);
+  color: white;
+}
+.btn-buy-now:hover { background: #333; }
+
+/* SECONDARY ACTIONS */
+.secondary-actions {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid #eee;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 14px;
+}
+.sec-btn {
+  background: none;
+  border: none;
+  color: var(--bb-blue);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  transition: text-decoration 0.1s;
+}
+.sec-btn:hover { text-decoration: underline; }
+.sec-btn.compare-added { color: var(--bb-green); }
+
+/* PROTECTION PLAN */
+.protection-box {
+  border: 1px solid var(--bb-border);
+  border-radius: 4px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+.protection-box h4 { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+.protection-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+.protection-option:last-child { border-bottom: none; padding-bottom: 0; }
+.protection-option input[type="radio"] { accent-color: var(--bb-blue); }
+.protection-price { font-weight: 600; margin-left: auto; }
+
+/* HIGHLIGHTS SECTION */
+.highlights-section {
+  padding: 20px 0 0;
+  border-top: 1px solid var(--bb-border);
+  margin-top: 20px;
+}
+.highlights-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+.highlights-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.hl-item {
+  padding: 0;
+}
+.hl-key {
+  font-size: 11px;
+  color: var(--bb-light-muted);
+  font-weight: 400;
+  margin-bottom: 2px;
+}
+.hl-val {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bb-text);
+}
+
+/* VARIANT SELECTORS */
+.variant-section {
+  padding-top: 14px;
+  margin-top: 14px;
+  border-top: 1px solid #eee;
+}
+.variant-label {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.variant-label span { font-weight: 400; color: var(--bb-muted); }
+.variant-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.variant-chip {
+  border: 1.5px solid var(--bb-border);
+  border-radius: 4px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.12s;
+  background: #fff;
+}
+.variant-chip:hover { border-color: var(--bb-blue); }
+.variant-chip.active { border-color: var(--bb-blue); border-width: 2px; color: var(--bb-blue); background: #f0f5ff; }
+.color-swatch-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.color-swatch {
+  width: 44px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.color-swatch img {
+  width: 44px;
+  height: 60px;
+  object-fit: contain;
+  border: 2px solid transparent;
+  border-radius: 3px;
+  transition: border-color 0.12s;
+}
+.color-swatch.active img { border-color: var(--bb-blue); }
+.color-swatch span { font-size: 10px; color: var(--bb-muted); text-align: center; line-height: 1.2; }
+
+/* ── BELOW-FOLD: TABS ── */
+.pdp-below {
+  margin-top: 32px;
+  border-top: 3px solid var(--bb-border);
+}
+.tabs-bar {
+  display: flex;
+  border-bottom: 1px solid var(--bb-border);
+  background: #fff;
+  position: sticky;
+  top: 56px;
+  z-index: 50;
+}
+.tab-item {
+  padding: 14px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--bb-muted);
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.tab-item:hover { color: var(--bb-text); }
+.tab-item.active { color: var(--bb-blue); border-bottom-color: var(--bb-blue); }
+
+.tab-panels { padding: 28px 0 60px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* Specs layout: two-col */
+.specs-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  max-width: 900px;
+}
+.spec-group { margin-bottom: 24px; }
+.spec-group-title {
+  font-size: 14px;
+  font-weight: 700;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--bb-border);
+  margin-bottom: 10px;
+  color: var(--bb-text);
+}
+.spec-row {
+  display: grid;
+  grid-template-columns: 45% 55%;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 13px;
+}
+.spec-row:last-child { border-bottom: none; }
+.spec-key { color: var(--bb-muted); }
+.spec-val { font-weight: 500; }
+
+/* Reviews */
+.reviews-summary {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 32px;
+  margin-bottom: 28px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--bb-border);
+  max-width: 700px;
+}
+.big-rating { text-align: center; }
+.big-num { font-size: 56px; font-weight: 700; line-height: 1; }
+.big-stars { font-size: 24px; color: var(--bb-yellow); letter-spacing: 2px; margin: 4px 0; }
+.big-count { font-size: 13px; color: var(--bb-muted); }
+.bar-rows { display: flex; flex-direction: column; gap: 5px; justify-content: center; }
+.bar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.bar-label { color: var(--bb-blue); width: 40px; text-align: right; cursor: pointer; }
+.bar-label:hover { text-decoration: underline; }
+.bar-track { flex: 1; height: 10px; background: #eee; border-radius: 5px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--bb-yellow); border-radius: 5px; }
+.bar-pct { width: 32px; color: var(--bb-muted); }
+
+.review-card {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--bb-border);
+  max-width: 700px;
+}
+.review-top { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.reviewer { font-weight: 700; font-size: 14px; }
+.review-date { font-size: 12px; color: var(--bb-light-muted); }
+.review-stars { font-size: 14px; color: var(--bb-yellow); letter-spacing: 1px; margin-bottom: 6px; }
+.review-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.review-body { font-size: 13px; color: var(--bb-muted); line-height: 1.6; }
+.review-helpful { margin-top: 10px; font-size: 12px; color: var(--bb-light-muted); }
+.review-helpful button { border: 1px solid var(--bb-border); background: #fff; padding: 3px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; margin: 0 4px; }
+
+/* ── COMPARE TRAY ── */
+.compare-tray {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-top: 3px solid var(--bb-blue);
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 200;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.compare-tray.visible { transform: translateY(0); }
+.tray-heading {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--bb-text);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tray-slots { display: flex; gap: 10px; flex: 1; }
+.tray-slot {
+  border: 1.5px dashed var(--bb-border);
+  border-radius: 3px;
+  padding: 8px 10px;
+  min-width: 140px;
+  max-width: 180px;
+  font-size: 12px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tray-slot.filled { border-style: solid; border-color: var(--bb-blue); background: #f0f5ff; }
+.tray-slot-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.tray-slot-empty { color: var(--bb-light-muted); font-style: italic; }
+.tray-remove-btn {
+  background: none;
+  border: none;
+  color: var(--bb-light-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.12s;
+}
+.tray-remove-btn:hover { color: var(--bb-red); }
+.tray-btns { display: flex; gap: 8px; flex-shrink: 0; }
+.btn-compare-now {
+  background: var(--bb-yellow);
+  color: var(--bb-dark);
+  border: none;
+  padding: 10px 20px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 30px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.btn-compare-now:hover { background: #e6ca00; }
+.btn-compare-now:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-clear-tray {
+  background: none;
+  border: 1px solid var(--bb-border);
+  color: var(--bb-muted);
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 30px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.12s;
+}
+.btn-clear-tray:hover { border-color: var(--bb-text); color: var(--bb-text); }
+
+/* ── COMPARE OVERLAY ── */
+.compare-overlay {
+  position: fixed;
+  inset: 0;
+  background: #f5f5f5;
+  z-index: 300;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+  overflow-y: auto;
+}
+.compare-overlay.open { transform: translateY(0); }
+.compare-nav {
+  background: var(--bb-blue);
+  color: #fff;
+  padding: 0 24px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.compare-nav h2 { font-size: 18px; font-weight: 700; flex: 1; }
+.btn-back-compare {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: #fff;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s;
+}
+.btn-back-compare:hover { background: rgba(255,255,255,0.25); }
+
+.compare-body { padding: 24px; max-width: 1280px; margin: 0 auto; }
+
+.compare-table-wrap { overflow-x: auto; }
+.compare-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  font-size: 13px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.compare-tbl .col-label { width: 180px; background: #f9f9f9; }
+.compare-tbl th {
+  background: #fff;
+  border: 1px solid var(--bb-border);
+  padding: 16px 12px;
+  text-align: center;
+  vertical-align: top;
+}
+.compare-tbl th:first-child { background: #f9f9f9; }
+.compare-tbl td {
+  border: 1px solid var(--bb-border);
+  padding: 11px 12px;
+  vertical-align: middle;
+  text-align: center;
+}
+.compare-tbl td:first-child {
+  background: #f9f9f9;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--bb-muted);
+}
+.compare-tbl tr:nth-child(even) td:not(:first-child) { background: #fafafa; }
+.compare-section-row td {
+  background: var(--bb-dark) !important;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 7px 12px;
+  text-align: left !important;
+}
+.compare-tbl img.prod-img {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 10px;
+}
+.compare-prod-name { font-size: 12px; font-weight: 600; line-height: 1.3; margin-bottom: 8px; }
+.compare-prod-price { font-size: 18px; font-weight: 700; color: var(--bb-blue); margin-bottom: 10px; }
+.btn-compare-cart {
+  background: var(--bb-yellow);
+  border: none;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 30px;
+  cursor: pointer;
+  width: 100%;
+}
+.best-val { color: var(--bb-green); font-weight: 700; }
+.na-val { color: #ccc; }
+
+/* Toast */
+.toast-msg {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: var(--bb-dark);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0;
+  transition: all 0.2s;
+  z-index: 500;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.toast-msg.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 1024px) {
+  .pdp-top { grid-template-columns: 56px 1fr; }
+  .info-col { display: none; } /* simplified mobile - info goes below */
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <a href="#">Yardbird</a>
+  <a href="#">Best Buy Outlet</a>
+  <a href="#">Best Buy Business</a>
+</div>
+
+<!-- HEADER -->
+<header>
+  <a href="#" class="logo">trovestak</a>
+  <div class="header-search">
+    <input type="text" value="MacBook Air M4" placeholder="Search products, brands and categories">
+    <button>🔍</button>
+  </div>
+  <div class="header-icons">
+    <button class="header-icon-btn"><span class="ico">👤</span>Account</button>
+    <button class="header-icon-btn"><span class="ico">♡</span>Saved</button>
+    <button class="header-icon-btn"><span class="ico">🛒</span>Cart</button>
+  </div>
+</header>
+
+<!-- SUBNAV -->
+<div class="subnav">
+  <a href="#">Deals</a>
+  <a href="#">Computers & Tablets</a>
+  <a href="#">TVs & Home Theater</a>
+  <a href="#">Cell Phones</a>
+  <a href="#">Smart Home</a>
+  <a href="#">Appliances</a>
+  <a href="#">Gaming</a>
+  <a href="#">Audio</a>
+  <a href="#">Cameras</a>
+</div>
+
+<!-- BREADCRUMB -->
+<div class="breadcrumb">
+  <a href="#">Best Buy</a> &rsaquo;
+  <a href="#">Computers &amp; Tablets</a> &rsaquo;
+  <a href="#">Laptops</a> &rsaquo;
+  <a href="#">MacBooks</a> &rsaquo;
+  <span>MacBook Air 15" M4</span>
+</div>
+
+<!-- PDP OUTER -->
+<div class="pdp-outer">
+  <div class="pdp-top">
+
+    <!-- LEFT: VERTICAL THUMB STRIP -->
+    <div class="thumb-strip" id="thumbStrip">
+      <div class="thumb-item active" data-src="https://pisces.bbystatic.com/image2/BestBuy_US/images/products/01867ef7-bd07-4bce-81f9-c57533d8ed55.jpg" data-idx="0">
+        <img src="https://pisces.bbystatic.com/image2/BestBuy_US/images/products/01867ef7-bd07-4bce-81f9-c57533d8ed55.jpg;maxHeight=128;maxWidth=64" alt="">
+      </div>
+      <div class="thumb-item" data-src="https://pisces.bbystatic.com/image2/BestBuy_US/images/products/01867ef7-bd07-4bce-81f9-c57533d8ed55.jpg" data-idx="1">
+        <img src="https://pisces.bbystatic.com/image2/BestBuy_US/images/products/01867ef7-bd07-4bce-81f9-c57533d8ed55.jpg;maxHeight=128;maxWidth=64" alt="">
+      </div>
+      <div class="thumb-item" style="flex-direction:column" data-video="true">
+        <span class="play-icon">▶</span>
+        <div class="thumb-video">2 Videos</div>
+      </div>
+      <div class="thumb-item" data-src="https://pisces.bbystatic.com/image2/BestBuy_US/images/products/01867ef7-bd07-4bce-81f9-c57533d8ed55.jpg" data-idx="3">
+        <img src="https://pisces.bbystatic.com/image2/BestBuy_US/images/products/01867ef7-bd07-4bce-81f9-c57533d8ed55.jpg;maxHeight=128;maxWidth=64" alt="">
+        <div style="font-size:9px;color:var(--bb-blue);font-weight:600;text-align:center">Customer<br>Images</div>
+      </div>
+    </div>
+
+    <!-- CENTER: MAIN IMAGE -->
+    <div class="main-image-col">
+      <div class="main-img-wrap">
+        <div class="img-badge bestseller">Best Seller</div>
+        <img id="mainImg" src="https://pisces.bbystatic.com/image2/BestBuy_US/images/products/01867ef7-bd07-4bce-81f9-c57533d8ed55.jpg;maxHeight=1920;maxWidth=900" alt="MacBook Air 15 M4 Midnight">
+      </div>
+      <div class="img-tools">
+        <button class="img-tool-btn">🔍 Zoom</button>
+        <button class="img-tool-btn">↗ View in Room</button>
+        <button class="img-tool-btn">↗ 360°</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: INFO + PRICE -->
+    <div class="info-col">
+      <a href="#" class="product-brand-link">Apple</a>
+      <h1 class="product-title">Apple MacBook Air 15-inch Laptop — Apple M4 chip Built for Apple Intelligence — 16GB Memory — 256GB SSD — Midnight</h1>
+      <div class="model-sku">Model: MW1L3LL/A &nbsp;|&nbsp; SKU: 6565869</div>
+
+      <div class="rating-row">
+        <div class="stars-wrap">
+          <span class="stars-bg">★★★★★</span>
+          <span class="stars-fill" style="width:97%">★★★★★</span>
+        </div>
+        <span class="rating-num">4.9</span>
+        <a href="#tab-reviews" class="rating-count">(1,425 Reviews)</a>
+        <span class="badge-bestseller">Best Seller in MacBook Air</span>
+      </div>
+
+      <!-- PRICE BOX -->
+      <div class="price-box">
+        <div class="price-main">$999.00</div>
+        <div class="price-was-row">Was <s>$1,199.00</s> &nbsp;<span class="price-save">Save $200</span></div>
+        <div class="financing-line">or <strong>$41.63/mo.</strong> suggested payments with 24-Month Financing</div>
+      </div>
+
+      <!-- AVAILABILITY -->
+      <div class="avail-section">
+        <div class="avail-row">
+          <span class="avail-icon avail-green">✓</span>
+          <div>
+            <div class="avail-label avail-green">Pickup</div>
+            <div class="avail-sub">Ready within <strong>1 hour</strong> at Roseville</div>
+          </div>
+        </div>
+        <div class="avail-row">
+          <span class="avail-icon avail-blue">📦</span>
+          <div>
+            <div class="avail-label avail-blue">Shipping</div>
+            <div class="avail-sub">Get it <strong>Tomorrow</strong> — Free</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STORAGE VARIANT -->
+      <div class="variant-section">
+        <div class="variant-label">Total Storage Capacity: <span>256GB</span></div>
+        <div class="variant-row">
+          <div class="variant-chip active">256GB</div>
+          <div class="variant-chip">512GB</div>
+          <div class="variant-chip">1TB</div>
+        </div>
+      </div>
+
+      <!-- COLOR VARIANT -->
+      <div class="variant-section">
+        <div class="variant-label">Color: <span>Midnight</span></div>
+        <div class="color-swatch-row">
+          <div class="color-swatch active">
+            <img src="https://pisces.bbystatic.com/image2/BestBuy_US/images/products/01867ef7-bd07-4bce-81f9-c57533d8ed55.jpg;maxHeight=128;maxWidth=52" alt="">
+            <span>Midnight</span>
+          </div>
+          <div class="color-swatch">
+            <img src="https://pisces.bbystatic.com/image2/BestBuy_US/images/products/a1f46840-215f-4e3a-9af0-232ef1acc8c0.jpg;maxHeight=128;maxWidth=52" alt="">
+            <span>Silver</span>
+          </div>
+          <div class="color-swatch">
+            <img src="https://pisces.bbystatic.com/image2/BestBuy_US/images/products/c10a6947-4ed1-4036-9f5f-34287a6e879a.jpg;maxHeight=128;maxWidth=52" alt="">
+            <span>Sky Blue</span>
+          </div>
+          <div class="color-swatch">
+            <img src="https://pisces.bbystatic.com/image2/BestBuy_US/images/products/a0d522f6-1eb8-4dcc-8587-faa857ca84a8.jpg;maxHeight=128;maxWidth=52" alt="">
+            <span>Starlight</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="cta-section" style="margin-top:16px">
+        <button class="btn btn-add-cart">Add to Cart</button>
+        <button class="btn btn-buy-now">Buy Now</button>
+      </div>
+
+      <!-- SECONDARY ACTIONS -->
+      <div class="secondary-actions">
+        <button class="sec-btn" id="heartBtn" onclick="toggleSave()">♡ <span id="heartLabel">Save</span></button>
+        <button class="sec-btn" id="compareBtn" onclick="toggleCompare('p1', 'MacBook Air 15&quot; M4 — Midnight', '$999.00', 'https://pisces.bbystatic.com/image2/BestBuy_US/images/products/01867ef7-bd07-4bce-81f9-c57533d8ed55.jpg;maxHeight=128;maxWidth=64')">
+          ⊞ <span id="compareBtnLabel">Add to Compare</span>
+        </button>
+        <button class="sec-btn">✉ Email</button>
+        <button class="sec-btn">↗ Share</button>
+      </div>
+
+      <!-- GEEK SQUAD -->
+      <div class="protection-box">
+        <h4>Protect your purchase</h4>
+        <label class="protection-option">
+          <input type="radio" name="protect" value="2yr" checked>
+          <span>2-Year Geek Squad Protection</span>
+          <span class="protection-price">$129.99</span>
+        </label>
+        <label class="protection-option">
+          <input type="radio" name="protect" value="3yr">
+          <span>3-Year Geek Squad Protection</span>
+          <span class="protection-price">$169.99</span>
+        </label>
+        <label class="protection-option">
+          <input type="radio" name="protect" value="none">
+          <span>No Protection Plan</span>
+          <span class="protection-price">—</span>
+        </label>
+      </div>
+
+    </div><!-- /info-col -->
+  </div><!-- /pdp-top -->
+
+  <!-- HIGHLIGHTS — below the 3-col on full width -->
+  <div class="highlights-section">
+    <div class="highlights-title">Highlights</div>
+    <div class="highlights-grid">
+      <div class="hl-item"><div class="hl-key">Processor Model</div><div class="hl-val">Apple M4</div></div>
+      <div class="hl-item"><div class="hl-key">Graphics</div><div class="hl-val">Apple M4 10-core</div></div>
+      <div class="hl-item"><div class="hl-key">System Memory (RAM)</div><div class="hl-val">16 gigabytes</div></div>
+      <div class="hl-item"><div class="hl-key">Display Type</div><div class="hl-val">LED</div></div>
+      <div class="hl-item"><div class="hl-key">Screen Size</div><div class="hl-val">15.3 inches</div></div>
+      <div class="hl-item"><div class="hl-key">Total Storage Capacity</div><div class="hl-val">256 gigabytes</div></div>
+      <div class="hl-item"><div class="hl-key">Screen Resolution</div><div class="hl-val">2880 x 1864 (Retina)</div></div>
+      <div class="hl-item"><div class="hl-key">Battery Life</div><div class="hl-val">Up to 18 hours</div></div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="pdp-below">
+    <div class="tabs-bar">
+      <div class="tab-item active" data-tab="overview">Overview</div>
+      <div class="tab-item" data-tab="specs">Specifications</div>
+      <div class="tab-item" data-tab="reviews">Customer Reviews (1,425)</div>
+      <div class="tab-item" data-tab="qa">Questions &amp; Answers (47)</div>
+    </div>
+
+    <div class="tab-panels">
+
+      <!-- OVERVIEW -->
+      <div class="tab-panel active" id="tab-overview">
+        <p style="max-width:720px; font-size:14px; line-height:1.7; color:var(--bb-muted);">
+          The redesigned MacBook Air features the powerful Apple M4 chip, delivering a huge leap in CPU and GPU performance. Now with built-in support for Apple Intelligence — the personal intelligence system that uses AI to help you write, express yourself and get things done effortlessly. With a stunning 15.3-inch Liquid Retina display, up to 18 hours of battery life, and a fanless design that stays completely silent, it's the ideal everyday laptop.
+        </p>
+      </div>
+
+      <!-- SPECS -->
+      <div class="tab-panel" id="tab-specs">
+        <div class="specs-cols">
+          <div>
+            <div class="spec-group">
+              <div class="spec-group-title">Processor</div>
+              <div class="spec-row"><div class="spec-key">Processor Model</div><div class="spec-val">Apple M4</div></div>
+              <div class="spec-row"><div class="spec-key">Number of Cores</div><div class="spec-val">10-core CPU</div></div>
+              <div class="spec-row"><div class="spec-key">Processor Speed</div><div class="spec-val">Up to 4.4GHz</div></div>
+            </div>
+            <div class="spec-group">
+              <div class="spec-group-title">Memory</div>
+              <div class="spec-row"><div class="spec-key">System Memory (RAM)</div><div class="spec-val">16GB</div></div>
+              <div class="spec-row"><div class="spec-key">Memory Type</div><div class="spec-val">Unified Memory</div></div>
+            </div>
+            <div class="spec-group">
+              <div class="spec-group-title">Storage</div>
+              <div class="spec-row"><div class="spec-key">Total Storage Capacity</div><div class="spec-val">256GB</div></div>
+              <div class="spec-row"><div class="spec-key">Storage Type</div><div class="spec-val">SSD</div></div>
+            </div>
+          </div>
+          <div>
+            <div class="spec-group">
+              <div class="spec-group-title">Display</div>
+              <div class="spec-row"><div class="spec-key">Screen Size</div><div class="spec-val">15.3 inches</div></div>
+              <div class="spec-row"><div class="spec-key">Display Type</div><div class="spec-val">Liquid Retina LED</div></div>
+              <div class="spec-row"><div class="spec-key">Screen Resolution</div><div class="spec-val">2880 x 1864</div></div>
+              <div class="spec-row"><div class="spec-key">Pixels Per Inch</div><div class="spec-val">224 ppi</div></div>
+            </div>
+            <div class="spec-group">
+              <div class="spec-group-title">Connectivity</div>
+              <div class="spec-row"><div class="spec-key">Wi-Fi</div><div class="spec-val">Wi-Fi 6E (802.11ax)</div></div>
+              <div class="spec-row"><div class="spec-key">Bluetooth</div><div class="spec-val">5.3</div></div>
+              <div class="spec-row"><div class="spec-key">Ports</div><div class="spec-val">2x Thunderbolt 4, MagSafe 3, 3.5mm</div></div>
+            </div>
+            <div class="spec-group">
+              <div class="spec-group-title">Battery</div>
+              <div class="spec-row"><div class="spec-key">Battery Life</div><div class="spec-val">Up to 18 hours</div></div>
+              <div class="spec-row"><div class="spec-key">Charging</div><div class="spec-val">MagSafe 3 / USB-C</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REVIEWS -->
+      <div class="tab-panel" id="tab-reviews">
+        <div class="reviews-summary">
+          <div class="big-rating">
+            <div class="big-num">4.9</div>
+            <div class="big-stars">★★★★★</div>
+            <div class="big-count">1,425 Reviews</div>
+          </div>
+          <div class="bar-rows">
+            <div class="bar-row"><span class="bar-label">5 stars</span><div class="bar-track"><div class="bar-fill" style="width:91%"></div></div><span class="bar-pct">91%</span></div>
+            <div class="bar-row"><span class="bar-label">4 stars</span><div class="bar-track"><div class="bar-fill" style="width:6%"></div></div><span class="bar-pct">6%</span></div>
+            <div class="bar-row"><span class="bar-label">3 stars</span><div class="bar-track"><div class="bar-fill" style="width:2%"></div></div><span class="bar-pct">2%</span></div>
+            <div class="bar-row"><span class="bar-label">2 stars</span><div class="bar-track"><div class="bar-fill" style="width:1%"></div></div><span class="bar-pct">1%</span></div>
+            <div class="bar-row"><span class="bar-label">1 star</span><div class="bar-track"><div class="bar-fill" style="width:0%"></div></div><span class="bar-pct">0%</span></div>
+          </div>
+        </div>
+        <div class="review-card">
+          <div class="review-top"><span class="reviewer">techreviewpro</span><span class="review-date">February 10, 2026</span></div>
+          <div class="review-stars">★★★★★</div>
+          <div class="review-title">Blazing fast and dead silent</div>
+          <div class="review-body">The M4 chip is a generational leap. Everything opens instantly, Xcode builds are noticeably faster than my M2, and the machine stays completely silent under normal workloads. The 15" screen is the perfect size — big enough to get real work done, but the whole thing still slips into my bag. Battery easily lasts my full workday.</div>
+          <div class="review-helpful">Helpful? <button>Yes (42)</button> <button>No (2)</button></div>
+        </div>
+        <div class="review-card">
+          <div class="review-top"><span class="reviewer">designermarcus</span><span class="review-date">January 28, 2026</span></div>
+          <div class="review-stars">★★★★★</div>
+          <div class="review-title">Best laptop I've ever owned</div>
+          <div class="review-body">Coming from a 2020 Intel MacBook Pro, this is night and day. Figma, Adobe CC, video calls — all buttery smooth simultaneously. The Midnight finish picks up fingerprints but looks absolutely stunning. The display is gorgeous for photo work. Well worth the price.</div>
+          <div class="review-helpful">Helpful? <button>Yes (29)</button> <button>No (1)</button></div>
+        </div>
+        <div class="review-card">
+          <div class="review-top"><span class="reviewer">collegestudent_k</span><span class="review-date">January 15, 2026</span></div>
+          <div class="review-stars">★★★★☆</div>
+          <div class="review-title">Nearly perfect — 256GB fills up quick</div>
+          <div class="review-body">Love everything about it except I wish I had gone with 512GB storage. If you're doing anything with media files, photos, or keeping many apps, go bigger. The laptop itself is flawless. 4 stars because 256GB is tight for the price. Machine is otherwise spectacular.</div>
+          <div class="review-helpful">Helpful? <button>Yes (17)</button> <button>No (3)</button></div>
+        </div>
+      </div>
+
+      <!-- Q&A -->
+      <div class="tab-panel" id="tab-qa">
+        <div class="review-card">
+          <div class="review-title" style="margin-bottom:8px;">Q: Can I use an external monitor with this?</div>
+          <div class="review-body"><strong>A (Trovestak Answer):</strong> Yes — the MacBook Air 15" M4 supports one external display at up to 6K resolution at 60Hz via Thunderbolt 4. You can connect via USB-C or use a hub/dock for additional ports.</div>
+        </div>
+        <div class="review-card">
+          <div class="review-title" style="margin-bottom:8px;">Q: Does it come with a charger?</div>
+          <div class="review-body"><strong>A (Community):</strong> Yes, it includes a 35W Dual USB-C Power Adapter and a USB-C to MagSafe 3 cable in the box. — Answered by MBAlaptopuser, Jan 2026</div>
+        </div>
+        <div class="review-card">
+          <div class="review-title" style="margin-bottom:8px;">Q: Is 16GB RAM enough for video editing?</div>
+          <div class="review-body"><strong>A (Community):</strong> For 1080p and light 4K editing in Final Cut Pro, yes — Apple's unified memory is very efficient. For heavy 4K/6K multicam work, consider upgrading to 24GB RAM when configuring. — Answered by techreviewpro, Feb 2026</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div><!-- /pdp-outer -->
+
+<!-- COMPARE TRAY -->
+<div class="compare-tray" id="compareTray">
+  <div class="tray-heading">Comparing:</div>
+  <div class="tray-slots" id="traySlots"></div>
+  <div class="tray-btns">
+    <button class="btn-clear-tray" onclick="clearAll()">Clear All</button>
+    <button class="btn-compare-now" id="btnCompareNow" onclick="openCompare()" disabled>Compare</button>
+  </div>
+</div>
+
+<!-- COMPARE OVERLAY -->
+<div class="compare-overlay" id="compareOverlay">
+  <div class="compare-nav">
+    <h2>Compare Products</h2>
+    <button class="btn-back-compare" onclick="closeCompare()">← Back to Product</button>
+  </div>
+  <div class="compare-body">
+    <div class="compare-table-wrap" id="compareTableWrap"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-msg" id="toast"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────
+const PRODUCTS = [
+  {
+    id: 'p1',
+    name: 'MacBook Air 15" M4 — Midnight',
+    price: '$999.00',
+    img: 'https://pisces.bbystatic.com/image2/BestBuy_US/images/products/01867ef7-bd07-4bce-81f9-c57533d8ed55.jpg;maxHeight=128;maxWidth=64',
+    specs: {
+      'Processor': 'Apple M4', 'CPU Cores': '10-core', 'RAM': '16GB',
+      'Storage': '256GB SSD', 'Screen Size': '15.3"', 'Resolution': '2880×1864',
+      'Display': 'Liquid Retina', 'Battery': 'Up to 18 hrs', 'Wi-Fi': 'Wi-Fi 6E',
+      'Bluetooth': '5.3', 'Weight': '3.3 lbs', 'Thunderbolt': '2x TB4'
+    }
+  },
+  {
+    id: 'p2',
+    name: 'MacBook Air 13" M4 — Silver',
+    price: '$799.00',
+    img: 'https://pisces.bbystatic.com/image2/BestBuy_US/images/products/a1f46840-215f-4e3a-9af0-232ef1acc8c0.jpg;maxHeight=128;maxWidth=52',
+    specs: {
+      'Processor': 'Apple M4', 'CPU Cores': '10-core', 'RAM': '16GB',
+      'Storage': '256GB SSD', 'Screen Size': '13.6"', 'Resolution': '2560×1664',
+      'Display': 'Liquid Retina', 'Battery': 'Up to 18 hrs', 'Wi-Fi': 'Wi-Fi 6E',
+      'Bluetooth': '5.3', 'Weight': '2.7 lbs', 'Thunderbolt': '2x TB4'
+    }
+  },
+  {
+    id: 'p3',
+    name: 'MacBook Pro 14" M4 — Space Black',
+    price: '$1,599.00',
+    img: 'https://pisces.bbystatic.com/image2/BestBuy_US/images/products/01867ef7-bd07-4bce-81f9-c57533d8ed55.jpg;maxHeight=128;maxWidth=64',
+    specs: {
+      'Processor': 'Apple M4 Pro', 'CPU Cores': '12-core', 'RAM': '24GB',
+      'Storage': '512GB SSD', 'Screen Size': '14.2"', 'Resolution': '3024×1964',
+      'Display': 'Liquid Retina XDR', 'Battery': 'Up to 22 hrs', 'Wi-Fi': 'Wi-Fi 6E',
+      'Bluetooth': '5.3', 'Weight': '3.5 lbs', 'Thunderbolt': '3x TB5'
+    }
+  }
+];
+
+const SPEC_SECTIONS = {
+  'Performance': ['Processor', 'CPU Cores', 'RAM', 'Storage'],
+  'Display': ['Screen Size', 'Resolution', 'Display'],
+  'Battery & Connectivity': ['Battery', 'Wi-Fi', 'Bluetooth', 'Thunderbolt'],
+  'Physical': ['Weight']
+};
+
+// ─── STATE ──────────────────────────────────────────────
+const compareList = []; // array of product ids
+const MAX = 4;
+let saved = false;
+
+// ─── GALLERY ────────────────────────────────────────────
+document.querySelectorAll('.thumb-item:not([data-video])').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.thumb-item').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    const src = t.dataset.src;
+    if (src) document.getElementById('mainImg').src = src + ';maxHeight=1920;maxWidth=900';
+  });
+});
+
+// ─── TABS ───────────────────────────────────────────────
+document.querySelectorAll('.tab-item').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    const panel = document.getElementById('tab-' + tab.dataset.tab);
+    if (panel) panel.classList.add('active');
+  });
+});
+
+// ─── VARIANT CHIPS ──────────────────────────────────────
+document.querySelectorAll('.variant-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    chip.closest('.variant-row').querySelectorAll('.variant-chip')
+      .forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    const label = chip.closest('.variant-section').querySelector('.variant-label span');
+    if (label) label.textContent = chip.textContent;
+  });
+});
+
+document.querySelectorAll('.color-swatch').forEach(sw => {
+  sw.addEventListener('click', () => {
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+    sw.classList.add('active');
+    const label = sw.closest('.variant-section').querySelector('.variant-label span');
+    if (label) label.textContent = sw.querySelector('span').textContent;
+  });
+});
+
+// ─── SAVE ───────────────────────────────────────────────
+function toggleSave() {
+  saved = !saved;
+  document.getElementById('heartBtn').querySelector('span').textContent = saved ? 'Saved' : 'Save';
+  document.getElementById('heartBtn').innerHTML = (saved ? '♥ ' : '♡ ') + '<span id="heartLabel">' + (saved ? 'Saved' : 'Save') + '</span>';
+  toast(saved ? 'Saved to your list' : 'Removed from list');
+}
+
+// ─── COMPARE ────────────────────────────────────────────
+function toggleCompare(id, name, price, img) {
+  const idx = compareList.findIndex(i => i.id === id);
+  if (idx > -1) {
+    compareList.splice(idx, 1);
+    setCompareBtn(false);
+    toast('Removed from compare');
+  } else {
+    if (compareList.length >= MAX) { toast('Max 4 products'); return; }
+    compareList.push({ id, name, price, img });
+    setCompareBtn(true);
+    toast('Added to compare');
+  }
+  renderTray();
+}
+
+function setCompareBtn(on) {
+  const btn = document.getElementById('compareBtn');
+  const lbl = document.getElementById('compareBtnLabel');
+  btn.classList.toggle('compare-added', on);
+  lbl.textContent = on ? 'Added to Compare' : 'Add to Compare';
+  btn.innerHTML = (on ? '✓ ' : '⊞ ') + '<span id="compareBtnLabel">' + lbl.textContent + '</span>';
+}
+
+function renderTray() {
+  const tray = document.getElementById('compareTray');
+  const slots = document.getElementById('traySlots');
+  const btnNow = document.getElementById('btnCompareNow');
+
+  if (compareList.length === 0) {
+    tray.classList.remove('visible');
+    return;
+  }
+  tray.classList.add('visible');
+  slots.innerHTML = '';
+
+  for (let i = 0; i < MAX; i++) {
+    const div = document.createElement('div');
+    div.className = 'tray-slot' + (compareList[i] ? ' filled' : '');
+    if (compareList[i]) {
+      div.innerHTML = `<span class="tray-slot-name">${compareList[i].name}</span><button class="tray-remove-btn" onclick="removeTray('${compareList[i].id}')">×</button>`;
+    } else {
+      div.innerHTML = `<span class="tray-slot-empty">Add a product</span>`;
+    }
+    slots.appendChild(div);
+  }
+  btnNow.disabled = compareList.length < 2;
+}
+
+function removeTray(id) {
+  const idx = compareList.findIndex(i => i.id === id);
+  if (idx > -1) {
+    compareList.splice(idx, 1);
+    if (id === 'p1') setCompareBtn(false);
+    renderTray();
+  }
+}
+
+function clearAll() {
+  compareList.length = 0;
+  setCompareBtn(false);
+  renderTray();
+}
+
+// ─── COMPARE PAGE ───────────────────────────────────────
+function openCompare() {
+  const ids = compareList.map(c => c.id);
+  // Always include p1 for demo; also add p2 & p3 if not present yet
+  const toShow = PRODUCTS.filter(p => ids.includes(p.id));
+  // pad with suggestions if only 1
+  if (toShow.length < 2) {
+    PRODUCTS.forEach(p => { if (!ids.includes(p.id) && toShow.length < 3) toShow.push(p); });
+  }
+  buildCompareTable(toShow);
+  document.getElementById('compareOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCompare() {
+  document.getElementById('compareOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function buildCompareTable(products) {
+  const n = products.length;
+  let html = `<table class="compare-tbl"><colgroup><col class="col-label">${products.map(() => '<col>').join('')}</colgroup>`;
+
+  // Product header row
+  html += `<tr><th></th>${products.map(p => `
+    <th>
+      <img class="prod-img" src="${p.img}" alt="${p.name}">
+      <div class="compare-prod-name">${p.name}</div>
+      <div class="compare-prod-price">${p.price}</div>
+      <button class="btn-compare-cart">Add to Cart</button>
+    </th>`).join('')}</tr>`;
+
+  // Spec rows by section
+  Object.entries(SPEC_SECTIONS).forEach(([section, keys]) => {
+    html += `<tr class="compare-section-row"><td colspan="${n + 1}">${section}</td></tr>`;
+    keys.forEach(key => {
+      const vals = products.map(p => p.specs[key] || null);
+      html += `<tr><td>${key}</td>${vals.map(v => `<td>${v ? v : '<span class="na-val">—</span>'}</td>`).join('')}</tr>`;
+    });
+  });
+
+  html += '</table>';
+  document.getElementById('compareTableWrap').innerHTML = html;
+}
+
+// ─── TOAST ──────────────────────────────────────────────
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// ─── DEMO: pre-load tray with 2 items ───────────────────
+setTimeout(() => {
+  compareList.push({ id: 'p2', name: 'MacBook Air 13" M4 — Silver', price: '$799.00', img: '' });
+  renderTray();
+}, 800);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+# TroveStack ML Service — Requirements
+# Python 3.11+
+
+# Web framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+
+# ML / Data
+tensorflow==2.17.0
+scikit-learn==1.5.0
+numpy==1.26.0
+pandas==2.2.0
+
+# Google Cloud
+google-cloud-pubsub==2.22.0
+google-cloud-bigquery==3.25.0
+google-cloud-aiplatform==1.60.0     # Vertex AI
+
+# Supabase (via REST)
+supabase==2.7.0
+
+# Utilities
+python-dotenv==1.0.0
+pydantic==2.8.0
+httpx==0.27.0

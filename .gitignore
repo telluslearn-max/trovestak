@@ -1,0 +1,45 @@
+# Windows reserved device names (must be excluded on Windows)
+nul
+con
+prn
+aux
+
+# Dependencies
+node_modules/
+.pnpm-store/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Build outputs
+dist/
+.next/
+build/
+*.egg-info/
+
+# Environment variables — NEVER commit secrets
+.env
+.env.local
+.env.production
+
+# Cloud / credentials
+*.json
+!pnpm-workspace.yaml
+!tsconfig*.json
+!**/package.json
+!**/nest-cli.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary
+tmp/
+.tmp/

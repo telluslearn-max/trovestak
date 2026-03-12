@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trovestak – Product Sections</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue: #0046be;
+  --yellow: #ffe000;
+  --dark: #1d1d1b;
+  --red: #bb0628;
+  --green: #007a1e;
+  --border: #e0e0e0;
+  --bg: #f5f5f5;
+  --muted: #6b6b6b;
+  --light-muted: #8e8e8e;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--dark);
+  background: var(--bg);
+  line-height: 1.5;
+  padding: 24px 0 80px;
+}
+
+/* ── CONTEXT BAR (simulates being below PDP) ── */
+.context-bar {
+  max-width: 980px;
+  margin: 0 auto 4px;
+  padding: 0 20px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ── ACCORDION WRAPPER ── */
+.accordion-stack {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── ACCORDION CARD ── */
+.acc-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-top: none;
+  overflow: hidden;
+}
+.acc-card:first-child {
+  border-top: 1px solid var(--border);
+  border-radius: 4px 4px 0 0;
+}
+.acc-card:last-child {
+  border-radius: 0 0 4px 4px;
+}
+
+/* ── ACCORDION HEADER ── */
+.acc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s;
+  gap: 12px;
+}
+.acc-header:hover { background: #fafafa; }
+.acc-header.open { border-bottom: 1px solid var(--border); }
+
+.acc-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+.acc-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--dark);
+  line-height: 1;
+}
+.acc-meta {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.acc-chevron {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--dark);
+}
+.acc-chevron svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.acc-header.open .acc-chevron { transform: rotate(180deg); }
+
+/* ── ACCORDION BODY ── */
+.acc-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.acc-body.open { max-height: 4000px; }
+.acc-body-inner { padding: 24px 20px; }
+
+/* ── SPECIFICATIONS ── */
+.specs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 40px;
+}
+.spec-group { margin-bottom: 28px; break-inside: avoid; }
+.spec-group-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dark);
+  padding-bottom: 10px;
+  margin-bottom: 0;
+  border-bottom: 2px solid var(--border);
+}
+.spec-row {
+  display: grid;
+  grid-template-columns: 42% 58%;
+  padding: 9px 0;
+  border-bottom: 1px solid #f2f2f2;
+  font-size: 13px;
+  gap: 10px;
+}
+.spec-row:last-child { border-bottom: none; }
+.spec-k { color: var(--muted); }
+.spec-v { font-weight: 500; color: var(--dark); }
+
+.specs-show-more {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.btn-show-more {
+  background: none;
+  border: 1px solid var(--blue);
+  color: var(--blue);
+  padding: 9px 24px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-show-more:hover { background: #f0f5ff; }
+
+/* ── FEATURES ── */
+.features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.feature-item {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 14px;
+  align-items: start;
+}
+.feature-icon {
+  width: 48px;
+  height: 48px;
+  background: #f0f5ff;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.feature-text h4 {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 3px;
+  color: var(--dark);
+}
+.feature-text p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.features-fade {
+  position: relative;
+  overflow: hidden;
+  transition: max-height 0.4s ease;
+}
+.features-fade::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 80px;
+  background: linear-gradient(transparent, #fff);
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.features-fade.expanded::after { opacity: 0; }
+
+/* ── Q&A ── */
+.qa-list { display: flex; flex-direction: column; }
+.qa-item {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.qa-item:first-child { padding-top: 0; }
+.qa-item:last-child { border-bottom: none; }
+
+.qa-q {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.qa-label {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.qa-label.q-label { background: var(--dark); color: #fff; }
+.qa-label.a-label { background: var(--blue); color: #fff; }
+
+.qa-text { font-size: 14px; line-height: 1.6; }
+.qa-text strong { font-weight: 600; }
+
+.qa-a {
+  display: flex;
+  gap: 10px;
+  padding-left: 0;
+}
+.qa-a-meta {
+  font-size: 11px;
+  color: var(--light-muted);
+  margin-top: 4px;
+}
+
+.qa-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+  padding-left: 32px;
+}
+.qa-helpful-label { font-size: 12px; color: var(--muted); }
+.qa-vote-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+  color: var(--dark);
+}
+.qa-vote-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+.qa-ask-box {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f9f9f9;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.qa-ask-box p { font-size: 14px; font-weight: 600; }
+.qa-ask-box span { font-size: 12px; color: var(--muted); }
+.btn-ask {
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.btn-ask:hover { opacity: 0.88; }
+
+/* ── FROM THE MANUFACTURER ── */
+.mfr-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+.mfr-text h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--dark);
+}
+.mfr-text p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.7;
+  margin-bottom: 12px;
+}
+.mfr-img {
+  background: #f5f5f5;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mfr-img img { width: 100%; object-fit: contain; }
+
+.mfr-fade {
+  position: relative;
+  overflow: hidden;
+  max-height: 200px;
+  transition: max-height 0.4s ease;
+}
+.mfr-fade::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 60px;
+  background: linear-gradient(transparent, #fff);
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.mfr-fade.expanded { max-height: 1000px; }
+.mfr-fade.expanded::after { opacity: 0; }
+
+/* ── REVIEWS ── */
+.reviews-header {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 28px;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  align-items: start;
+}
+.rating-big { text-align: center; }
+.rating-big .num { font-size: 52px; font-weight: 700; line-height: 1; color: var(--dark); }
+.rating-big .stars-big { font-size: 22px; color: var(--yellow); letter-spacing: 2px; display: block; margin: 4px 0; }
+.rating-big .total { font-size: 12px; color: var(--muted); }
+
+.bar-rows { display: flex; flex-direction: column; gap: 6px; }
+.bar-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.bar-star-lnk { color: var(--blue); width: 44px; text-align: right; flex-shrink: 0; cursor: pointer; }
+.bar-star-lnk:hover { text-decoration: underline; }
+.bar-track { flex: 1; height: 12px; background: #eee; border-radius: 6px; overflow: hidden; cursor: pointer; }
+.bar-track:hover .bar-fill { filter: brightness(0.88); }
+.bar-fill { height: 100%; background: var(--yellow); border-radius: 6px; transition: width 0.5s ease; }
+.bar-pct { width: 34px; color: var(--muted); font-weight: 500; }
+
+.reviews-sort-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.sort-label { font-size: 13px; font-weight: 600; }
+.sort-select {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 7px 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--dark);
+  background: #fff;
+  cursor: pointer;
+  outline: none;
+}
+.filter-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.filter-chip {
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 13px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.12s;
+  background: #fff;
+}
+.filter-chip:hover { border-color: var(--blue); color: var(--blue); }
+.filter-chip.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+.review-list { display: flex; flex-direction: column; }
+.review-card {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+}
+.review-card:first-child { padding-top: 0; }
+.review-card:last-child { border-bottom: none; padding-bottom: 0; }
+
+.review-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 12px; }
+.reviewer-name { font-weight: 700; font-size: 14px; }
+.review-date { font-size: 12px; color: var(--light-muted); white-space: nowrap; }
+.review-stars { font-size: 15px; color: var(--yellow); letter-spacing: 1px; margin-bottom: 5px; }
+.review-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+.review-body { font-size: 13px; color: var(--muted); line-height: 1.65; }
+.verified-badge {
+  font-size: 11px;
+  color: var(--green);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 5px;
+}
+.review-helpful {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.helpful-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.helpful-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+.reviews-load-more {
+  text-align: center;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+</style>
+</head>
+<body>
+
+<div class="context-bar">
+  ↑ <em>Product details and purchase options above</em> — Sections below
+</div>
+
+<div class="accordion-stack">
+
+  <!-- ══ 1. SPECIFICATIONS ══ -->
+  <div class="acc-card">
+    <div class="acc-header open" onclick="toggle(this)">
+      <div class="acc-title-wrap">
+        <span class="acc-title">Specifications</span>
+      </div>
+      <div class="acc-chevron">
+        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+    <div class="acc-body open">
+      <div class="acc-body-inner">
+        <div class="specs-grid" id="specsGrid">
+
+          <div class="spec-group">
+            <div class="spec-group-label">Processor</div>
+            <div class="spec-row"><span class="spec-k">Processor Brand</span><span class="spec-v">Apple</span></div>
+            <div class="spec-row"><span class="spec-k">Processor Model</span><span class="spec-v">Apple M4</span></div>
+            <div class="spec-row"><span class="spec-k">Number of Cores</span><span class="spec-v">10-core CPU</span></div>
+            <div class="spec-row"><span class="spec-k">Processor Speed</span><span class="spec-v">Up to 4.4GHz</span></div>
+          </div>
+
+          <div class="spec-group">
+            <div class="spec-group-label">Memory</div>
+            <div class="spec-row"><span class="spec-k">System Memory (RAM)</span><span class="spec-v">16 gigabytes</span></div>
+            <div class="spec-row"><span class="spec-k">Memory Type</span><span class="spec-v">Unified Memory</span></div>
+            <div class="spec-row"><span class="spec-k">Memory Speed</span><span class="spec-v">120GB/s</span></div>
+          </div>
+
+          <div class="spec-group">
+            <div class="spec-group-label">Storage</div>
+            <div class="spec-row"><span class="spec-k">Total Storage Capacity</span><span class="spec-v">256 gigabytes</span></div>
+            <div class="spec-row"><span class="spec-k">Storage Type</span><span class="spec-v">SSD</span></div>
+          </div>
+
+          <div class="spec-group">
+            <div class="spec-group-label">Display</div>
+            <div class="spec-row"><span class="spec-k">Display Type</span><span class="spec-v">LED</span></div>
+            <div class="spec-row"><span class="spec-k">Screen Size</span><span class="spec-v">15.3 inches</span></div>
+            <div class="spec-row"><span class="spec-k">Screen Resolution</span><span class="spec-v">2880 x 1864 (Retina)</span></div>
+            <div class="spec-row"><span class="spec-k">Pixels Per Inch</span><span class="spec-v">224 PPI</span></div>
+            <div class="spec-row"><span class="spec-k">Peak Brightness</span><span class="spec-v">500 nits (1000 nits HDR)</span></div>
+          </div>
+
+          <!-- Hidden specs revealed on "Show All" -->
+          <div class="spec-group spec-extra" style="display:none">
+            <div class="spec-group-label">Graphics</div>
+            <div class="spec-row"><span class="spec-k">Graphics</span><span class="spec-v">Apple M4 10-core GPU</span></div>
+            <div class="spec-row"><span class="spec-k">Ray Tracing</span><span class="spec-v">Yes</span></div>
+          </div>
+
+          <div class="spec-group spec-extra" style="display:none">
+            <div class="spec-group-label">Connectivity</div>
+            <div class="spec-row"><span class="spec-k">Wireless Type</span><span class="spec-v">Wi-Fi 6E (802.11ax)</span></div>
+            <div class="spec-row"><span class="spec-k">Bluetooth Version</span><span class="spec-v">5.3</span></div>
+            <div class="spec-row"><span class="spec-k">USB Ports</span><span class="spec-v">2x Thunderbolt 4 / USB 4</span></div>
+            <div class="spec-row"><span class="spec-k">Video Output</span><span class="spec-v">HDMI 2.1, Thunderbolt 4</span></div>
+            <div class="spec-row"><span class="spec-k">Audio</span><span class="spec-v">3.5mm headphone jack</span></div>
+            <div class="spec-row"><span class="spec-k">Charging</span><span class="spec-v">MagSafe 3 / USB-C</span></div>
+          </div>
+
+          <div class="spec-group spec-extra" style="display:none">
+            <div class="spec-group-label">Battery</div>
+            <div class="spec-row"><span class="spec-k">Battery Life</span><span class="spec-v">Up to 18 hours</span></div>
+            <div class="spec-row"><span class="spec-k">Battery Capacity</span><span class="spec-v">66.5Wh</span></div>
+          </div>
+
+          <div class="spec-group spec-extra" style="display:none">
+            <div class="spec-group-label">Physical</div>
+            <div class="spec-row"><span class="spec-k">Weight</span><span class="spec-v">3.3 lbs (1.51 kg)</span></div>
+            <div class="spec-row"><span class="spec-k">Dimensions</span><span class="spec-v">13.40" x 9.35" x 0.45"</span></div>
+            <div class="spec-row"><span class="spec-k">Color</span><span class="spec-v">Midnight</span></div>
+            <div class="spec-row"><span class="spec-k">Operating System</span><span class="spec-v">macOS Sequoia</span></div>
+          </div>
+
+        </div>
+
+        <div class="specs-show-more">
+          <button class="btn-show-more" onclick="toggleSpecs(this)">
+            <span>Show All Specifications</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 2. FEATURES ══ -->
+  <div class="acc-card">
+    <div class="acc-header" onclick="toggle(this)">
+      <div class="acc-title-wrap">
+        <span class="acc-title">Features</span>
+      </div>
+      <div class="acc-chevron">
+        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+    <div class="acc-body">
+      <div class="acc-body-inner">
+        <div class="features-fade" id="featuresFade">
+          <div class="features-list">
+            <div class="feature-item">
+              <div class="feature-icon">⚡</div>
+              <div class="feature-text">
+                <h4>Supercharged by Apple M4</h4>
+                <p>The Apple M4 chip delivers a huge leap in CPU and GPU performance — up to 1.8x faster CPU and 2x faster GPU than M2. Handles demanding tasks like photo editing, coding, and video calls with ease, all without a fan.</p>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">🧠</div>
+              <div class="feature-text">
+                <h4>Built for Apple Intelligence</h4>
+                <p>Apple Intelligence is the personal intelligence system that uses AI to help you write, express yourself, and get things done effortlessly. With on-device processing for privacy, it's deeply integrated across apps.</p>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">🖥️</div>
+              <div class="feature-text">
+                <h4>Stunning 15.3" Liquid Retina Display</h4>
+                <p>The expansive display features 2880×1864 resolution at 224 pixels per inch, support for one billion colors, and up to 500 nits brightness for everyday work — and up to 1,000 nits for HDR content.</p>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">🔋</div>
+              <div class="feature-text">
+                <h4>Up to 18 Hours of Battery Life</h4>
+                <p>All-day and all-night battery means you can work, watch, and create without hunting for an outlet. MagSafe 3 charging keeps it simple and fast when you do plug in.</p>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">🔇</div>
+              <div class="feature-text">
+                <h4>Fanless, Silent Design</h4>
+                <p>No fans means no noise — ever. MacBook Air is completely silent during everyday use. The thin and light aluminum chassis stays cool under normal workloads, making it the ideal travel companion.</p>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">📷</div>
+              <div class="feature-text">
+                <h4>12MP Center Stage Camera</h4>
+                <p>The upgraded 12MP front camera uses Center Stage to automatically keep you centered in frame during video calls, with Desk View to show your desk from above during FaceTime.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="text-align:center; margin-top:16px; padding-top:16px; border-top:1px solid var(--border)">
+          <button class="btn-show-more" onclick="toggleFeatures(this)">
+            <span>Show All Features</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 3. Q&A ══ -->
+  <div class="acc-card">
+    <div class="acc-header" onclick="toggle(this)">
+      <div class="acc-title-wrap">
+        <span class="acc-title">Questions &amp; Answers</span>
+        <span class="acc-meta">(57 questions)</span>
+      </div>
+      <div class="acc-chevron">
+        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+    <div class="acc-body">
+      <div class="acc-body-inner">
+
+        <div class="qa-ask-box">
+          <div>
+            <p>Have a question about this product?</p>
+            <span>Get answers from the seller or other customers who own this product</span>
+          </div>
+          <button class="btn-ask">Ask a Question</button>
+        </div>
+
+        <div style="margin-top: 20px;">
+          <div class="qa-list">
+
+            <div class="qa-item">
+              <div class="qa-q">
+                <span class="qa-label q-label">Q</span>
+                <span class="qa-text">Can this drive an external monitor? I need dual 4K displays for my home office setup.</span>
+              </div>
+              <div class="qa-a">
+                <span class="qa-label a-label">A</span>
+                <div>
+                  <div class="qa-text">The MacBook Air M4 supports <strong>one external display</strong> at up to 6K/60Hz when the lid is closed (clamshell mode). With the lid open it mirrors or extends to one external display. For true dual-monitor use, you'd need a MacBook Pro or a USB-C dock that splits the signal (some limitations apply).</div>
+                  <div class="qa-a-meta">Answered by Trovestak Staff · Feb 12, 2026</div>
+                </div>
+              </div>
+              <div class="qa-actions">
+                <span class="qa-helpful-label">Helpful?</span>
+                <button class="qa-vote-btn">👍 Yes (38)</button>
+                <button class="qa-vote-btn">👎 No (2)</button>
+              </div>
+            </div>
+
+            <div class="qa-item">
+              <div class="qa-q">
+                <span class="qa-label q-label">Q</span>
+                <span class="qa-text">Does it come with a charger in the box?</span>
+              </div>
+              <div class="qa-a">
+                <span class="qa-label a-label">A</span>
+                <div>
+                  <div class="qa-text">Yes — includes a <strong>35W Dual USB-C Power Adapter</strong> and a USB-C to MagSafe 3 Cable. The dual USB-C adapter is handy because you can charge your iPhone or AirPods from the same brick simultaneously.</div>
+                  <div class="qa-a-meta">Answered by customer mbapro2024 · Jan 29, 2026</div>
+                </div>
+              </div>
+              <div class="qa-actions">
+                <span class="qa-helpful-label">Helpful?</span>
+                <button class="qa-vote-btn">👍 Yes (21)</button>
+                <button class="qa-vote-btn">👎 No (0)</button>
+              </div>
+            </div>
+
+            <div class="qa-item">
+              <div class="qa-q">
+                <span class="qa-label q-label">Q</span>
+                <span class="qa-text">Is 256GB storage enough, or should I upgrade to 512GB?</span>
+              </div>
+              <div class="qa-a">
+                <span class="qa-label a-label">A</span>
+                <div>
+                  <div class="qa-text">It depends on your usage. 256GB is fine if you use iCloud Drive for photos/documents and stream media. If you store large video projects, raw photos, or many heavy apps locally — <strong>go 512GB</strong>. Storage cannot be upgraded after purchase, so err on the side of more if unsure.</div>
+                  <div class="qa-a-meta">Answered by Trovestak Staff · Feb 1, 2026</div>
+                </div>
+              </div>
+              <div class="qa-actions">
+                <span class="qa-helpful-label">Helpful?</span>
+                <button class="qa-vote-btn">👍 Yes (44)</button>
+                <button class="qa-vote-btn">👎 No (3)</button>
+              </div>
+            </div>
+
+            <div class="qa-item">
+              <div class="qa-q">
+                <span class="qa-label q-label">Q</span>
+                <span class="qa-text">Is the Midnight finish prone to fingerprints and scratches?</span>
+              </div>
+              <div class="qa-a">
+                <span class="qa-label a-label">A</span>
+                <div>
+                  <div class="qa-text">Midnight does show fingerprints more than Silver or Starlight — though Apple's anodization process reduces it vs previous dark finishes. A microfiber cloth cleans it instantly. Scratches are rare with normal use; the aluminum is quite durable. Many prefer a slim case for peace of mind.</div>
+                  <div class="qa-a-meta">Answered by customer designermarcus · Jan 20, 2026</div>
+                </div>
+              </div>
+              <div class="qa-actions">
+                <span class="qa-helpful-label">Helpful?</span>
+                <button class="qa-vote-btn">👍 Yes (16)</button>
+                <button class="qa-vote-btn">👎 No (1)</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div style="text-align:center;margin-top:20px">
+          <button class="btn-show-more">
+            <span>See All 57 Questions</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 4. FROM THE MANUFACTURER ══ -->
+  <div class="acc-card">
+    <div class="acc-header" onclick="toggle(this)">
+      <div class="acc-title-wrap">
+        <span class="acc-title">From the Manufacturer</span>
+      </div>
+      <div class="acc-chevron">
+        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+    <div class="acc-body">
+      <div class="acc-body-inner">
+        <div class="mfr-fade" id="mfrFade">
+          <div class="mfr-content">
+            <div class="mfr-text">
+              <h3>MacBook Air. Still the one.</h3>
+              <p>The world's most popular laptop just got even better. Featuring the new M4 chip, MacBook Air is incredibly capable and remarkably thin and light. Now supercharged with Apple Intelligence — the personal intelligence system that helps you write, express yourself, and get things done.</p>
+              <p>With an expansive 15.3-inch Liquid Retina display, a 12MP camera, four-speaker sound system with Spatial Audio, and all-day 18-hour battery, MacBook Air is the ultraportable you can take anywhere and use for everything.</p>
+              <p>MacBook Air is made with <strong>more than 50% recycled materials</strong> and is designed to minimize impact on the environment. The aluminum enclosure is made entirely from recycled aluminum.</p>
+              <h3 style="margin-top:20px">Designed for Apple Intelligence</h3>
+              <p>Apple Intelligence features Writing Tools to help you rewrite, proofread, and summarize text. Image generation lets you create images with a simple description. Notification summaries and priority messages help you focus on what matters. And a more capable, natural Siri helps you get things done across apps.</p>
+            </div>
+            <div class="mfr-img">
+              <img src="https://pisces.bbystatic.com/image2/BestBuy_US/images/products/01867ef7-bd07-4bce-81f9-c57533d8ed55.jpg;maxHeight=400;maxWidth=400" alt="MacBook Air M4">
+            </div>
+          </div>
+        </div>
+        <div style="text-align:center; margin-top:16px; padding-top:16px; border-top:1px solid var(--border)">
+          <button class="btn-show-more" onclick="toggleMfr(this)">
+            <span>Show More</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 5. REVIEWS ══ -->
+  <div class="acc-card">
+    <div class="acc-header" onclick="toggle(this)">
+      <div class="acc-title-wrap">
+        <span class="acc-title">Customer Reviews</span>
+        <span class="acc-meta">(1,425 reviews)</span>
+      </div>
+      <div class="acc-chevron">
+        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+    <div class="acc-body">
+      <div class="acc-body-inner">
+
+        <!-- Rating summary -->
+        <div class="reviews-header">
+          <div class="rating-big">
+            <div class="num">4.9</div>
+            <span class="stars-big">★★★★★</span>
+            <div class="total">1,425 Reviews</div>
+          </div>
+          <div class="bar-rows">
+            <div class="bar-row">
+              <span class="bar-star-lnk">5 stars</span>
+              <div class="bar-track"><div class="bar-fill" style="width:91%"></div></div>
+              <span class="bar-pct">91%</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-star-lnk">4 stars</span>
+              <div class="bar-track"><div class="bar-fill" style="width:6%"></div></div>
+              <span class="bar-pct">6%</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-star-lnk">3 stars</span>
+              <div class="bar-track"><div class="bar-fill" style="width:2%"></div></div>
+              <span class="bar-pct">2%</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-star-lnk">2 stars</span>
+              <div class="bar-track"><div class="bar-fill" style="width:1%"></div></div>
+              <span class="bar-pct">1%</span>
+            </div>
+            <div class="bar-row">
+              <span class="bar-star-lnk">1 star</span>
+              <div class="bar-track"><div class="bar-fill" style="width:0%"></div></div>
+              <span class="bar-pct">0%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sort + filter bar -->
+        <div class="reviews-sort-bar">
+          <span class="sort-label">Sort by:</span>
+          <select class="sort-select">
+            <option>Most Recent</option>
+            <option>Most Helpful</option>
+            <option>Highest Rated</option>
+            <option>Lowest Rated</option>
+          </select>
+          <div class="filter-chips">
+            <div class="filter-chip active" onclick="filterChip(this)">All Stars</div>
+            <div class="filter-chip" onclick="filterChip(this)">5 Stars</div>
+            <div class="filter-chip" onclick="filterChip(this)">4 Stars</div>
+            <div class="filter-chip" onclick="filterChip(this)">3 Stars &amp; Below</div>
+            <div class="filter-chip" onclick="filterChip(this)">Verified Purchase</div>
+          </div>
+        </div>
+
+        <!-- Review cards -->
+        <div class="review-list">
+
+          <div class="review-card">
+            <div class="review-top">
+              <span class="reviewer-name">techreviewpro</span>
+              <span class="review-date">February 10, 2026</span>
+            </div>
+            <div class="verified-badge">✓ Verified Purchase</div>
+            <div class="review-stars">★★★★★</div>
+            <div class="review-title">Blazing fast and completely silent</div>
+            <div class="review-body">The M4 chip is a generational leap. Everything opens instantly, Xcode builds are noticeably faster than my M2, and the machine stays completely silent even under sustained load. The 15" screen is the sweet spot — big enough to get real work done but thin enough to carry everywhere. Battery easily lasts my full work day with Zoom, VS Code, and Figma all running.</div>
+            <div class="review-helpful">
+              <span>Helpful?</span>
+              <button class="helpful-btn">👍 Yes (42)</button>
+              <button class="helpful-btn">👎 No (2)</button>
+            </div>
+          </div>
+
+          <div class="review-card">
+            <div class="review-top">
+              <span class="reviewer-name">designermarcus</span>
+              <span class="review-date">January 28, 2026</span>
+            </div>
+            <div class="verified-badge">✓ Verified Purchase</div>
+            <div class="review-stars">★★★★★</div>
+            <div class="review-title">Best laptop I've ever owned — not even close</div>
+            <div class="review-body">Upgraded from a 2020 Intel MacBook Pro and the difference is night and day. Adobe CC, Figma, and video calls all run simultaneously without a hitch. Midnight finish is stunning though it picks up fingerprints — nothing a quick wipe won't fix. Display quality is exceptional for photo work. Well worth every penny.</div>
+            <div class="review-helpful">
+              <span>Helpful?</span>
+              <button class="helpful-btn">👍 Yes (29)</button>
+              <button class="helpful-btn">👎 No (1)</button>
+            </div>
+          </div>
+
+          <div class="review-card">
+            <div class="review-top">
+              <span class="reviewer-name">collegestudent_k</span>
+              <span class="review-date">January 15, 2026</span>
+            </div>
+            <div class="verified-badge">✓ Verified Purchase</div>
+            <div class="review-stars">★★★★☆</div>
+            <div class="review-title">Nearly perfect — 256GB fills up faster than you'd think</div>
+            <div class="review-body">Love everything about it — the screen, the keyboard, the speed. My only regret is not going with 512GB storage. If you're doing anything with photos, media, or keeping many apps — go bigger. You cannot upgrade it later. Machine itself is flawless, giving 4 stars only because 256GB feels limiting for the price point.</div>
+            <div class="review-helpful">
+              <span>Helpful?</span>
+              <button class="helpful-btn">👍 Yes (17)</button>
+              <button class="helpful-btn">👎 No (3)</button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="reviews-load-more">
+          <button class="btn-show-more">
+            <span>See All 1,425 Reviews</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div><!-- /accordion-stack -->
+
+<script>
+// ── ACCORDION TOGGLE ──────────────────────────────────────────
+function toggle(header) {
+  const body = header.nextElementSibling;
+  const isOpen = header.classList.contains('open');
+
+  if (isOpen) {
+    header.classList.remove('open');
+    body.classList.remove('open');
+  } else {
+    header.classList.add('open');
+    body.classList.add('open');
+  }
+}
+
+// ── SPECS: show all / show less ───────────────────────────────
+function toggleSpecs(btn) {
+  const extras = document.querySelectorAll('.spec-extra');
+  const label = btn.querySelector('span');
+  const arrow = btn.querySelector('svg');
+  const showing = label.textContent === 'Show Less';
+
+  extras.forEach(el => el.style.display = showing ? 'none' : 'block');
+  label.textContent = showing ? 'Show All Specifications' : 'Show Less';
+  arrow.style.transform = showing ? '' : 'rotate(180deg)';
+}
+
+// ── FEATURES: expand fade ─────────────────────────────────────
+function toggleFeatures(btn) {
+  const fade = document.getElementById('featuresFade');
+  const label = btn.querySelector('span');
+  const arrow = btn.querySelector('svg');
+  const expanded = fade.classList.contains('expanded');
+
+  if (expanded) {
+    fade.classList.remove('expanded');
+    fade.style.maxHeight = '340px';
+    label.textContent = 'Show All Features';
+    arrow.style.transform = '';
+  } else {
+    fade.classList.add('expanded');
+    fade.style.maxHeight = fade.scrollHeight + 'px';
+    label.textContent = 'Show Less';
+    arrow.style.transform = 'rotate(180deg)';
+  }
+}
+
+// ── MANUFACTURER: expand fade ─────────────────────────────────
+function toggleMfr(btn) {
+  const fade = document.getElementById('mfrFade');
+  const label = btn.querySelector('span');
+  const arrow = btn.querySelector('svg');
+  const expanded = fade.classList.contains('expanded');
+
+  fade.classList.toggle('expanded', !expanded);
+  label.textContent = expanded ? 'Show More' : 'Show Less';
+  arrow.style.transform = expanded ? '' : 'rotate(180deg)';
+}
+
+// ── REVIEW FILTER CHIPS ───────────────────────────────────────
+function filterChip(el) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// Init: open Specs by default, animate bars on load
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.querySelectorAll('.bar-fill').forEach(bar => {
+      const w = bar.style.width;
+      bar.style.width = '0';
+      requestAnimationFrame(() => {
+        bar.style.transition = 'width 0.8s ease';
+        bar.style.width = w;
+      });
+    });
+  }, 100);
+});
+</script>
+
+</body>
+</html>

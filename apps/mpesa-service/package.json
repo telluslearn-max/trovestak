@@ -1,0 +1,25 @@
+{
+    "name": "@trovestak/mpesa-service",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "dev": "tsx watch src/index.ts",
+        "start": "node dist/index.js",
+        "build": "tsc",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@google-cloud/pubsub": "^4.0.0",
+        "@supabase/supabase-js": "^2.48.1",
+        "@trovestak/shared": "workspace:*",
+        "dotenv": "^16.4.0",
+        "express": "^4.21.0",
+        "axios": "^1.6.0"
+    },
+    "devDependencies": {
+        "@types/express": "^4.17.0",
+        "@types/node": "^20.0.0",
+        "tsx": "^4.19.0",
+        "typescript": "^5.0.0"
+    }
+}

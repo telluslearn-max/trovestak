@@ -1,0 +1,12 @@
+{
+    "name": "@trovestak/ml-service",
+    "version": "1.0.0",
+    "private": true,
+    "description": "TensorFlow + Vertex AI ML microservice for recommendations, demand forecasting, and search ranking",
+    "scripts": {
+        "dev": "uvicorn src.main:app --reload --port 8001",
+        "start": "uvicorn src.main:app --host 0.0.0.0 --port 8001",
+        "train": "python src/training/train_all.py",
+        "typecheck": "mypy src/"
+    }
+}

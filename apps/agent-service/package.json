@@ -1,0 +1,27 @@
+{
+    "name": "@trovestak/agent-service",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "dev": "tsx watch src/index.ts",
+        "start": "node dist/index.js",
+        "build": "tsc",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@google-cloud/pubsub": "^4.0.0",
+        "@google/adk": "^0.5.0",
+        "@google/genai": "^1.44.0",
+        "@google/generative-ai": "^0.21.0",
+        "@supabase/supabase-js": "^2.48.1",
+        "@trovestak/shared": "workspace:*",
+        "dotenv": "^16.4.0",
+        "ws": "^8.18.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20.0.0",
+        "@types/ws": "^8.5.0",
+        "tsx": "^4.19.0",
+        "typescript": "^5.0.0"
+    }
+}

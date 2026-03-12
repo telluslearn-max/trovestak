@@ -1,0 +1,186 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* LIGHT MODE - APEX ADMIN DASHBOARD */
+:root {
+  /* Page & Surface Hierarchy */
+  --admin-bg: #f5f4f0;
+  --admin-surface: #ffffff;
+  --admin-sidebar: #1a1814;
+  --admin-topbar: #ffffff;
+  --admin-card: #ffffff;
+  --admin-card-alt: #faf9f7;
+  --admin-input-bg: #faf9f7;
+
+  /* Borders */
+  --admin-border: #e8e5df;
+  --admin-border-strong: #d4cfc7;
+  --admin-border-subtle: #f0ede8;
+
+  /* Typography */
+  --admin-text: #1a1814;
+  --admin-text-secondary: #6b6560;
+  --admin-text-muted: #9e9890;
+
+  /* Accent Colors - Light Mode (Darker for contrast) */
+  --admin-blue: #2563eb;
+  --admin-purple: #7c3aed;
+  --admin-cyan: #0891b2;
+  --admin-green: #059669;
+  --admin-orange: #d97706;
+  --admin-red: #dc2626;
+
+  /* Shadows */
+  --admin-shadow-sm: 0 1px 3px rgba(0, 0, 0, .06), 0 1px 2px rgba(0, 0, 0, .04);
+  --admin-shadow-md: 0 4px 12px rgba(0, 0, 0, .08);
+  --admin-shadow-lg: 0 8px 24px rgba(0, 0, 0, .1);
+
+  /* Status Badges - Light Mode */
+  --status-active-bg: #dcfce7;
+  --status-active-text: #166534;
+  --status-active-dot: #16a34a;
+  --status-processing-bg: #ede9fe;
+  --status-processing-text: #5b21b6;
+  --status-processing-dot: #7c3aed;
+  --status-shipped-bg: #e0f2fe;
+  --status-shipped-text: #075985;
+  --status-shipped-dot: #0284c7;
+  --status-pending-bg: #fef3c7;
+  --status-pending-text: #92400e;
+  --status-pending-dot: #d97706;
+  --status-cancelled-bg: #fee2e2;
+  --status-cancelled-text: #991b1b;
+  --status-cancelled-dot: #dc2626;
+  --status-draft-bg: #f5f5f4;
+  --status-draft-text: #57534e;
+  --status-draft-dot: #78716c;
+  --status-refunded-bg: #f1f5f9;
+  --status-refunded-text: #475569;
+  --status-refunded-dot: #94a3b8;
+  --status-vip-bg: #ede9fe;
+  --status-vip-text: #5b21b6;
+  --status-vip-dot: #7c3aed;
+}
+
+/* DARK MODE OVERRIDES */
+.dark .admin-theme,
+.dark:root {
+  --admin-bg: #07080f;
+  --admin-surface: #0b0d17;
+  --admin-sidebar: #0b0d17;
+  --admin-card: #0f1120;
+  --admin-card-alt: #16192c;
+  --admin-input-bg: #0f1120;
+
+  --admin-border: #1a1d2e;
+  --admin-border-strong: #2a2d40;
+  --admin-border-subtle: #121526;
+
+  --admin-text: #f8fafc;
+  --admin-text-secondary: #94a3b8;
+  --admin-text-muted: #4a5568;
+
+  /* Accent Colors - Dark Mode (Vibrant) */
+  --admin-blue: #3b82f6;
+  --admin-purple: #8b5cf6;
+  --admin-cyan: #06b6d4;
+  --admin-green: #10b981;
+  --admin-orange: #f59e0b;
+  --admin-red: #ef4444;
+
+  --admin-shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+
+  /* Status Badges - Dark Mode */
+  --status-active-bg: #052e16;
+  --status-active-text: #4ade80;
+  --status-active-dot: #22c55e;
+  --status-processing-bg: #1e1b4b;
+  --status-processing-text: #a5b4fc;
+  --status-processing-dot: #818cf8;
+  --status-shipped-bg: #0c4a6e;
+  --status-shipped-text: #7dd3fc;
+  --status-shipped-dot: #38bdf8;
+  --status-pending-bg: #451a03;
+  --status-pending-text: #fdba74;
+  --status-pending-dot: #f97316;
+  --status-cancelled-bg: #1c0505;
+  --status-cancelled-text: #fca5a5;
+  --status-cancelled-dot: #ef4444;
+  --status-draft-bg: #1c1917;
+  --status-draft-text: #a8a29e;
+  --status-draft-dot: #78716c;
+}
+
+
+.admin-theme {
+  font-family: 'Syne', sans-serif;
+  background: var(--admin-bg);
+  color: var(--admin-text);
+  min-height: 100vh;
+  transition: background .2s, color .2s;
+}
+
+
+.admin-theme * {
+  box-sizing: border-box;
+}
+
+.admin-theme ::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.admin-theme ::-webkit-scrollbar-thumb {
+  background: #1e2235;
+  border-radius: 8px;
+}
+
+.admin-theme input,
+.admin-theme textarea,
+.admin-theme select {
+  font-family: 'Syne', sans-serif;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-up {
+  animation: fadeUp 0.3s ease both;
+}
+
+.page-enter {
+  animation: fadeIn 0.2s ease both;
+}
+
+.hover-row:hover {
+  background: #0d0f1a !important;
+  cursor: pointer;
+}
+
+.nav-btn:hover {
+  background: #0d0f1a !important;
+  color: #e2e8f0 !important;
+}
+
+.nav-btn.active {
+  background: #0d0f1a !important;
+  color: #f8fafc !important;
+}
