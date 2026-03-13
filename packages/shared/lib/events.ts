@@ -65,6 +65,7 @@ export interface PaymentConfirmedData {
     mpesa_receipt: string;
     amount_kes: number;
     phone: string;
+    email?: string;
     confirmed_at: string;
 }
 
