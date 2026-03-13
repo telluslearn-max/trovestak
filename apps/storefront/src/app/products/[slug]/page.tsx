@@ -27,82 +27,104 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
 }
 
+import { Package } from 'lucide-react'
+import Link from 'next/link'
+
 export default async function ProductPage({ params }: Props) {
-    const { slug } = await params
-    const supabase = await createSupabaseServerClient()
-
-    const { data: product, error: productError } = await supabase
-        .from('products')
-        .select('*')
-        .eq('slug', slug)
-        .eq('is_active', true)
-        .single()
-
-    if (productError || !product) {
-        console.error('Product fetch error:', productError)
-        notFound()
+    let slug = "";
+    try {
+        const resolvedParams = await params;
+        slug = resolvedParams.slug;
+    } catch (e) {
+        console.error("[ProductPage] Params resolution error:", e);
+        return <ErrorPage message="Invalid product parameters" />;
     }
 
-    const { data: variants } = await supabase
-        .from('product_variants')
-        .select('id, name, price_kes, stock_quantity, options, sku')
-        .eq('product_id', product.id)
-        .order('price_kes', { ascending: true })
+    try {
+        const supabase = await createSupabaseServerClient()
 
-    const { data: pricing } = await supabase
-        .from('product_pricing')
-        .select('*')
-        .eq('product_id', product.id)
-        .maybeSingle()
-
-    const { data: specs } = await supabase
-        .from('product_specs')
-        .select('*')
-        .eq('product_id', product.id)
-        .maybeSingle()
-
-    const { data: content } = await supabase
-        .from('product_content')
-        .select('*')
-        .eq('product_id', product.id)
-        .maybeSingle()
-
-    const { data: addons } = await supabase
-        .from('product_addons')
-        .select('*')
-        .eq('product_id', product.id)
-
-    // ── Pre-fetch Reviews ───────────────────────────────────────────────────
-    const { data: reviews } = await supabase
-        .from('product_reviews')
-        .select('*')
-        .eq('product_id', product.id)
-        .eq('is_approved', true)
-        .order('created_at', { ascending: false })
-        .limit(10)
-
-    // ── Pre-fetch Related Products ─────────────────────────────────────────
-    let relatedProducts: any[] = []
-    if (product.nav_category) {
-        const { data: related } = await supabase
+        const { data: product, error: productError } = await supabase
             .from('products')
-            .select('id, name, slug, thumbnail_url, brand_type, product_variants(price_kes)')
+            .select('*')
+            .eq('slug', slug)
             .eq('is_active', true)
-            .eq('nav_category', product.nav_category)
-            .neq('id', product.id)
-            .order('created_at', { ascending: false })
-            .limit(4)
-        relatedProducts = related || []
-    }
+            .single()
 
-    return <ProductPageClient
-        product={product}
-        variants={variants ?? []}
-        pricing={pricing}
-        specs={specs?.spec_data ?? null}
-        content={content}
-        addons={addons ?? []}
-        initialReviews={reviews ?? []}
-        initialRelated={relatedProducts}
-    />
+        if (productError || !product) {
+            console.error('Product fetch error:', productError)
+            notFound()
+        }
+
+        const { data: variants } = await supabase
+            .from('product_variants')
+            .select('id, name, price_kes, stock_quantity, options, sku')
+            .eq('product_id', product.id)
+            .order('price_kes', { ascending: true })
+
+        const { data: pricing } = await supabase
+            .from('product_pricing')
+            .select('*')
+            .eq('product_id', product.id)
+            .maybeSingle()
+
+        const { data: specs } = await supabase
+            .from('product_specs')
+            .select('*')
+            .eq('product_id', product.id)
+            .maybeSingle()
+
+        const { data: content } = await supabase
+            .from('product_content')
+            .select('*')
+            .eq('product_id', product.id)
+            .maybeSingle()
+
+        const { data: addons } = await supabase
+            .from('product_addons')
+            .select('*')
+            .eq('product_id', product.id)
+
+        // ── Pre-fetch Reviews ───────────────────────────────────────────────────
+        const { data: reviews } = await supabase
+            .from('product_reviews')
+            .select('*')
+            .eq('product_id', product.id)
+            .eq('is_approved', true)
+            .order('created_at', { ascending: false })
+            .limit(10)
+
+        // ── Pre-fetch Related Products ─────────────────────────────────────────
+        let relatedProducts: any[] = []
+        try {
+            if (product.nav_category) {
+                const { data: related } = await supabase
+                    .from('products')
+                    .select('id, name, slug, thumbnail_url, brand_type, product_variants(price_kes)')
+                    .eq('is_active', true)
+                    .eq('nav_category', product.nav_category)
+                    .neq('id', product.id)
+                    .order('created_at', { ascending: false })
+                    .limit(4)
+                relatedProducts = related || []
+            }
+        } catch (relatedError) {
+            console.warn('Failed to fetch related products:', relatedError)
+        }
+
+        return <ProductPageClient
+            product={product}
+            variants={variants ?? []}
+            pricing={pricing}
+            specs={specs?.spec_data ?? null}
+            content={content}
+            addons={addons ?? []}
+            initialReviews={reviews ?? []}
+            initialRelated={relatedProducts}
+        />
+    } catch (error) {
+        console.error('[ProductPage] Error:', error);
+        return <ErrorPage title="Product Details Error" message="We encountered an issue while loading product details. The team has been notified." />;
+    }
 }
+
+import { ErrorPage } from "@/components/error-page";

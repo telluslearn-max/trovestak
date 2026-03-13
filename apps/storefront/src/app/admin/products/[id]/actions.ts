@@ -30,7 +30,7 @@ export async function updateProduct(id: string, productData: any) {
 
     revalidatePath("/admin/products");
     revalidatePath(`/admin/products/${id}`);
-    revalidatePath(`/product/${productData.slug || id}`, "page");
+    revalidatePath(`/products/${productData.slug || id}`, "page");
 
     return { success: true };
 }

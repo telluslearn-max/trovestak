@@ -36,16 +36,32 @@ topics=(
 )
 
 for topic in "${topics[@]}"; do
-    gcloud pubsub topics create "$topic"
+    if gcloud pubsub topics describe "$topic" >/dev/null 2>&1; then
+        echo "Topic $topic already exists, skipping."
+    else
+        echo "Creating topic $topic..."
+        gcloud pubsub topics create "$topic"
+    fi
 done
 
 # 4. Cloud Pub/Sub Subscriptions
 echo "Creating Subscriptions..."
-gcloud pubsub subscriptions create payment-initiate-mpesa-sub --topic=payment.initiate
-gcloud pubsub subscriptions create order-created-notif-sub --topic=order.created
-gcloud pubsub subscriptions create payment-confirmed-notif-sub --topic=payment.confirmed
-gcloud pubsub subscriptions create stock-low-notif-sub --topic=stock.low
-gcloud pubsub subscriptions create order-created-ml-sub --topic=order.created
-gcloud pubsub subscriptions create payment-confirmed-agent-sub --topic=payment.confirmed
+create_sub() {
+    local sub=$1
+    local topic=$2
+    if gcloud pubsub subscriptions describe "$sub" >/dev/null 2>&1; then
+        echo "Subscription $sub already exists, skipping."
+    else
+        echo "Creating subscription $sub..."
+        gcloud pubsub subscriptions create "$sub" --topic="$topic"
+    fi
+}
+
+create_sub "payment-initiate-mpesa-sub" "payment.initiate"
+create_sub "order-created-notif-sub" "order.created"
+create_sub "payment-confirmed-notif-sub" "payment.confirmed"
+create_sub "stock-low-notif-sub" "stock.low"
+create_sub "order-created-ml-sub" "order.created"
+create_sub "payment-confirmed-agent-sub" "payment.confirmed"
 
 echo "Infrastructure Setup Complete!"

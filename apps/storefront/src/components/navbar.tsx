@@ -106,7 +106,7 @@ const megaMenuData = {
       badge: "NEW",
       title: "iPhone 16 Pro",
       description: "Available Now",
-      href: "/product/iphone-16-pro",
+      href: "/products/iphone-16-pro",
       cta: "Learn more"
     }
   },
@@ -193,7 +193,7 @@ const megaMenuData = {
       badge: "NEW",
       title: "MacBook Air M3",
       description: "The lightest MacBook ever",
-      href: "/product/macbook-air-m3",
+      href: "/products/macbook-air-m3",
       cta: "Shop now"
     }
   },
@@ -273,7 +273,7 @@ const megaMenuData = {
       badge: "NEW",
       title: "AirPods Pro 2",
       description: "Adaptive Audio. Active Noise Cancellation.",
-      href: "/product/airpods-pro-2",
+      href: "/products/airpods-pro-2",
       cta: "Buy now"
     }
   },
@@ -365,7 +365,7 @@ const megaMenuData = {
       badge: "NEW",
       title: "PlayStation 5",
       description: "New Games Available",
-      href: "/product/ps5-slim",
+      href: "/products/ps5-slim",
       cta: "Shop PS5"
     }
   },
@@ -450,7 +450,7 @@ const megaMenuData = {
       badge: "NEW",
       title: "DJI Mini 4 Pro",
       description: "Capture Kenya from above",
-      href: "/product/dji-mini-4-pro",
+      href: "/products/dji-mini-4-pro",
       cta: "Learn more"
     }
   },
@@ -528,7 +528,7 @@ const megaMenuData = {
       badge: "NEW",
       title: "Apple Watch Ultra 2",
       description: "Toughest Apple Watch ever",
-      href: "/product/apple-watch-ultra-2",
+      href: "/products/apple-watch-ultra-2",
       cta: "Shop now"
     }
   },
@@ -615,7 +615,7 @@ const megaMenuData = {
       badge: "POPULAR",
       title: "Starlink",
       description: "High-speed internet everywhere",
-      href: "/product/starlink-standard",
+      href: "/products/starlink-standard",
       cta: "Get Starlink"
     }
   },

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
+import { ErrorPage } from "@/components/error-page";
 
 interface PageProps {
   params: Promise<{ slug: string[] }>;
@@ -28,44 +29,59 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: PageProps) {
-  const { slug } = await params;
-  const fullSlug = slug.join("/");
-  const supabase = await createSupabaseServerClient();
+  try {
+    const { slug } = await params;
+    const fullSlug = slug.join("/");
+    
+    // Ignore static assets
+    if (fullSlug.match(/\.(ico|png|jpg|jpeg|gif|webp|svg|css|js|map|json|txt)$/i)) {
+      return { title: "Not Found" };
+    }
 
-  const { data: page } = await supabase
-    .from("cms_pages")
-    .select("title, meta_title, meta_description")
-    .eq("slug", fullSlug)
-    .eq("status", "published")
-    .single();
+    const supabase = await createSupabaseServerClient();
 
-  if (!page) return { title: "Page Not Found" };
+    const { data: page } = await supabase
+      .from("cms_pages")
+      .select("title, meta_title, meta_description")
+      .eq("slug", fullSlug)
+      .eq("status", "published")
+      .single();
 
-  return {
-    title: page.meta_title || page.title,
-    description: page.meta_description,
-  };
+    if (!page) return { title: "Page Not Found" };
+
+    return {
+      title: page.meta_title || page.title,
+      description: page.meta_description,
+    };
+  } catch {
+    return { title: "TroveStak" };
+  }
 }
 
 export default async function CMSPageRoute({ params }: PageProps) {
-  const { slug } = await params;
-  const fullSlug = slug.join("/");
-  const supabase = await createSupabaseServerClient();
+  try {
+    const { slug } = await params;
+    const fullSlug = slug.join("/");
 
-  const { data: page } = await supabase
-    .from("cms_pages")
-    .select("*")
-    .eq("slug", fullSlug)
-    .eq("status", "published")
-    .single();
+    // 🛡️ Static Asset Guard: Prevent 500s on missing icons/images
+    if (fullSlug.match(/\.(ico|png|jpg|jpeg|gif|webp|svg|css|js|map|json|txt)$/i)) {
+      notFound();
+    }
 
-  if (!page) {
-    notFound();
-  }
+    const supabase = await createSupabaseServerClient();
 
+    const { data: page, error } = await supabase
+      .from("cms_pages")
+      .select("*")
+      .eq("slug", fullSlug)
+      .eq("status", "published")
+      .single();
 
-  return (
-    <>
+    if (error || !page) {
+      notFound();
+    }
+
+    return (
       <div className="min-h-screen bg-background">
         <main className="max-w-4xl mx-auto px-6 py-24">
           <article className="prose prose-neutral dark:prose-invert max-w-none">
@@ -77,6 +93,14 @@ export default async function CMSPageRoute({ params }: PageProps) {
           </article>
         </main>
       </div>
-    </>
-  );
+    );
+  } catch (err) {
+    console.error("CMS Page Error:", err);
+    return (
+      <ErrorPage 
+        title="Page Unavailable"
+        message="We encountered an error while loading this page. Our team has been notified."
+      />
+    );
+  }
 }

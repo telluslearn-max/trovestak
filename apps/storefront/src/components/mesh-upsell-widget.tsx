@@ -117,7 +117,7 @@ export function MeshUpsellWidget({
                                     className="group relative bg-[#1d1d1f]/40 backdrop-blur-xl border border-white/5 rounded-[1.5rem] p-4 hover:border-primary/20 transition-all duration-500 overflow-hidden"
                                 >
                                     <div className="flex gap-4 items-center">
-                                        <Link href={`/product/${product.slug}`} className="relative h-16 w-16 flex-shrink-0 bg-white/5 rounded-xl overflow-hidden group-hover:scale-105 transition-transform duration-500">
+                                        <Link href={`/products/${product.slug}`} className="relative h-16 w-16 flex-shrink-0 bg-white/5 rounded-xl overflow-hidden group-hover:scale-105 transition-transform duration-500">
                                             <img
                                                 src={product.thumbnail_url || "/placeholder.png"}
                                                 alt={product.name}
@@ -136,7 +136,7 @@ export function MeshUpsellWidget({
                                                     </span>
                                                 )}
                                             </div>
-                                            <Link href={`/product/${product.slug}`}>
+                                            <Link href={`/products/${product.slug}`}>
                                                 <h4 className="text-sm font-bold text-white truncate group-hover:text-primary transition-colors">
                                                     {product.name}
                                                 </h4>

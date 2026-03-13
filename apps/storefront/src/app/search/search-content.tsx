@@ -51,13 +51,18 @@ export default function SearchPageContent() {
         if (searchTerm.length < 2) return;
 
         setIsSearching(true);
+        try {
+            const result = await searchProductsAction(searchTerm);
 
-        const result = await searchProductsAction(searchTerm);
-
-        if (!result.error && result.products) {
-            setResults(result.products as Product[]);
+            if (!result.error && result.products) {
+                setResults(result.products as Product[]);
+            }
+        } catch (err) {
+            console.error("Search Error:", err);
+            setResults([]);
+        } finally {
+            setIsSearching(false);
         }
-        setIsSearching(false);
     };
 
     const handleSubmit = (e: React.FormEvent) => {

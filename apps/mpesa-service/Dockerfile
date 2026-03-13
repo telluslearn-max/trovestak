@@ -15,6 +15,9 @@ RUN pnpm install --frozen-lockfile
 COPY packages/shared/ ./packages/shared/
 COPY apps/mpesa-service/ ./apps/mpesa-service/
 
+WORKDIR /app
+RUN pnpm --filter @trovestak/shared build
+
 WORKDIR /app/apps/mpesa-service
 RUN pnpm run build
 

@@ -67,6 +67,7 @@ async function getProducts(categorySlug?: string, subcategorySlug?: string, bran
 
     return (data || []).map((p: any) => ({
         ...p,
+        category: p.categories?.[0] || null,
         variants: p.product_variants || [],
     }));
 }
@@ -82,31 +83,48 @@ async function getBrands() {
     if (error) return [];
 
     // Get unique non-empty brands
-    const brands = Array.from(new Set(data?.map((d: { brand_type: string }) => d.brand_type).filter(Boolean)));
+    const brands = Array.from(new Set((data || []).map((d: { brand_type: string }) => d.brand_type).filter(Boolean)));
     return brands.sort() as string[];
 }
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
 export default async function StorePage({ searchParams }: StorePageProps) {
-    const { category, subcategory, brand, sort } = await searchParams;
+    try {
+        const sp = await searchParams;
+        const category = sp.category;
+        const subcategory = sp.subcategory;
+        const brand = sp.brand;
+        const sort = sp.sort;
 
-    // Fetch categories, products, and brands in parallel
-    const [categories, products, brands] = await Promise.all([
-        getCategories(),
-        getProducts(category, subcategory, brand, sort),
-        getBrands()
-    ]);
+        // Fetch categories, products, and brands in parallel
+        const [categories, products, brands] = await Promise.all([
+            getCategories(),
+            getProducts(category, subcategory, brand, sort),
+            getBrands()
+        ]);
 
-    return (
-        <StoreClient
-            categories={categories}
-            products={products}
-            brands={brands}
-            category={category}
-            subcategory={subcategory}
-            brand={brand}
-            sort={sort}
-        />
-    );
+        return (
+            <StoreClient
+                categories={categories}
+                products={products}
+                brands={brands}
+                category={category}
+                subcategory={subcategory}
+                brand={brand}
+                sort={sort}
+            />
+        );
+    } catch (error: any) {
+        console.error("StorePage Error:", error);
+        return (
+            <ErrorPage 
+                title="Store Unavailable"
+                message="We encountered an issue loading the storefront. Our team has been notified and is investigating."
+            />
+        );
+    }
 }
+
+import { ErrorPage } from "@/components/error-page";
+import Link from "next/link";

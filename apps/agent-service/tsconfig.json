@@ -7,7 +7,10 @@
         "outDir": "dist",
         "rootDir": "src",
         "esModuleInterop": true,
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "paths": {
+            "@trovestak/shared": ["../../packages/shared/lib/index.ts"]
+        }
     },
     "include": [
         "src"

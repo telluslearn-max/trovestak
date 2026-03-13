@@ -33,19 +33,12 @@ export default async function CategoryPage(props: Props) {
         const params = await props.params;
         slug = params.slug;
         subcategory = params.subcategory;
-    } catch (e) {
-        console.error('[CategoryPage] Params error:', e);
-        return <ErrorPage message="Invalid parameters" />;
-    }
-
-    try {
         const sp = await props.searchParams;
         brand = sp?.brand;
     } catch (e) {
-        console.error('[CategoryPage] SearchParams error:', e);
+        console.error('[CategoryPage] Params resolution error:', e);
+        return <ErrorPage message="Invalid subcategory parameters" />;
     }
-
-    console.log('[CategoryPage] Rendering:', { slug, subcategory, brand });
 
     try {
         const config = categoryConfig[slug] || { title: slug, Icon: Package, color: "from-primary/20 to-primary/10" };
@@ -149,9 +142,13 @@ export default async function CategoryPage(props: Props) {
 
                         {products && products.length > 0 ? (
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                {products.map((product: { id: string; name: string; slug: string; thumbnail_url: string | null; product_variants: { price_kes: number }[] | null }) => {
-                                    const minPrice = product.product_variants?.length
-                                        ? Math.min(...product.product_variants.map((v: { price_kes: number }) => v.price_kes)) : 0;
+                                {products.map((product: { id: string; name: string; slug: string; thumbnail_url: string | null; product_variants: any[] | null }) => {
+                                    const variants = product.product_variants || [];
+                                    const prices = variants
+                                        .map((v) => Number(v.price_kes))
+                                        .filter((p) => !isNaN(p) && p > 0);
+                                    
+                                    const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
 
                                     return (
                                         <Link key={product.id} href={`/products/${product.slug}`} className="group block cursor-pointer">
@@ -183,21 +180,8 @@ export default async function CategoryPage(props: Props) {
         );
     } catch (error) {
         console.error('[CategoryPage] Error:', error);
-        return <ErrorPage message="Error loading category" />;
+        return <ErrorPage title="Subcategory Error" message="We encountered an issue while loading this subcategory." />;
     }
 }
 
-function ErrorPage({ message }: { message: string }) {
-    return (
-        <div className="min-h-screen bg-background">
-            <div className="pt-[44px]" />
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-                <div className="text-center">
-                    <Package className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                    <h2 className="text-2xl font-bold mb-2">{message}</h2>
-                    <p className="text-muted-foreground">Please try again later.</p>
-                </div>
-            </div>
-        </div>
-    );
-}
+import { ErrorPage } from "@/components/error-page";
