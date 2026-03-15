@@ -13,6 +13,5 @@ substitutions:
   _SUPABASE_URL: ''
   _SUPABASE_ANON_KEY: ''
   _APP_URL: ''
-  _SERVICE_NAME: ''
 images:
 - '$_IMAGE'
