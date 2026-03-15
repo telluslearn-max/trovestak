@@ -18,7 +18,8 @@ async function bootstrap() {
         const { WebSocketServer } = await import("ws");
         const { createLogger } = await import("@trovestak/shared");
         const { GoogleGenAI, Modality } = await import("@google/genai");
-        const { CONCIERGE_INSTRUCTIONS, getGenAITools, conciergeTools } = await import("./agent.js");
+        const { CONCIERGE_INSTRUCTIONS, getGenAITools } = await import("./agent.js");
+        const { conciergeTools } = await import("./tools.js");
 
         const log = createLogger("agent-service");
         const PORT = parseInt(process.env.PORT || "8088");
@@ -54,7 +55,7 @@ async function bootstrap() {
                         // Fix #1: correct model — the only stable Live API model with native audio I/O
                         model: "gemini-2.5-flash-native-audio-preview-12-2025",
                         config: {
-                            systemInstruction: CONCIERGE_INSTRUCTIONS,
+                            systemInstruction: String(CONCIERGE_INSTRUCTIONS),
                             tools: [{ functionDeclarations: getGenAITools() }],
                             // Fix #2: Use Modality enum, not raw string
                             responseModalities: [Modality.AUDIO],
