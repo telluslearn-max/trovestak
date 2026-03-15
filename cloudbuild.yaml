@@ -1,17 +1,28 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: [
-    'build', 
-    '-t', '$_IMAGE', 
-    '-f', '$_DOCKERFILE', 
+    'build',
+    '-t', '$_IMAGE',
+    '-f', '$_DOCKERFILE',
     '--build-arg', 'NEXT_PUBLIC_SUPABASE_URL=$_SUPABASE_URL',
     '--build-arg', 'NEXT_PUBLIC_SUPABASE_ANON_KEY=$_SUPABASE_ANON_KEY',
     '--build-arg', 'NEXT_PUBLIC_APP_URL=$_APP_URL',
     '.'
   ]
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: gcloud
+  args: [
+    'run', 'deploy', '$_SERVICE_NAME',
+    '--image', '$_IMAGE',
+    '--region', 'us-central1',
+    '--platform', 'managed',
+    '--allow-unauthenticated',
+    '--quiet'
+  ]
 substitutions:
   _SUPABASE_URL: ''
   _SUPABASE_ANON_KEY: ''
   _APP_URL: ''
+  _SERVICE_NAME: ''
 images:
 - '$_IMAGE'
