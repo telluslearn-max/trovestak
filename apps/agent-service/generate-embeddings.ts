@@ -15,15 +15,14 @@
  */
 
 import "dotenv/config";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@supabase/supabase-js";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const GEMINI_KEY   = process.env.GEMINI_API_KEY!;
-const BATCH_SIZE   = parseInt(process.env.BATCH_SIZE  || "5", 10);
-const BATCH_DELAY  = parseInt(process.env.BATCH_DELAY || "500", 10);
+// Free tier: 100 req/min. Process sequentially at 700ms/req = ~85 RPM
+const REQ_DELAY    = parseInt(process.env.REQ_DELAY   || "700", 10);
 const FORCE        = process.env.FORCE === "true";
 
 if (!SUPABASE_URL || !SERVICE_KEY || !GEMINI_KEY) {
@@ -35,8 +34,25 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const embedModel = new GoogleGenerativeAI(GEMINI_KEY)
-    .getGenerativeModel({ model: "text-embedding-004" });
+// gemini-embedding-001 via v1beta (text-embedding-004 unavailable on this key)
+// outputDimensionality: 768 keeps vectors compatible with vector(768) column
+async function getEmbedding(text: string): Promise<number[]> {
+    const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${GEMINI_KEY}`,
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                model: "models/gemini-embedding-001",
+                content: { parts: [{ text }] },
+                outputDimensionality: 768,
+            }),
+        }
+    );
+    const json = await res.json() as any;
+    if (!res.ok) throw new Error(JSON.stringify(json));
+    return json.embedding.values;
+}
 
 // ── Build embedding text ──────────────────────────────────────────────────────
 function buildEmbedText(product: {
@@ -87,43 +103,36 @@ async function main() {
         return;
     }
 
-    console.log(`Found ${products.length} product(s) to embed. Batch: ${BATCH_SIZE}, Delay: ${BATCH_DELAY}ms\n`);
+    console.log(`Found ${products.length} product(s) to embed. Rate: 1 per ${REQ_DELAY}ms (~${Math.floor(60000/REQ_DELAY)} RPM)\n`);
 
     let success = 0;
     let failed  = 0;
 
-    for (let i = 0; i < products.length; i += BATCH_SIZE) {
-        const batch       = products.slice(i, i + BATCH_SIZE);
-        const batchNum    = Math.floor(i / BATCH_SIZE) + 1;
-        const totalBatches = Math.ceil(products.length / BATCH_SIZE);
-        process.stdout.write(`Batch ${batchNum}/${totalBatches}: `);
+    for (let i = 0; i < products.length; i++) {
+        const product = products[i];
+        process.stdout.write(`[${i + 1}/${products.length}] "${product.name}" ... `);
 
-        await Promise.all(batch.map(async (product) => {
-            try {
-                const text = buildEmbedText(product);
-                const result = await embedModel.embedContent(text);
-                const embedding = result.embedding.values;
+        try {
+            const text = buildEmbedText(product);
+            const embedding = await getEmbedding(text);
 
-                const { error: updateError } = await supabase
-                    .from("products")
-                    .update({ embedding })
-                    .eq("id", product.id);
+            const { error: updateError } = await supabase
+                .from("products")
+                .update({ embedding })
+                .eq("id", product.id);
 
-                if (updateError) throw updateError;
+            if (updateError) throw updateError;
 
-                process.stdout.write(".");
-                success++;
-            } catch (err: any) {
-                process.stdout.write("✗");
-                console.error(`\n  Failed [${product.id}] "${product.name}": ${err.message}`);
-                failed++;
-            }
-        }));
+            process.stdout.write("✓\n");
+            success++;
+        } catch (err: any) {
+            process.stdout.write(`✗ ${err.message}\n`);
+            failed++;
+        }
 
-        process.stdout.write(` (${Math.min(i + BATCH_SIZE, products.length)}/${products.length})\n`);
-
-        if (i + BATCH_SIZE < products.length) {
-            await new Promise(r => setTimeout(r, BATCH_DELAY));
+        // Rate-limit: pause between requests (skip after last)
+        if (i < products.length - 1) {
+            await new Promise(r => setTimeout(r, REQ_DELAY));
         }
     }
 

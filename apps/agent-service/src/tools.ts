@@ -29,11 +29,21 @@ export const searchProductsTool = new FunctionTool({
 
         // Tier 1: Semantic search via pgvector (Bible §6.1)
         try {
-            const { GoogleGenerativeAI } = await import("@google/generative-ai");
-            const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-            const model = genai.getGenerativeModel({ model: "text-embedding-004" });
-            const result = await model.embedContent(query);
-            const embedding = result.embedding.values;
+            const res = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${process.env.GEMINI_API_KEY}`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        model: "models/gemini-embedding-001",
+                        content: { parts: [{ text: query }] },
+                        outputDimensionality: 768,
+                    }),
+                }
+            );
+            const json = await res.json() as any;
+            if (!res.ok) throw new Error(JSON.stringify(json));
+            const embedding: number[] = json.embedding.values;
 
             const { data, error } = await supabase.rpc("match_products", {
                 query_embedding: embedding,
