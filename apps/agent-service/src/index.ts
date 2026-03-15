@@ -15,12 +15,10 @@ async function bootstrap() {
             try { const { config } = await import("dotenv"); config(); } catch (e) {}
         }
 
+        // ── Phase 1: fast core imports + HTTP bind (Cloud Run health check must pass quickly) ──
         const { createServer } = await import("http");
         const { WebSocketServer } = await import("ws");
         const { createLogger } = await import("@trovestak/shared");
-        const { GoogleGenAI, Modality } = await import("@google/genai");
-        const { CONCIERGE_INSTRUCTIONS, getGenAITools } = await import("./agent.js");
-        const { conciergeTools } = await import("./tools.js");
 
         const log = createLogger("agent-service");
         const PORT = parseInt(process.env.PORT || "8088");
@@ -31,7 +29,8 @@ async function bootstrap() {
             process.exit(1);
         }
 
-        // HTTP server handles Cloud Run health checks (GET /) and hosts the WS server
+        // HTTP server handles Cloud Run health checks (GET /) and hosts the WS server.
+        // Must bind to PORT before any slow imports so the startup probe passes.
         const httpServer = createServer((req, res) => {
             res.writeHead(200, { "Content-Type": "text/plain" });
             res.end("TroveVoice OK");
@@ -40,6 +39,12 @@ async function bootstrap() {
         const wss = new WebSocketServer({ server: httpServer });
         wss.on("error", (err) => log.error("WSS Error", { err }));
         httpServer.listen(PORT, () => log.info(`TroveVoice listening on port ${PORT}`));
+
+        // ── Phase 2: heavy AI deps (load after port is bound) ────────────────────────
+        const { GoogleGenAI, Modality } = await import("@google/genai");
+        const { CONCIERGE_INSTRUCTIONS, getGenAITools } = await import("./agent.js");
+        const { conciergeTools } = await import("./tools.js");
+        log.info("AI modules loaded — ready for connections");
 
         wss.on("connection", async (clientWs, req) => {
             const url = new URL(req.url || "/", `http://${req.headers.host}`);
