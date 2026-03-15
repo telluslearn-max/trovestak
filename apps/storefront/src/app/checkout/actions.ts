@@ -110,7 +110,7 @@ export async function validateCartAction(items: CartItem[]): Promise<ValidationR
         }
 
         let currentPrice = 0;
-        let availableStock: number | null = null;
+        let availableStock = 0;
         let stockStatus = "instock";
 
         if (item.variant_id && UUID_RE.test(item.variant_id)) {
@@ -135,7 +135,7 @@ export async function validateCartAction(items: CartItem[]): Promise<ValidationR
             }
 
             currentPrice = variant.price_kes ?? 0;
-            availableStock = variant.stock_quantity ?? 0;
+            availableStock = (variant.stock_quantity ?? 0) as number;
             stockStatus = availableStock > 0 ? "instock" : "outofstock";
         } else {
             // Simple product — look up product directly
