@@ -20,14 +20,14 @@ export const CONSTRAINT_ERROR_MAP: ErrorMap = {
     message: "This URL slug is already in use by another product",
   },
   
-  // Product Variations
-  product_variations_sku_key: {
+  // Product Variants
+  product_variants_sku_key: {
     field: "sku",
-    message: "This SKU is already in use by another variation",
+    message: "This SKU is already in use by another variant",
   },
-  product_variations_product_id_sku_key: {
+  product_variants_product_id_sku_key: {
     field: "sku",
-    message: "This SKU is already in use by another variation of this product",
+    message: "This SKU is already in use by another variant of this product",
   },
   
   // Categories

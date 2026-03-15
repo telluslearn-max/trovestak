@@ -333,16 +333,18 @@ export function useProductMutations() {
 
 // Separate hook for variation mutations
 export function useVariationMutations() {
-  // Create variation
+  // Create variant
   const createVariation = useCallback(
     async (data: CreateVariationData) => {
-      const { data: { user } } = await supabase.auth.getUser();
       try {
-        const { data: variation, error: createError } = await supabase
-          .from("product_variations")
+        const { data: variant, error: createError } = await supabase
+          .from("product_variants")
           .insert({
-            ...data,
-            created_by: user?.id,
+            product_id: data.product_id,
+            name: data.name,
+            sku: data.sku,
+            price_kes: (data as any).price_kes ?? 0,
+            options: (data as any).options ?? {},
           })
           .select()
           .single();
@@ -352,19 +354,7 @@ export function useVariationMutations() {
           return { error: parsedError };
         }
 
-        // Insert variation attributes if provided
-        if (data.attributes && data.attributes.length > 0) {
-          const attrInserts = data.attributes.map((attr) => ({
-            variation_id: variation.id,
-            attribute_id: attr.attribute_id,
-            term_id: attr.term_id,
-            value: attr.value,
-          }));
-
-          await supabase.from("variation_attributes").insert(attrInserts);
-        }
-
-        return { data: variation };
+        return { data: variant };
       } catch (err: any) {
         return { error: { message: err.message, code: err.code || "UNKNOWN" } };
       }
@@ -372,16 +362,17 @@ export function useVariationMutations() {
     []
   );
 
-  // Update variation
+  // Update variant
   const updateVariation = useCallback(
     async (id: string, data: UpdateVariationData) => {
-      const { data: { user } } = await supabase.auth.getUser();
       try {
-        const { data: variation, error: updateError } = await supabase
-          .from("product_variations")
+        const { data: variant, error: updateError } = await supabase
+          .from("product_variants")
           .update({
-            ...data,
-            updated_by: user?.id,
+            ...(data.name !== undefined && { name: data.name }),
+            ...(data.sku !== undefined && { sku: data.sku }),
+            ...((data as any).price_kes !== undefined && { price_kes: (data as any).price_kes }),
+            ...((data as any).stock_quantity !== undefined && { stock_quantity: (data as any).stock_quantity }),
             updated_at: new Date().toISOString(),
           })
           .eq("id", id)
@@ -393,7 +384,7 @@ export function useVariationMutations() {
           return { error: parsedError };
         }
 
-        return { data: variation };
+        return { data: variant };
       } catch (err: any) {
         return { error: { message: err.message, code: err.code || "UNKNOWN" } };
       }
@@ -401,11 +392,11 @@ export function useVariationMutations() {
     []
   );
 
-  // Delete variation
+  // Delete variant
   const deleteVariation = useCallback(async (id: string) => {
     try {
       const { error: deleteError } = await supabase
-        .from("product_variations")
+        .from("product_variants")
         .delete()
         .eq("id", id);
 
@@ -420,15 +411,15 @@ export function useVariationMutations() {
     }
   }, []);
 
-  // Bulk update variations (price/stock)
+  // Bulk update variants (price/stock)
   const bulkUpdateVariations = useCallback(
     async (
       ids: string[],
-      data: { regular_price?: number; stock_quantity?: number }
+      data: { price_kes?: number; stock_quantity?: number }
     ) => {
       try {
         const { error: updateError } = await supabase
-          .from("product_variations")
+          .from("product_variants")
           .update({
             ...data,
             updated_at: new Date().toISOString(),
@@ -500,11 +491,12 @@ export function useVariationMutations() {
             .join(" / ");
 
           const { data: variation, error: varError }: { data: any, error: any } = await supabase
-            .from("product_variations")
+            .from("product_variants")
             .insert({
               product_id: productId,
               name,
               sku: `${productId.slice(0, 8)}-${variations.length + 1}`,
+              price_kes: 0,
             })
             .select()
             .single();
