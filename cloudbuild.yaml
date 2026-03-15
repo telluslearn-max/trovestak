@@ -9,16 +9,6 @@ steps:
     '--build-arg', 'NEXT_PUBLIC_APP_URL=$_APP_URL',
     '.'
   ]
-- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-  entrypoint: gcloud
-  args: [
-    'run', 'deploy', '$_SERVICE_NAME',
-    '--image', '$_IMAGE',
-    '--region', 'us-central1',
-    '--platform', 'managed',
-    '--allow-unauthenticated',
-    '--quiet'
-  ]
 substitutions:
   _SUPABASE_URL: ''
   _SUPABASE_ANON_KEY: ''
