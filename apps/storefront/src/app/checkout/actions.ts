@@ -141,11 +141,11 @@ export async function validateCartAction(items: CartItem[]): Promise<ValidationR
             // Simple product — look up product directly
             const { data: product } = await supabase
                 .from("products")
-                .select("id, is_active")
+                .select("id, status")
                 .eq("id", item.product_id)
                 .single();
 
-            if (!product || !product.is_active) {
+            if (!product || product.status !== 'published') {
                 result.items.push({
                     ...item,
                     status: "removed",
