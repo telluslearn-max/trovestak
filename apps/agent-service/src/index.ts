@@ -153,7 +153,7 @@ async function bootstrap() {
                                             let response: any;
                                             if (tool) {
                                                 try {
-                                                    response = await tool.execute(fc.args || {});
+                                                    response = await (tool as any).execute(fc.args || {});
                                                 } catch (e: any) {
                                                     response = { error: e.message };
                                                 }
