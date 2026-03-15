@@ -1,22 +1,23 @@
-import { FunctionTool } from "@google/adk";
-import { Type } from "@google/genai";
 import { createSupabaseAdminClient } from "@trovestak/shared";
 
 /**
  * CONCIERGE TOOLS — TroveStack AI Bible §9
- * All implementations follow Bible spec exactly.
+ *
+ * Plain objects — no @google/adk dependency.
+ * Each tool: { name, description, parameters, execute }
+ * parameters follow Gemini function declaration schema (string-typed enums).
  */
 
 // ─── §9 / §6.4 SEARCH PRODUCTS ───────────────────────────────────────────────
-export const searchProductsTool = new FunctionTool({
+export const searchProductsTool = {
     name: "search_products",
     description: "Search TroveStack catalog. For vague queries, first call research_agent to expand intent into specific queries, then call this tool with each query.",
     parameters: {
-        type: Type.OBJECT,
+        type: "OBJECT",
         properties: {
-            query:         { type: Type.STRING, description: "Product search query" },
-            category:      { type: Type.STRING, description: "Optional category filter: Smartphones | Laptops | Audio | Gaming | Cameras | Wearables | Smart Home" },
-            max_price_kes: { type: Type.NUMBER, description: "Optional budget ceiling in KES" },
+            query:         { type: "STRING", description: "Product search query" },
+            category:      { type: "STRING", description: "Optional category filter: Smartphones | Laptops | Audio | Gaming | Cameras | Wearables | Smart Home" },
+            max_price_kes: { type: "NUMBER", description: "Optional budget ceiling in KES" },
         },
         required: ["query"]
     },
@@ -75,15 +76,15 @@ export const searchProductsTool = new FunctionTool({
         const { data } = await (q as any).limit(5);
         return { products: data || [], search_type: "text" };
     }
-});
+};
 
 // ─── §9.2 GET CONCIERGE CONTEXT ──────────────────────────────────────────────
-export const getConciergeContextTool = new FunctionTool({
+export const getConciergeContextTool = {
     name: "get_concierge_context",
     description: "Retrieve the shopper's taste profile and preferences to personalise recommendations.",
     parameters: {
-        type: Type.OBJECT,
-        properties: { session_id: { type: Type.STRING } },
+        type: "OBJECT",
+        properties: { session_id: { type: "STRING" } },
     },
     execute: async (input: any) => {
         const supabase = createSupabaseAdminClient(
@@ -107,22 +108,22 @@ export const getConciergeContextTool = new FunctionTool({
             }
         };
     }
-});
+};
 
 // ─── §9.3 COMPARE PRODUCTS ───────────────────────────────────────────────────
-export const compareProductsTool = new FunctionTool({
+export const compareProductsTool = {
     name: "compare_products",
     description: "Compare 2-3 products side by side on specs, price, and use-case fit.",
     parameters: {
-        type: Type.OBJECT,
+        type: "OBJECT",
         properties: {
             product_ids: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
+                type: "ARRAY",
+                items: { type: "STRING" },
                 description: "Array of 2-3 product IDs to compare"
             },
             use_case: {
-                type: Type.STRING,
+                type: "STRING",
                 description: "What the shopper will use the product for"
             }
         },
@@ -144,18 +145,18 @@ export const compareProductsTool = new FunctionTool({
             instruction: "Compare these products on the specs most relevant to the use case. Explain trade-offs in plain English, not spec dumps."
         };
     }
-});
+};
 
 // ─── §9.4 INITIATE CHECKOUT ──────────────────────────────────────────────────
-export const initiateCheckoutTool = new FunctionTool({
+export const initiateCheckoutTool = {
     name: "initiate_checkout",
     description: "Initiate an M-Pesa STK Push payment for the shopper's cart.",
     parameters: {
-        type: Type.OBJECT,
+        type: "OBJECT",
         properties: {
-            phone:      { type: Type.STRING, description: "M-Pesa phone number e.g. 0712345678" },
-            amount_kes: { type: Type.NUMBER, description: "Amount in KES" },
-            order_id:   { type: Type.STRING, description: "Order ID from Supabase" },
+            phone:      { type: "STRING", description: "M-Pesa phone number e.g. 0712345678" },
+            amount_kes: { type: "NUMBER", description: "Amount in KES" },
+            order_id:   { type: "STRING", description: "Order ID from Supabase" },
         },
         required: ["phone", "amount_kes", "order_id"]
     },
@@ -178,17 +179,17 @@ export const initiateCheckoutTool = new FunctionTool({
             return { status: "failed", message: `Could not reach M-Pesa service: ${err.message}` };
         }
     }
-});
+};
 
 // ─── §7.4 GET ML RECOMMENDATIONS ─────────────────────────────────────────────
-export const getMlRecommendationsTool = new FunctionTool({
+export const getMlRecommendationsTool = {
     name: "get_ml_recommendations",
     description: "Fetch TensorFlow-powered personalised product recommendations based on the shopper's taste profile.",
     parameters: {
-        type: Type.OBJECT,
+        type: "OBJECT",
         properties: {
-            session_id: { type: Type.STRING },
-            limit:      { type: Type.NUMBER, description: "Max recommendations, default 5" },
+            session_id: { type: "STRING" },
+            limit:      { type: "NUMBER", description: "Max recommendations, default 5" },
         },
         required: ["session_id"]
     },
@@ -209,16 +210,16 @@ export const getMlRecommendationsTool = new FunctionTool({
             return { recommendations: [], error: "ML service unavailable — falling back to popular items" };
         }
     }
-});
+};
 
 // ─── WHATSAPP HANDOFF ─────────────────────────────────────────────────────────
-export const whatsappHandoffTool = new FunctionTool({
+export const whatsappHandoffTool = {
     name: "whatsapp_handoff",
     description: "Escalate to a human agent on WhatsApp for delivery queries, bulk orders, or warranty specifics.",
     parameters: {
-        type: Type.OBJECT,
+        type: "OBJECT",
         properties: {
-            context_summary: { type: Type.STRING, description: "Summary of what the shopper needs" }
+            context_summary: { type: "STRING", description: "Summary of what the shopper needs" }
         },
         required: ["context_summary"]
     },
@@ -230,10 +231,9 @@ export const whatsappHandoffTool = new FunctionTool({
             message: "I've prepared a WhatsApp link — our team will assist you within minutes."
         };
     }
-});
+};
 
 // ─── TOOLS REGISTRY ───────────────────────────────────────────────────────────
-// Bible §9.1 Complete Tools Registry
 export const conciergeTools = [
     searchProductsTool,
     getConciergeContextTool,

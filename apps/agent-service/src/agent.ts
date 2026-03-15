@@ -1,57 +1,14 @@
-import { LlmAgent, AgentTool, GoogleSearchTool } from "@google/adk";
 import { conciergeTools } from "./tools.js";
 
 /**
  * AGENT DEFINITIONS — TroveStack AI Bible §5.6, §10.1, §10.2
+ *
+ * The BIDI bridge (index.ts) uses Gemini Live API directly, not ADK.
+ * We export: CONCIERGE_INSTRUCTIONS (string) + getGenAITools() (declarations).
  */
 
-// ─── §10.2 RESEARCH AGENT ─────────────────────────────────────────────────────
-// Sub-agent: expands vague shopping intent into 5 specific product queries
-const researchAgent = new LlmAgent({
-    model: "gemini-2.5-flash",
-    name: "research_agent",
-    description: "Market researcher that expands vague shopping queries into 5 specific product search queries using Google Search. Always considers Kenyan market context.",
-    instruction: `
-You are a market researcher for TroveStack, a premium electronics store in Kenya.
-
-YOUR ROLE:
-When given a shopping request, use Google Search to understand:
-- Current trends and what people are actually buying for this intent
-- Popular products in this category in Kenya and East Africa
-- Price ranges typical in the Kenyan market
-
-YOUR OUTPUT:
-Generate exactly 5 specific product search queries that a catalog search engine
-can use to find matching items. Return them as a numbered list.
-
-KENYAN MARKET CONTEXT:
-- Currency is KES (Kenyan Shillings)
-- Popular brands: Samsung, Apple, Tecno, Infinix, Itel, DJI, Sony, LG, HP, Lenovo
-- M-Pesa is the primary payment method
-- Common use cases: university students, young professionals, small business owners,
-  parents buying for children
-
-EXAMPLE:
-Input: "birthday present for 10 year old boy"
-Output:
-1. LEGO Technic construction sets
-2. remote control cars kids
-3. gaming headset for kids
-4. kids smartwatch with GPS
-5. science experiment kit children
-
-Always generate queries in English. Be specific — "Samsung wireless earbuds" is
-better than "earbuds". Include model names when the intent suggests a specific tier.
-    `.trim(),
-    tools: [new GoogleSearchTool()]
-});
-
-// ─── §10.1 TROVEVOICE CONCIERGE AGENT ────────────────────────────────────────
-// Primary agent: the customer-facing voice and chat concierge
-export const conciergeAgent = new LlmAgent({
-    name: "TroveVoice",
-    model: "gemini-2.5-flash",
-    instruction: `
+// ─── §10.1 TROVEVOICE CONCIERGE INSTRUCTION ───────────────────────────────────
+export const CONCIERGE_INSTRUCTIONS = `
 You are TroveVoice, the Personal Shopping Concierge for TroveStack — a premium
 electronics store serving customers in Kenya.
 
@@ -102,15 +59,7 @@ CONSTRAINTS:
 - Never ask for payment details beyond the M-Pesa phone number
 - If a product is out of stock, acknowledge it and offer alternatives
 - If the ML or research service is unavailable, fall back gracefully to direct search
-    `.trim(),
-    tools: [
-        ...conciergeTools,
-        new AgentTool({ agent: researchAgent })
-    ]
-});
-
-// Export the system instruction for use in the BIDI bridge (agent-service/index.ts)
-export const CONCIERGE_INSTRUCTIONS = conciergeAgent.instruction;
+`.trim();
 
 /**
  * Convert conciergeTools to GenAI function declarations for the live session.
@@ -123,7 +72,7 @@ export function getGenAITools() {
         parameters: tool.parameters
     }));
 
-    // Add research_agent as a callable tool declaration
+    // Add research_agent as a callable tool declaration (§10.2)
     declarations.push({
         name: "research_agent",
         description: "Market researcher that expands vague shopping queries into 5 specific product search queries using Google Search. Call this FIRST for any vague or intent-based queries.",
