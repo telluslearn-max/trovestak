@@ -11,7 +11,7 @@ export function formatKES(kes: number): string {
         style: "currency",
         currency: "KES",
         minimumFractionDigits: 2,
-    }).format(kes);
+    }).format(kes / 100);
 }
 
 /** Format price with "From" prefix for variable products */
