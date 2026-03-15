@@ -15,6 +15,7 @@ async function bootstrap() {
             try { const { config } = await import("dotenv"); config(); } catch (e) {}
         }
 
+        const { createServer } = await import("http");
         const { WebSocketServer } = await import("ws");
         const { createLogger } = await import("@trovestak/shared");
         const { GoogleGenAI, Modality } = await import("@google/genai");
@@ -30,9 +31,15 @@ async function bootstrap() {
             process.exit(1);
         }
 
-        const wss = new WebSocketServer({ port: PORT });
-        wss.on("listening", () => log.info(`TroveVoice listening on port ${PORT}`));
+        // HTTP server handles Cloud Run health checks (GET /) and hosts the WS server
+        const httpServer = createServer((req, res) => {
+            res.writeHead(200, { "Content-Type": "text/plain" });
+            res.end("TroveVoice OK");
+        });
+
+        const wss = new WebSocketServer({ server: httpServer });
         wss.on("error", (err) => log.error("WSS Error", { err }));
+        httpServer.listen(PORT, () => log.info(`TroveVoice listening on port ${PORT}`));
 
         wss.on("connection", async (clientWs, req) => {
             const url = new URL(req.url || "/", `http://${req.headers.host}`);
