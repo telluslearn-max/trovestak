@@ -37,10 +37,10 @@ async function getProducts(categorySlug?: string, subcategorySlug?: string, bran
     let query = supabase
         .from("products")
         .select("*, product_variants(*)")
-        .eq("is_active", true);
+        .eq("status", "published");
 
     if (brand) {
-        query = query.eq('brand_type', brand);
+        query = query.eq('brand', brand);
     }
 
     if (subcategorySlug) {
@@ -51,9 +51,9 @@ async function getProducts(categorySlug?: string, subcategorySlug?: string, bran
 
     // Apply sorting logic
     if (sort === "price_asc") {
-        query = query.order("base_price", { ascending: true });
+        query = query.order("sell_price", { ascending: true });
     } else if (sort === "price_desc") {
-        query = query.order("base_price", { ascending: false });
+        query = query.order("sell_price", { ascending: false });
     } else {
         query = query.order("created_at", { ascending: false });
     }
@@ -76,14 +76,14 @@ async function getBrands() {
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
         .from("products")
-        .select("brand_type")
-        .eq("is_active", true)
-        .not("brand_type", "is", null);
+        .select("brand")
+        .eq("status", "published")
+        .not("brand", "is", null);
 
     if (error) return [];
 
     // Get unique non-empty brands
-    const brands = Array.from(new Set((data || []).map((d: { brand_type: string }) => d.brand_type).filter(Boolean)));
+    const brands = Array.from(new Set((data || []).map((d: { brand: string }) => d.brand).filter(Boolean)));
     return brands.sort() as string[];
 }
 

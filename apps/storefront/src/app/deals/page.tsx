@@ -12,7 +12,7 @@ interface Product {
     name: string;
     slug: string;
     thumbnail_url: string | null;
-    brand_type: string | null;
+    brand: string | null;
     product_variants: { price_kes: number }[];
     metadata: Record<string, any>;
 }
@@ -31,11 +31,11 @@ export default async function DealsPage() {
             name,
             slug,
             thumbnail_url,
-            brand_type,
+            brand,
             product_variants(price_kes),
             metadata
         `)
-        .eq("is_active", true)
+        .eq("status", "published")
         .not("metadata->compare_price", "is", null);
 
     if (error) {

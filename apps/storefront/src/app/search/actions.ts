@@ -12,9 +12,9 @@ export async function searchProductsAction(searchTerm: string) {
 
     const { data, error } = await supabase
         .from("products")
-        .select("id, name, slug, description, thumbnail_url, brand_type, nav_category, product_variants(price_kes)")
-        .eq("is_active", true)
-        .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,brand_type.ilike.%${searchTerm}%`)
+        .select("id, name, slug, description, thumbnail_url, brand, nav_category, product_variants(price_kes)")
+        .eq("status", "published")
+        .or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%`)
         .limit(20);
 
     if (error) {

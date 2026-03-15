@@ -10,7 +10,7 @@ interface Product {
     name: string;
     slug: string;
     thumbnail_url: string | null;
-    brand_type: string | null;
+    brand: string | null;
     product_variants: { price_kes: number }[];
     metadata: Record<string, any>;
 }

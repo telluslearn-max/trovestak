@@ -100,7 +100,7 @@ export default async function CategoryPage({ params }: Props) {
             const { data } = await supabase
                 .from("products")
                 .select("id, name, slug, thumbnail_url, nav_category, nav_subcategory, product_variants(price_kes)")
-                .eq("is_active", true)
+                .eq("status", "published")
                 .in("id", productIds)
                 .or(brandFilter)
                 .order("created_at", { ascending: false })
@@ -112,7 +112,7 @@ export default async function CategoryPage({ params }: Props) {
             const { data } = await supabase
                 .from("products")
                 .select("id, name, slug, thumbnail_url, nav_category, nav_subcategory, product_variants(price_kes)")
-                .eq("is_active", true)
+                .eq("status", "published")
                 .eq("nav_category", slug)
                 .eq("nav_subcategory", subcategory)
                 .or(brandFilter)

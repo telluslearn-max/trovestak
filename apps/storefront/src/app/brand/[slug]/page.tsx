@@ -96,8 +96,8 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
                 nav_category,
                 product_variants(price_kes)
             `)
-            .eq("is_active", true)
-            .ilike("brand_type", slug)
+            .eq("status", "published")
+            .ilike("brand", slug)
             .order("created_at", { ascending: false })
             .limit(16);
 

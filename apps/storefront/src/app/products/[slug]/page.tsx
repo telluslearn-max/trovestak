@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         .from('products')
         .select('name, description, thumbnail_url')
         .eq('slug', slug)
-        .eq('is_active', true)
+        .eq('status', 'published')
         .single()
 
     if (!data) return { title: 'Product Not Found — Trovestak' }
@@ -47,7 +47,7 @@ export default async function ProductPage({ params }: Props) {
             .from('products')
             .select('*')
             .eq('slug', slug)
-            .eq('is_active', true)
+            .eq('status', 'published')
             .single()
 
         if (productError || !product) {
@@ -99,8 +99,8 @@ export default async function ProductPage({ params }: Props) {
             if (product.nav_category) {
                 const { data: related } = await supabase
                     .from('products')
-                    .select('id, name, slug, thumbnail_url, brand_type, product_variants(price_kes)')
-                    .eq('is_active', true)
+                    .select('id, name, slug, thumbnail_url, brand, product_variants(price_kes)')
+                    .eq('status', 'published')
                     .eq('nav_category', product.nav_category)
                     .neq('id', product.id)
                     .order('created_at', { ascending: false })

@@ -77,7 +77,7 @@ export default async function CategoryPage(props: Props) {
             let query = supabase
                 .from("products")
                 .select("id, name, slug, thumbnail_url, nav_category, nav_subcategory, product_variants(price_kes)")
-                .eq("is_active", true)
+                .eq("status", "published")
                 .in("id", productIds)
                 .order("created_at", { ascending: false })
                 .limit(50);
@@ -92,7 +92,7 @@ export default async function CategoryPage(props: Props) {
             let query = supabase
                 .from("products")
                 .select("id, name, slug, thumbnail_url, nav_category, nav_subcategory, product_variants(price_kes)")
-                .eq("is_active", true)
+                .eq("status", "published")
                 .eq("nav_subcategory", subcategory)
                 .order("created_at", { ascending: false })
                 .limit(50);

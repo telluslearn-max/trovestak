@@ -14,7 +14,7 @@ async function getFeaturedProducts() {
     const { data: products, error } = await supabase
       .from("products")
       .select("*, product_variants(*)")
-      .eq("is_active", true)
+      .eq("status", "published")
       .limit(8);
 
     if (error) {
