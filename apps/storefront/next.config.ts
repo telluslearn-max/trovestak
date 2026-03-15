@@ -25,7 +25,7 @@ const securityHeaders = [
   },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=()",
+    value: "camera=(), microphone=(self), geolocation=()",
   },
   {
     // Content Security Policy — restrict where scripts/styles/images can load from
@@ -33,7 +33,7 @@ const securityHeaders = [
     value: [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com", // unsafe-inline needed for Next.js inline scripts
-      `connect-src 'self' https://${SUPABASE_HOSTNAME} https://api.safaricom.co.ke https://sandbox.safaricom.co.ke https://firebaseapp.com wss://${SUPABASE_HOSTNAME}`,
+      `connect-src 'self' http://localhost:8088 ws://localhost:8088 https://${SUPABASE_HOSTNAME} https://api.safaricom.co.ke https://sandbox.safaricom.co.ke https://firebaseapp.com wss://${SUPABASE_HOSTNAME}`,
       `img-src 'self' blob: data: https://res.cloudinary.com https://images.unsplash.com https://${SUPABASE_HOSTNAME} https://images.samsung.com`,
       "font-src 'self' https://fonts.gstatic.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",

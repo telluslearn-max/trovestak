@@ -6,8 +6,7 @@
  */
 
 /** Format KES currency from cents — e.g. 150000 → "KES 1,500.00" */
-export function formatKES(cents: number): string {
-    const kes = cents / 100;
+export function formatKES(kes: number): string {
     return new Intl.NumberFormat("en-KE", {
         style: "currency",
         currency: "KES",

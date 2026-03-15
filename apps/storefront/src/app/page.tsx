@@ -11,16 +11,19 @@ export const dynamic = "force-dynamic";
 async function getFeaturedProducts() {
   try {
     const supabase = await createSupabaseServerClient();
-    const { data: products } = await supabase
+    const { data: products, error } = await supabase
       .from("products")
       .select("*, product_variants(*)")
       .eq("is_active", true)
       .limit(8);
 
+    if (error) {
+      console.error("[ Server ] Supabase error in getFeaturedProducts:", { message: error.message, code: error.code, details: error.details });
+    }
 
     return products || [];
-  } catch (error) {
-    console.error("Failed to fetch featured products:", error);
+  } catch (error: any) {
+    console.error("[ Server ] System error in getFeaturedProducts:", { message: error.message, code: error.code, details: error.details });
     return [];
   }
 }

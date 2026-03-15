@@ -34,12 +34,34 @@ const env = validateEnv([
     "SUPABASE_SERVICE_ROLE_KEY",
 ]);
 
-const pubsub = new PubSub({ projectId: env.GOOGLE_CLOUD_PROJECT });
+let pubsub: PubSub | null = null;
+const canInitializePubSub = process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.PUBSUB_EMULATOR_HOST || process.env.NODE_ENV === "production";
+
+if (canInitializePubSub) {
+    try {
+        pubsub = new PubSub({ projectId: env.GOOGLE_CLOUD_PROJECT });
+    } catch (e) {
+        log.warn("PubSub initialization failed. Local developers should use the HTTP fallback.");
+    }
+} else {
+    log.info("Bypassing PubSub initialization (no credentials or emulator found). Using HTTP fallback.");
+}
+
 const supabase = createSupabaseAdminClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 const app = express();
 app.use(express.json());
 
-// 2. Pub/Sub Subscriber Handler (Inbound: payment.initiate)
+// ── PUBSUB STARTUP ────────────────────────────────────────────────────────
+if (pubsub) {
+    try {
+        log.info("Starting PubSub subscribers...");
+        startSubscribers();
+    } catch (e) {
+        log.warn("Failed to start PubSub subscribers. Local fallback remains active.");
+    }
+} else {
+    log.warn("Running without PubSub. ONLY Local HTTP fallback will process payments.");
+}
 async function handlePaymentInitiate(event: PaymentInitiateEvent) {
     const { data } = event;
     const { order_id, mpesa_phone, amount_kes } = data;
@@ -82,7 +104,16 @@ async function handlePaymentInitiate(event: PaymentInitiateEvent) {
 }
 
 function startSubscribers() {
+    if (!pubsub) {
+        log.warn("Skipping PubSub subscribers (PubSub not initialized)");
+        return;
+    }
     const sub = pubsub.subscription(env.PUBSUB_SUBSCRIPTION_PAYMENT_INITIATE);
+
+    // Handle authentication or connection errors gracefully
+    sub.on("error", (err) => {
+        log.error("PubSub subscription error", { error: err.message });
+    });
 
     sub.on("message", async (message) => {
         try {
@@ -188,14 +219,28 @@ app.post("/callback/mpesa", async (req, res) => {
     }
 });
 
+// ── LOCAL DEVELOPMENT FALLBACK ─────────────────────────────────────────────
+// Allow storefront to trigger initiation directly via HTTP when PubSub is unavailable
+app.post("/local/payment-initiate", async (req, res) => {
+    log.info("Received local payment initiation request (HTTP Fallback)");
+    try {
+        await handlePaymentInitiate(req.body);
+        res.json({ success: true, message: "Local dispatch successful" });
+    } catch (error: any) {
+        log.error("Local payment initiation failed", { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
 // 4. Server Initialization
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
 const PORT = process.env.PORT || 8081;
 app.listen(PORT, () => {
     log.info(`mpesa-service listening on port ${PORT}`);
-    startSubscribers();
 });
+
 
 const shutdown = () => {
     log.info("mpesa-service shutting down gracefully...");

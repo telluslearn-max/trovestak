@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { AdminSidebarClient } from "@/components/admin/sidebar-client";
 import { ThemeWrapper } from "@/components/admin/theme-wrapper";
 import { Toaster } from "sonner";
-import { Syne, JetBrains_Mono } from "next/font/google";
+import { Syne, JetBrains_Mono, DM_Sans } from "next/font/google";
 import "./globals.css";
 import "./admin-pro.css";
 
@@ -15,6 +15,11 @@ const syne = Syne({
 const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-jetbrains",
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-dm-sans",
 });
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -47,7 +52,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <ThemeWrapper>
-      <div className={`${syne.variable} ${jetbrains.variable} admin-theme`}>
+      <div className={`${syne.variable} ${jetbrains.variable} ${dmSans.variable} admin-theme`}>
         <AdminSidebarClient
           user={user}
           userRole={userRole}

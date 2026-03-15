@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { validateDiscountAction, getShippingRateAction, validateCartAction, initiateMpesaStkAction, getMpesaStatusAction } from "./actions";
+import { validateDiscountAction, getShippingRateAction, validateCartAction, initiateMpesaStkAction, getMpesaStatusAction, createManualOrderAction } from "./actions";
 
 interface ShippingForm {
     firstName: string;
@@ -47,6 +47,9 @@ export default function CheckoutClient() {
     const [mpesaPhone, setMpesaPhone] = useState("");
     const [orderId, setOrderId] = useState<string | null>(null);
     const [pollCount, setPollCount] = useState(0);
+    const [paymentMethod, setPaymentMethod] = useState<"mpesa_stk" | "manual_till" | "cod">("mpesa_stk");
+    const [transactionCode, setTransactionCode] = useState("");
+
 
     const [shippingForm, setShippingForm] = useState<ShippingForm>({
         firstName: "",
@@ -95,10 +98,16 @@ export default function CheckoutClient() {
         }
     };
 
-    const handleMpesaPayment = async () => {
+    const handlePayment = async () => {
         if (!cart) return;
-        if (!mpesaPhone || mpesaPhone.length < 10) {
+        
+        if (paymentMethod === "mpesa_stk" && (!mpesaPhone || mpesaPhone.length < 10)) {
             setErrorMessage("Please enter a valid M-Pesa phone number");
+            return;
+        }
+
+        if (paymentMethod === "manual_till" && (!transactionCode || transactionCode.length < 8)) {
+            setErrorMessage("Please enter a valid transaction code");
             return;
         }
 
@@ -123,73 +132,88 @@ export default function CheckoutClient() {
                 }
             }
 
-            // ── Step 1: Create order + initiate STK Push ──────────────────────────
-            const initiateRes = await initiateMpesaStkAction(
-                mpesaPhone,
-                total / 100, // Convert cents to KES
-                {
-                    firstName: shippingForm.firstName,
-                    lastName: shippingForm.lastName,
-                    email: shippingForm.email,
-                    address: shippingForm.address,
-                    city: shippingForm.city,
-                    county: shippingForm.county,
-                    postalCode: shippingForm.postalCode,
-                    items: (cart?.items ?? []).map(i => ({ id: i.id, title: i.title, quantity: i.quantity, unit_price: i.unit_price })),
-                    subtotal: Math.ceil(subtotal / 100),
-                    shippingAmount: shippingCharge,
-                    discountAmount: discountAmount ? Math.ceil(discountAmount / 100) : 0,
-                    discountCode: appliedDiscount?.code || null,
-                    vatAmount: cart?.vat_enabled ? Math.ceil((vatAmount * 100) / 100) : 0,
-                }
-            );
-
-            if (initiateRes.error) {
-                throw new Error(initiateRes.error);
-            }
-
-            setOrderId(initiateRes.orderId!);
-            setPaymentStatus("awaiting_pin");
-
-            // Step 2: Poll for payment confirmation
-            const POLL_INTERVAL = 3000;
-            const MAX_POLLS = 40;
-            let polls = 0;
-
-            const poll = async () => {
-                polls++;
-                setPollCount(polls);
-
-                try {
-                    const statusData = await getMpesaStatusAction(initiateRes.orderId!);
-
-                    if (statusData.status === "paid") {
-                        setPaymentStatus("success");
-                        clearCart();
-                        setTimeout(() => router.push(`/order-confirmation?orderId=${initiateRes.orderId}`), 1500);
-                        return;
-                    }
-
-                    if (statusData.status === "failed") {
-                        throw new Error("Payment was declined or cancelled. Please try again.");
-                    }
-
-                    if (statusData.status === "timeout" || polls >= MAX_POLLS) {
-                        setPaymentStatus("timeout");
-                        setErrorMessage("Payment timed out. If you entered your PIN, please contact support with your order ID.");
-                        setIsProcessing(false);
-                        return;
-                    }
-
-                    setTimeout(poll, POLL_INTERVAL);
-                } catch (err: any) {
-                    setPaymentStatus("error");
-                    setErrorMessage(err.message || "Payment check failed");
-                    setIsProcessing(false);
-                }
+            const orderData = {
+                firstName: shippingForm.firstName,
+                lastName: shippingForm.lastName,
+                email: shippingForm.email,
+                phone: shippingForm.phone,
+                address: shippingForm.address,
+                city: shippingForm.city,
+                county: shippingForm.county,
+                postalCode: shippingForm.postalCode,
+                items: (cart?.items ?? []).map(i => ({ id: i.id, product_id: i.product_id, variant_id: i.variant_id, title: i.title, quantity: i.quantity, unit_price: i.unit_price })),
+                subtotal: subtotal,
+                shippingAmount: subtotal > 500000 ? 0 : shippingRate,
+                discountAmount: discountAmount || 0,
+                vatAmount: vatAmount || 0,
             };
 
-            setTimeout(poll, POLL_INTERVAL);
+            if (paymentMethod === "mpesa_stk") {
+                // ── Step 1: Create order + initiate STK Push ──────────────────────────
+                const initiateRes = await initiateMpesaStkAction(
+                    mpesaPhone,
+                    total, // Pass cents directly to backend
+                    orderData
+                );
+
+                if (initiateRes.error) {
+                    throw new Error(initiateRes.error);
+                }
+
+                setOrderId(initiateRes.orderId!);
+                setPaymentStatus("awaiting_pin");
+
+                // Step 2: Poll for payment confirmation
+                const POLL_INTERVAL = 3000;
+                const MAX_POLLS = 40;
+                let polls = 0;
+
+                const poll = async () => {
+                    polls++;
+                    setPollCount(polls);
+
+                    try {
+                        const statusData = await getMpesaStatusAction(initiateRes.orderId!);
+
+                        if (statusData.status === "paid") {
+                            setPaymentStatus("success");
+                            clearCart();
+                            setTimeout(() => router.push(`/order-confirmation?orderId=${initiateRes.orderId}`), 1500);
+                            return;
+                        }
+
+                        if (statusData.status === "failed") {
+                            throw new Error("Payment was declined or cancelled. Please try again.");
+                        }
+
+                        if (statusData.status === "timeout" || polls >= MAX_POLLS) {
+                            setPaymentStatus("timeout");
+                            setErrorMessage("Payment timed out. If you entered your PIN, please contact support with your order ID.");
+                            setIsProcessing(false);
+                            return;
+                        }
+
+                        setTimeout(poll, POLL_INTERVAL);
+                    } catch (err: any) {
+                        setPaymentStatus("error");
+                        setErrorMessage(err.message || "Payment check failed");
+                        setIsProcessing(false);
+                    }
+                };
+
+                setTimeout(poll, POLL_INTERVAL);
+            } else {
+                // Manual Till or COD
+                const res = await createManualOrderAction(total, orderData, paymentMethod, transactionCode);
+                
+                if (res.error) {
+                    throw new Error(res.error);
+                }
+
+                setPaymentStatus("success");
+                clearCart();
+                setTimeout(() => router.push(`/order-confirmation?orderId=${res.orderId}`), 1500);
+            }
         } catch (error: any) {
             setPaymentStatus("error");
             setErrorMessage(error.message || "Payment failed. Please try again.");
@@ -229,7 +253,7 @@ export default function CheckoutClient() {
     }
 
     const shippingCharge = subtotal > 500000 ? 0 : shippingRate;
-    const total = subtotal + (vatAmount * 100) + (shippingCharge * 100) - discountAmount;
+    const total = subtotal + vatAmount + (shippingCharge * 100) - discountAmount;
 
     return (
         <div className="min-h-screen bg-background pb-32 pt-32 px-6">
@@ -303,34 +327,100 @@ export default function CheckoutClient() {
                                     <div className="bg-card rounded-[2.5rem] p-10 shadow-xl shadow-black/[0.02] border border-border/50">
                                         <SectionHeader icon={<CreditCard className="w-5 h-5" />} title="Payment Authentication" subtitle="Securely verify your purchase via M-Pesa" />
 
+                                        <div className="flex gap-4 mb-8">
+                                            <button 
+                                                onClick={() => { setPaymentMethod("mpesa_stk"); setErrorMessage(""); }}
+                                                className={cn("flex-1 py-4 px-4 rounded-2xl flex flex-col items-center justify-center gap-2 border transition-all", paymentMethod === "mpesa_stk" ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:bg-muted/30")}
+                                            >
+                                                <Zap className={cn("h-6 w-6", paymentMethod === "mpesa_stk" ? "text-primary" : "text-muted-foreground")} />
+                                                <span className="text-[10px] font-black uppercase tracking-widest">STK Push</span>
+                                            </button>
+                                            <button 
+                                                onClick={() => { setPaymentMethod("manual_till"); setErrorMessage(""); }}
+                                                className={cn("flex-1 py-4 px-4 rounded-2xl flex flex-col items-center justify-center gap-2 border transition-all", paymentMethod === "manual_till" ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:bg-muted/30")}
+                                            >
+                                                <Phone className={cn("h-6 w-6", paymentMethod === "manual_till" ? "text-primary" : "text-muted-foreground")} />
+                                                <span className="text-[10px] font-black uppercase tracking-widest">Manual Till</span>
+                                            </button>
+                                            <button 
+                                                onClick={() => { setPaymentMethod("cod"); setErrorMessage(""); }}
+                                                className={cn("flex-1 py-4 px-4 rounded-2xl flex flex-col items-center justify-center gap-2 border transition-all", paymentMethod === "cod" ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:bg-muted/30")}
+                                            >
+                                                <MapPin className={cn("h-6 w-6", paymentMethod === "cod" ? "text-primary" : "text-muted-foreground")} />
+                                                <span className="text-[10px] font-black uppercase tracking-widest">COD</span>
+                                            </button>
+                                        </div>
+
                                         <div className="p-8 rounded-3xl bg-primary/5 border border-primary/20 mb-10">
-                                            <div className="flex items-center gap-4 mb-6">
-                                                <div className="h-12 w-12 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                                                    <Zap className="h-6 w-6 text-white" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-black text-foreground">Lipa Na M-Pesa</h3>
-                                                    <p className="text-xs font-medium text-muted-foreground">Instant STK Push Verification</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-6">
-                                                <InputGroup label="Payment Phone (M-Pesa)" value={mpesaPhone} onChange={setMpesaPhone} placeholder="07XX XXX XXX" disabled={isProcessing} />
-
-                                                {errorMessage && <p className="text-xs font-bold text-destructive flex items-center gap-2"><AlertCircle className="h-4 w-4" /> {errorMessage}</p>}
-                                                {paymentStatus === "awaiting_pin" && <p className="text-xs font-bold text-amber-500 flex items-center gap-2"><Phone className="h-4 w-4 animate-pulse" /> STK Push sent! Enter your M-Pesa PIN on your phone...</p>}
-                                                {paymentStatus === "awaiting_pin" && pollCount > 0 && <p className="text-[10px] text-muted-foreground">Checking payment status... ({pollCount})</p>}
-                                                {paymentStatus === "success" && <p className="text-xs font-bold text-emerald-500 flex items-center gap-2"><Check className="h-4 w-4" /> PAYMENT CONFIRMED! Redirecting...</p>}
-                                                {orderId && (paymentStatus === "timeout" || paymentStatus === "error") && <p className="text-[10px] text-muted-foreground mt-1">Order ref: {orderId.slice(0, 8).toUpperCase()}</p>}
-
-                                                <button
-                                                    onClick={handleMpesaPayment}
-                                                    disabled={isProcessing || paymentStatus === "success" || paymentStatus === "awaiting_pin"}
-                                                    className="w-full h-16 bg-primary text-white rounded-2xl font-black text-lg flex items-center justify-center hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary/20 disabled:opacity-50"
+                                            <AnimatePresence mode="wait">
+                                                <motion.div
+                                                    key={paymentMethod}
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -10 }}
+                                                    className="space-y-6"
                                                 >
-                                                    {paymentStatus === "awaiting_pin" ? <><Loader2 className="h-5 w-5 animate-spin mr-2" />Waiting for PIN...</> : paymentStatus === "success" ? "PAYMENT CONFIRMED ✓" : `PAY ${formatKES(total)}`}
-                                                </button>
-                                            </div>
+                                                    {paymentMethod === "mpesa_stk" && (
+                                                        <>
+                                                            <div className="flex items-center gap-4 mb-6">
+                                                                <div className="h-12 w-12 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                                                                    <Zap className="h-6 w-6 text-white" />
+                                                                </div>
+                                                                <div>
+                                                                    <h3 className="font-black text-foreground">Lipa Na M-Pesa</h3>
+                                                                    <p className="text-xs font-medium text-muted-foreground">Instant STK Push Verification</p>
+                                                                </div>
+                                                            </div>
+                                                            <InputGroup label="Payment Phone (M-Pesa)" value={mpesaPhone} onChange={setMpesaPhone} placeholder="07XX XXX XXX" disabled={isProcessing} />
+                                                        </>
+                                                    )}
+
+                                                    {paymentMethod === "manual_till" && (
+                                                        <>
+                                                            <div className="flex items-center gap-4 mb-6">
+                                                                <div className="h-12 w-12 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                                                    <Phone className="h-6 w-6 text-white" />
+                                                                </div>
+                                                                <div>
+                                                                    <h3 className="font-black text-foreground">Manual Till Payment</h3>
+                                                                    <p className="text-xs font-medium text-muted-foreground">Pay to Till: 123456</p>
+                                                                </div>
+                                                            </div>
+                                                            <p className="text-sm font-medium text-muted-foreground my-4">Please go to your M-Pesa menu, select Buy Goods and Services, enter Till Number <strong>123456</strong>, and pay <strong>{formatKES(total)}</strong>. Enter the transaction code below.</p>
+                                                            <InputGroup label="M-Pesa Transaction Code" value={transactionCode} onChange={setTransactionCode} placeholder="OXX123XXXX" disabled={isProcessing} />
+                                                        </>
+                                                    )}
+
+                                                    {paymentMethod === "cod" && (
+                                                        <>
+                                                            <div className="flex items-center gap-4 mb-6">
+                                                                <div className="h-12 w-12 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                                                                    <MapPin className="h-6 w-6 text-white" />
+                                                                </div>
+                                                                <div>
+                                                                    <h3 className="font-black text-foreground">Cash on Delivery</h3>
+                                                                    <p className="text-xs font-medium text-muted-foreground">Pay when you receive the item</p>
+                                                                </div>
+                                                            </div>
+                                                            <p className="text-sm font-medium text-muted-foreground my-4">You will pay <strong>{formatKES(total)}</strong> via cash or M-Pesa when our rider delivers your order.</p>
+                                                        </>
+                                                    )}
+
+                                                    {errorMessage && <p className="text-xs font-bold text-destructive flex items-center gap-2"><AlertCircle className="h-4 w-4" /> {errorMessage}</p>}
+                                                    {paymentStatus === "awaiting_pin" && paymentMethod === "mpesa_stk" && <p className="text-xs font-bold text-amber-500 flex items-center gap-2"><Phone className="h-4 w-4 animate-pulse" /> STK Push sent! Enter your M-Pesa PIN on your phone...</p>}
+                                                    {paymentStatus === "awaiting_pin" && pollCount > 0 && <p className="text-[10px] text-muted-foreground">Checking payment status... ({pollCount})</p>}
+                                                    {paymentStatus === "success" && <p className="text-xs font-bold text-emerald-500 flex items-center gap-2"><Check className="h-4 w-4" /> ORDER CONFIRMED! Redirecting...</p>}
+                                                    {orderId && (paymentStatus === "timeout" || paymentStatus === "error") && <p className="text-[10px] text-muted-foreground mt-1">Order ref: {orderId.slice(0, 8).toUpperCase()}</p>}
+
+                                                    <button
+                                                        onClick={handlePayment}
+                                                        disabled={isProcessing || paymentStatus === "success" || paymentStatus === "awaiting_pin"}
+                                                        className="w-full h-16 bg-primary text-white rounded-2xl font-black text-lg flex items-center justify-center hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary/20 disabled:opacity-50"
+                                                    >
+                                                        {paymentStatus === "awaiting_pin" ? <><Loader2 className="h-5 w-5 animate-spin mr-2" />Waiting for PIN...</> : paymentStatus === "success" ? "ORDER CONFIRMED ✓" : (paymentMethod === "cod" ? "CONFIRM ORDER" : `PAY ${formatKES(total)}`)}
+                                                    </button>
+                                                </motion.div>
+                                            </AnimatePresence>
                                         </div>
 
                                         <button onClick={() => setStep("shipping")} className="text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">
@@ -419,7 +509,7 @@ export default function CheckoutClient() {
                                     />
                                 </div>
 
-                                <SummaryRow label="VAT (16%)" value={cart.vat_enabled ? formatKES(vatAmount * 100) : formatKES(0)} muted={!cart.vat_enabled} />
+                                <SummaryRow label="VAT (16%)" value={cart.vat_enabled ? formatKES(vatAmount) : formatKES(0)} muted={!cart.vat_enabled} />
                                 <SummaryRow label="Logistics" value={shippingCharge === 0 ? "FREE" : formatKES(shippingCharge * 100)} isFree={shippingCharge === 0} />
                                 <div className="pt-6 border-t border-border/30 flex items-center justify-between">
                                     <span className="text-lg font-black text-foreground uppercase tracking-tighter">Grand Total</span>

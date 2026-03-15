@@ -26,7 +26,7 @@ async function getCategories(): Promise<Category[]> {
         .order("name");
 
     if (error) {
-        console.error("Error fetching categories:", error);
+        console.error("[ Server ] Error fetching categories:", { message: error.message, code: error.code, details: error.details });
         return [];
     }
     return data || [];
@@ -61,7 +61,7 @@ async function getProducts(categorySlug?: string, subcategorySlug?: string, bran
     const { data, error } = await query;
 
     if (error) {
-        console.error("Error fetching products:", error);
+        console.error("[ Server ] Error fetching products:", { message: error.message, code: error.code, details: error.details });
         return [];
     }
 

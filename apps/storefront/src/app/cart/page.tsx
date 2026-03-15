@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, ShieldCheck, ChevronRight } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, ShieldCheck, ChevronRight, MessageCircle } from "lucide-react";
 import { formatKES } from "@/lib/formatters";
 import { useCartStore } from "@/stores/cart";
 import { Switch } from "@/components/ui/switch";
@@ -233,6 +233,19 @@ export default function CartPage() {
                 <span className="relative z-10">Proceed to Checkout</span>
                 <ArrowRight className="w-5 h-5 relative z-10 translate-x-0 group-hover:translate-x-2 transition-transform duration-300" />
               </Link>
+
+              {/* WhatsApp Checkout Option */}
+              <a
+                href={`https://wa.me/254700000000?text=${encodeURIComponent(`Hi! I'd like to complete my order of ${cart.items.length} items totaling ${formatKES(total)}. Items: ${cart.items.map(i => `${i.title} (x${i.quantity})`).join(', ')}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 w-full group relative py-4 border-2 border-green-500/20 hover:border-green-500/50 hover:bg-green-500/5 text-green-600 rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-all active:scale-95"
+              >
+                <div className="w-8 h-8 bg-green-500 text-white rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <MessageCircle className="w-4 h-4 fill-current" />
+                </div>
+                <span>Order via WhatsApp</span>
+              </a>
 
               <p className="mt-8 text-[10px] text-center text-muted-foreground uppercase tracking-widest font-bold leading-relaxed opacity-60">
                 Triple-validated logistics <br />

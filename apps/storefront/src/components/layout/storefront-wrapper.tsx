@@ -6,6 +6,7 @@ import { ThemeProvider as NextThemesProvider } from "next-themes";
 import Navbar from "@/components/navbar";
 import { Footer } from "@/components/Footer";
 import { CompareBar } from "@/components/CompareDrawer";
+import { ChatWidget } from "@/components/ChatWidget";
 
 export function StorefrontWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -29,6 +30,7 @@ export function StorefrontWrapper({ children }: { children: React.ReactNode }) {
                 {children}
             </main>
             <CompareBar />
+            <ChatWidget />
             <Footer />
         </NextThemesProvider>
     );

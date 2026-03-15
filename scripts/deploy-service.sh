@@ -29,7 +29,10 @@ IMAGE_NAME="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$SERVICE_NAME:$IMAGE_T
 
 gcloud builds submit . \
     --config=cloudbuild.yaml \
-    --substitutions="_IMAGE=$IMAGE_NAME,_DOCKERFILE=$SERVICE_PATH/Dockerfile"
+    --substitutions="_IMAGE=$IMAGE_NAME,_DOCKERFILE=$SERVICE_PATH/Dockerfile" \
+    --build-arg "NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL" \
+    --build-arg "NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY" \
+    --build-arg "NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL"
 
 if [ $? -ne 0 ]; then
     echo "❌ Build failed for $SERVICE_NAME"

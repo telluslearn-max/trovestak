@@ -1,6 +1,6 @@
 "use server";
 
-import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { createSupabaseServerClient, getSupabaseAdmin } from "@/lib/supabase-server";
 import { headers } from "next/headers";
 import { paymentLimiter } from "@/lib/rate-limit";
 import { normalizePhone } from "@/lib/mpesa";
@@ -116,8 +116,8 @@ export async function validateCartAction(items: CartItem[]): Promise<ValidationR
         if (item.variant_id && UUID_RE.test(item.variant_id)) {
             // Variable product — look up variant
             const { data: variant } = await supabase
-                .from("product_variations")
-                .select("id, regular_price, sale_price, stock_quantity, stock_status")
+                .from("product_variants")
+                .select("id, price_kes, stock_quantity")
                 .eq("id", item.variant_id)
                 .single();
 
@@ -134,18 +134,18 @@ export async function validateCartAction(items: CartItem[]): Promise<ValidationR
                 continue;
             }
 
-            currentPrice = variant.sale_price ?? variant.regular_price ?? 0;
-            availableStock = variant.stock_quantity;
-            stockStatus = variant.stock_status;
+            currentPrice = variant.price_kes ?? 0;
+            availableStock = variant.stock_quantity ?? 0;
+            stockStatus = availableStock > 0 ? "instock" : "outofstock";
         } else {
             // Simple product — look up product directly
             const { data: product } = await supabase
                 .from("products")
-                .select("id, status, sell_price, regular_price, stock_quantity, stock_status")
+                .select("id, is_active")
                 .eq("id", item.product_id)
                 .single();
 
-            if (!product || product.status !== "published") {
+            if (!product || !product.is_active) {
                 result.items.push({
                     ...item,
                     status: "removed",
@@ -158,9 +158,15 @@ export async function validateCartAction(items: CartItem[]): Promise<ValidationR
                 continue;
             }
 
-            currentPrice = product.sell_price ?? product.regular_price ?? 0;
-            availableStock = product.stock_quantity;
-            stockStatus = product.stock_status;
+            const { data: pricing } = await supabase
+                .from("product_pricing")
+                .select("sell_price")
+                .eq("product_id", item.product_id)
+                .maybeSingle();
+
+            currentPrice = pricing?.sell_price ?? 0;
+            availableStock = 999; // Fallback if no specific variant tracking
+            stockStatus = currentPrice > 0 ? "instock" : "outofstock";
         }
 
         // ── Stock check ────────────────────────────────────────────────────────
@@ -233,7 +239,7 @@ export async function initiateMpesaStkAction(phone: string, amount: number, orde
     const normalizedPhone = normalizePhone(phone);
     if (!normalizedPhone) return { error: "Invalid phone number" };
 
-    const supabase = await createSupabaseServerClient();
+    const supabase = getSupabaseAdmin();
 
     // ── Create Order ───────────────────────────────────────────────────────────
     const { data: order, error: orderError } = await supabase
@@ -248,14 +254,12 @@ export async function initiateMpesaStkAction(phone: string, amount: number, orde
                 county: orderData.county,
                 postal_code: orderData.postalCode,
             },
-            items: orderData.items,
+
             subtotal: orderData.subtotal,
-            shipping_amount: orderData.shippingAmount,
+
             discount_amount: orderData.discountAmount || 0,
-            discount_code: orderData.discountCode || null,
             vat_amount: orderData.vatAmount || 0,
             total_amount: Math.ceil(amount),
-            currency: "KES",
             payment_method: "mpesa",
             status: "pending",
             mpesa_phone: normalizedPhone,
@@ -269,6 +273,26 @@ export async function initiateMpesaStkAction(phone: string, amount: number, orde
     }
 
     const orderId = order.id;
+
+    // ── Create Order Items ─────────────────────────────────────────────────────
+    if (orderData.items && orderData.items.length > 0) {
+        const orderItems = orderData.items.map((item: any) => ({
+            order_id: orderId,
+            variant_id: item.variant_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total_price: item.unit_price * item.quantity,
+        }));
+
+        const { error: itemsError } = await supabase
+            .from("order_items")
+            .insert(orderItems);
+
+        if (itemsError) {
+            console.error("Order items failed:", itemsError);
+            // Optionally delete the order here if item creation fails
+        }
+    }
 
     // ── Publish Global Events ────────────────────────────────────────────────
     try {
@@ -291,10 +315,28 @@ export async function initiateMpesaStkAction(phone: string, amount: number, orde
         const paymentEvent = createEvent(TOPICS.PAYMENT_INITIATE, "storefront", {
             order_id: orderId,
             mpesa_phone: normalizedPhone,
-            amount_kes: Math.ceil(amount) / 100, // Shared contract expects KES, DB stores cents
+            amount_kes: Math.ceil(amount / 100), // Convert raw Cents from DB back to absolute KES for M-Pesa Daraja API
             currency: "KES"
         });
         await publishEvent(TOPICS.PAYMENT_INITIATE, paymentEvent);
+
+        // ── LOCAL DEVELOPMENT DISPATCH ──────────────────────────────────────
+        // If running locally, dispatch directly to mpesa-service via HTTP
+        // because PubSub might not be available or authenticated.
+        if (process.env.NODE_ENV === "development") {
+            try {
+                // Determine mpesa service URL (default 8081)
+                const mpesaServiceUrl = process.env.MPESA_SERVICE_URL || "http://localhost:8081";
+                await fetch(`${mpesaServiceUrl}/local/payment-initiate`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(paymentEvent),
+                });
+            } catch (dispatchError) {
+                console.warn("Local M-Pesa dispatch fallback failed (expected if service is down):", dispatchError);
+            }
+        }
+
 
         return { success: true, orderId };
     } catch (err) {
@@ -309,7 +351,7 @@ export async function initiateMpesaStkAction(phone: string, amount: number, orde
  * Checks M-Pesa payment status.
  */
 export async function getMpesaStatusAction(orderId: string) {
-    const supabase = await createSupabaseServerClient();
+    const supabase = getSupabaseAdmin();
 
     const { data: order, error } = await supabase
         .from("orders")
@@ -336,4 +378,86 @@ export async function getMpesaStatusAction(orderId: string) {
         orderId: order.id,
         receiptNumber: order.mpesa_receipt_number || null,
     };
+}
+
+/**
+ * Creates an order for Manual Till or Cash on Delivery.
+ */
+export async function createManualOrderAction(amount: number, orderData: any, paymentMethod: "manual_till" | "cod", transactionCode?: string) {
+    const supabase = getSupabaseAdmin();
+
+    // ── Create Order ───────────────────────────────────────────────────────────
+    const { data: order, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+            customer_name: `${orderData.firstName} ${orderData.lastName}`.trim(),
+            customer_email: orderData.email,
+            customer_phone: orderData.phone,
+            shipping_address: {
+                address: orderData.address,
+                city: orderData.city,
+                county: orderData.county,
+                postal_code: orderData.postalCode,
+            },
+
+            subtotal: orderData.subtotal,
+
+            discount_amount: orderData.discountAmount || 0,
+            vat_amount: orderData.vatAmount || 0,
+            total_amount: Math.ceil(amount),
+            payment_method: paymentMethod,
+            status: "pending_verification", // Admin needs to verify the code
+            mpesa_receipt_number: transactionCode || null, // Store manual transaction code here or a custom note
+        })
+        .select("id")
+        .single();
+
+    if (orderError || !order) {
+        console.error("Manual order failed:", orderError);
+        return { error: "Failed to create order" };
+    }
+
+    const orderId = order.id;
+
+    // ── Create Order Items ─────────────────────────────────────────────────────
+    if (orderData.items && orderData.items.length > 0) {
+        const orderItems = orderData.items.map((item: any) => ({
+            order_id: orderId,
+            variant_id: item.variant_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total_price: item.unit_price * item.quantity,
+        }));
+
+        const { error: itemsError } = await supabase
+            .from("order_items")
+            .insert(orderItems);
+
+        if (itemsError) {
+            console.error("Order items failed:", itemsError);
+        }
+    }
+
+    // ── Publish Global Events ────────────────────────────────────────────────
+    try {
+        // Publish Order Created Event (Triggers Notif + ML)
+        const orderCreatedEvent = createEvent(TOPICS.ORDER_CREATED, "storefront", {
+            order_id: orderId,
+            customer_name: `${orderData.firstName} ${orderData.lastName}`.trim(),
+            email: orderData.email,
+            total_amount: Math.ceil(amount),
+            items: orderData.items,
+            shipping_address: {
+                first_name: orderData.firstName,
+                last_name: orderData.lastName,
+                county: orderData.county
+            }
+        });
+        await publishEvent(TOPICS.ORDER_CREATED, orderCreatedEvent);
+
+        return { success: true, orderId };
+    } catch (err) {
+        console.error("PubSub Event Error:", err);
+        return { success: true, orderId }; // Successfully created, event failed but non-critical for user
+    }
 }

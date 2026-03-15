@@ -12,9 +12,17 @@ interface Props {
 export function ConciergeVoice({ onClose }: Props) {
     const rawSessionId = useSessionId();
     const sessionId = rawSessionId ?? "anonymous";
-    const [isConnecting, setIsConnecting] = useState(true);
+    const [hasStarted, setHasStarted] = useState(false);
+    const [isConnecting, setIsConnecting] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [agentSpeaking, setAgentSpeaking] = useState(false);
+    
+    // We must use refs for values accessed inside the audio worklet's onmessage callback
+    // because that callback is defined once and traps the initial state in its closure.
+    const geminiReadyRef = useRef(false);
+    const [geminiReadyState, setGeminiReadyState] = useState(false); // only for UI updates
+    
+    const [transcription, setTranscription] = useState<string>("");
     const [error, setError] = useState<string | null>(null);
 
     const wsRef = useRef<WebSocket | null>(null);
@@ -22,87 +30,143 @@ export function ConciergeVoice({ onClose }: Props) {
     const playerNodeRef = useRef<AudioWorkletNode | null>(null);
     const recorderNodeRef = useRef<AudioWorkletNode | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
+    const isMounted = useRef(true);
 
     useEffect(() => {
-        initConcierge();
-        return () => cleanup();
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+            cleanup();
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const handleStart = async () => {
+        setIsConnecting(true);
+        setHasStarted(true);
+        setError(null);
+        await initConcierge();
+    };
     const initConcierge = async () => {
         try {
-            // 1. Setup Audio Context
-            const audioContext = new AudioContext({ sampleRate: 16000 }); // Input at 16k
+            console.log("[Concierge] Requesting microphone access FIRST (user gesture)...");
+            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
             audioContextRef.current = audioContext;
 
-            // 2. Load Processors
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            if (!isMounted.current) {
+                stream.getTracks().forEach(t => t.stop());
+                return;
+            }
+            streamRef.current = stream;
+
+            console.log("[Concierge] Loading audio worklet modules...");
             await Promise.all([
                 audioContext.audioWorklet.addModule("/audio-processors/pcm-player-processor.js"),
                 audioContext.audioWorklet.addModule("/audio-processors/pcm-recorder-processor.js")
             ]);
 
-            // 3. Initialize Player (Output at 24k relative to ADK, but context is 16k, we'll let browser resample for now or fix if needed)
-            // Note: In a production app, we'd use a separate context or resampler for the player if 24k is strict.
-            const playerNode = new AudioWorkletNode(audioContext, "pcm-player-processor");
-            playerNode.connect(audioContext.destination);
-            playerNodeRef.current = playerNode;
-
-            // 4. Initialize WebSocket
-            const wsUrl = `${process.env.NEXT_PUBLIC_AGENT_SERVICE_WS || "ws://localhost:8080"}?session_id=${sessionId}`;
-            const ws = new WebSocket(wsUrl);
-            wsRef.current = ws;
-
-            ws.onopen = () => {
-                setIsConnecting(false);
-                startRecording();
-            };
-
-            ws.onmessage = async (event) => {
-                if (event.data instanceof Blob) {
-                    const arrayBuffer = await event.data.arrayBuffer();
-                    playerNode.port.postMessage(arrayBuffer, [arrayBuffer]);
-                    setAgentSpeaking(true);
-                    
-                    // Reset agent speaking after a delay if no new data arrives
-                    // In a real app, we'd use 'endOfTurn' signal from ADK
-                }
-            };
-
-            ws.onerror = () => setError("Failed to connect to concierge.");
-            ws.onclose = () => onClose();
-
-        } catch (err: any) {
-            setError(err.message || "Microphone access denied.");
-            setIsConnecting(false);
-        }
-    };
-
-    const startRecording = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            streamRef.current = stream;
-            
-            const source = audioContextRef.current!.createMediaStreamSource(stream);
-            const recorderNode = new AudioWorkletNode(audioContextRef.current!, "pcm-recorder-processor");
+            const source = audioContext.createMediaStreamSource(stream);
+            const recorderNode = new AudioWorkletNode(audioContext, "pcm-recorder-processor");
             
             recorderNode.port.onmessage = (event) => {
+                // Send if we have connection AND we are ready
                 if (wsRef.current?.readyState === WebSocket.OPEN) {
-                    wsRef.current.send(event.data);
+                    if (geminiReadyRef.current) {
+                        wsRef.current.send(event.data);
+                    }
                 }
             };
 
             source.connect(recorderNode);
             recorderNodeRef.current = recorderNode;
-            setIsListening(true);
-        } catch (err) {
-            setError("Microphone access is required for TroveVoice.");
+
+            console.log("[Concierge] Audio worklets loaded. Initializing player...");
+            const playerNode = new AudioWorkletNode(audioContext, "pcm-player-processor");
+            playerNode.connect(audioContext.destination);
+            playerNodeRef.current = playerNode;
+
+            // Pause it until connection and setup is complete
+            await audioContext.suspend();
+            console.log("[Concierge] Microphone accessed and suspended. Connecting to WS...");
+
+            const wsUrl = process.env.NEXT_PUBLIC_AGENT_WS_URL || "ws://localhost:8088";
+            console.log("[Concierge] Connecting to:", wsUrl);
+            const ws = new WebSocket(`${wsUrl}?session_id=${sessionId}`);
+            ws.binaryType = "arraybuffer";
+            wsRef.current = ws;
+
+            ws.onopen = async () => {
+                console.log("[Concierge] WebSocket Connected.");
+                setIsConnecting(false);
+                setTranscription("Waiting for TroveVoice to wake up...");
+                // Recording will start when server sends { type: "status", content: "ready" }
+            };
+
+            ws.onmessage = async (event) => {
+                if (event.data instanceof ArrayBuffer) {
+                    if (playerNodeRef.current) {
+                        playerNodeRef.current.port.postMessage(event.data, [event.data]);
+                    }
+                    setAgentSpeaking(true);
+                } else {
+                    try {
+                        const msg = JSON.parse(event.data);
+                        if (msg.type === "agent_text") {
+                            setTranscription(msg.content);
+                            setAgentSpeaking(false);
+                        } else if (msg.type === "transcription") {
+                            // User's speech transcribed — show what the user said
+                            setTranscription(`You: ${msg.content}`);
+                            setAgentSpeaking(false);
+                        } else if (msg.type === "status") {
+                            if (msg.content === "ready") {
+                                console.log("[Concierge] Gemini ready — resuming audio context now.");
+                                geminiReadyRef.current = true;
+                                setGeminiReadyState(true);
+                                setIsListening(true);
+                                setTranscription("Listening... Say something!");
+                                // Fix #5: Resume the pre-initialized audio context to start recording
+                                if (audioContextRef.current?.state === "suspended") {
+                                    audioContextRef.current.resume();
+                                }
+                            } else if (msg.content === "agent_speaking") {
+                                setAgentSpeaking(true);
+                            }
+                        } else if (msg.type === "error") {
+                            setError(msg.content || "Connection error.");
+                        }
+                    } catch (e) {
+                        console.log("[Concierge] Raw message:", event.data);
+                    }
+                }
+            };
+
+            ws.onerror = (err) => {
+                console.warn("[Concierge] WebSocket error:", err);
+                setError("Failed to connect to concierge.");
+            };
+            
+            ws.onclose = (event) => {
+                console.log("[Concierge] WebSocket Closed:", event.code, event.reason);
+                onClose();
+            };
+
+        } catch (err: any) {
+            console.error("[Concierge] Init error:", err);
+            setError(err.message || "Microphone access denied.");
+            setIsConnecting(false);
         }
     };
 
     const cleanup = () => {
         wsRef.current?.close();
         streamRef.current?.getTracks().forEach(t => t.stop());
-        audioContextRef.current?.close();
+        try {
+            if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+                audioContextRef.current.close().catch(() => {});
+            }
+        } catch (e) {}
     };
 
     return (
@@ -130,7 +194,7 @@ export function ConciergeVoice({ onClose }: Props) {
                 </div>
 
                 {/* Content */}
-                <div className="p-12 flex flex-col items-center justify-center text-center">
+                <div className="p-12 flex flex-col items-center justify-center text-center focus-visible:outline-none">
                     <div className="relative mb-8">
                         {/* Pulse rings */}
                         <AnimatePresence>
@@ -163,17 +227,27 @@ export function ConciergeVoice({ onClose }: Props) {
                         </div>
                     </div>
 
-                    {isConnecting ? (
+                    {!hasStarted ? (
+                        <div className="space-y-6">
+                            <p className="text-muted-foreground text-sm">Tap the button below to start your personalized voice shopping experience.</p>
+                            <button 
+                                onClick={handleStart}
+                                className="px-8 h-14 bg-primary text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/20"
+                            >
+                                Activate TroveVoice
+                            </button>
+                        </div>
+                    ) : isConnecting ? (
                         <p className="text-muted-foreground animate-pulse">Connecting to your personal shopper...</p>
                     ) : error ? (
                         <p className="text-destructive font-medium">{error}</p>
                     ) : (
                         <div>
                             <p className="text-xl font-medium mb-1">
-                                {agentSpeaking ? "TroveVoice is speaking..." : "Listening to you..."}
+                                {agentSpeaking ? "TroveVoice is speaking..." : (geminiReadyState ? "Listening to you..." : "Waking up TroveVoice...")}
                             </p>
-                            <p className="text-sm text-muted-foreground">
-                                &quot;What are the best gaming laptops under 200k?&quot;
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap max-w-xs mx-auto">
+                                {transcription || '"What are the best gaming laptops under 200k?"'}
                             </p>
                         </div>
                     )}
@@ -181,7 +255,7 @@ export function ConciergeVoice({ onClose }: Props) {
 
                 {/* Footer Tip */}
                 <div className="p-4 bg-muted/30 text-center text-[10px] text-muted-foreground uppercase tracking-widest border-t border-border/30">
-                    TensorFlow Personalization Enabled
+                    ADK Voice Protocol v1.0
                 </div>
             </div>
         </motion.div>

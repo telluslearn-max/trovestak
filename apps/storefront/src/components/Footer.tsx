@@ -19,7 +19,7 @@ const shopLinks = [
 
 const supportLinks = [
     { label: "Help Center", href: "/support" },
-    { label: "Track Order", href: "/orders" },
+    { label: "Track Order", href: "/orders/track" },
     { label: "Returns & Refunds", href: "/returns" },
     { label: "Warranty Info", href: "/warranty" },
     { label: "Trade-In Program", href: "/trade-in" },
