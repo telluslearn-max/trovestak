@@ -33,7 +33,7 @@ RETURNS TABLE (
     nav_category text,
     sell_price  numeric,
     slug        text,
-    images      jsonb,
+    images      text[],
     similarity  float
 )
 LANGUAGE sql STABLE

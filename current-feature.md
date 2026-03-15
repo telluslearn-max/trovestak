@@ -3,7 +3,7 @@
 ## Active Task: End-to-End Voice Flow Test
 
 **Status:** In Progress
-**Branch:** `main` (test-only, no code changes expected unless bugs surface)
+**Branch:** `fix/whatsapp-number` (test-only, no code changes expected unless bugs surface)
 **Priority:** P0 — Hackathon demo
 
 ### What We're Testing
@@ -28,8 +28,6 @@ Full TroveVoice chain:
 - ✅ `match_products()` RPC live in Supabase
 - ✅ All 6 tools wired in agent-service
 - ✅ researchAgent wired as sub-agent
-- ✅ Storefront running on localhost:3000
-- ✅ Agent-service running on localhost:8088
 
 ### How to Run
 
@@ -51,3 +49,4 @@ cd apps/storefront && pnpm dev
 |------|--------|------|
 | Seed pgvector embeddings | `fix/seed-embeddings` | 2026-03-15 |
 | Fix WhatsApp phone number | `fix/whatsapp-number` | 2026-03-15 |
+| Add CLAUDE.md + current-feature.md | `fix/whatsapp-number` | 2026-03-15 |

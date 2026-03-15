@@ -80,7 +80,7 @@
 
 - **Be explicit about scope.** Tell me exactly what to change and what to leave alone.
 - **One task at a time.** Don't start the next task until the current one is committed.
-- **Check `current-feature.md`** at the start of each session to resume where we left off.
+- **`current-feature.md` is updated automatically** at the start of every task — it always reflects what's in progress.
 - **Never guess column names or API shapes** — check the actual schema or source first.
 
 ---
