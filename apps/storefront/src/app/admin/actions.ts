@@ -3,8 +3,23 @@
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { createSupabaseAdminClient } from "@/lib/supabase-admin";
 import { ensureAdmin } from "@/lib/admin/guard";
-import { logAdminActivity } from "@/lib/admin/activity";
 import { revalidatePath } from "next/cache";
+
+const CATALOG_SERVICE_URL = process.env.CATALOG_SERVICE_URL || 'http://localhost:8083';
+const SERVICE_SECRET = process.env.ORDER_SERVICE_SECRET || '';
+
+function catalogHeaders() {
+    return { 'Content-Type': 'application/json', 'x-service-token': SERVICE_SECRET };
+}
+
+async function callCatalog(path: string, options: RequestInit = {}) {
+    const res = await fetch(`${CATALOG_SERVICE_URL}${path}`, {
+        ...options,
+        headers: { ...catalogHeaders(), ...(options.headers as object || {}) },
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
 
 /**
  * ADMIN DASHBOARD SERVER ACTIONS
@@ -122,111 +137,31 @@ export async function getLowStockItems() {
  */
 
 export async function getBrandsWithCounts() {
-    const supabase = await createSupabaseServerClient();
-
-    const { data: brands, error: bError } = await supabase
-        .from("brands")
-        .select("*")
-        .order("name");
-
-    if (bError) throw new Error(bError.message);
-
-    const brandsWithCounts = await Promise.all((brands || []).map(async (brand: any) => {
-        const { count: pCount } = await supabase
-            .from("products")
-            .select("id", { count: "exact", head: true })
-            .eq("brand_type", brand.slug);
-        return { ...brand, productCount: pCount || 0 };
-    }));
-
-    return brandsWithCounts;
+    return callCatalog('/brands/with-counts');
 }
 
-export async function upsertBrand(formData: any, id?: string) {
-    const supabase = await createSupabaseServerClient();
-
+export async function upsertBrand(formData: Record<string, unknown>, id?: string) {
     if (id) {
-        const { error } = await supabase
-            .from("brands")
-            .update(formData)
-            .eq("id", id);
-        if (error) throw new Error(error.message);
+        await callCatalog(`/brands/${id}`, { method: 'PATCH', body: JSON.stringify(formData) });
     } else {
-        const { error } = await supabase
-            .from("brands")
-            .insert({ ...formData, is_active: true });
-        if (error) throw new Error(error.message);
+        await callCatalog('/brands', { method: 'POST', body: JSON.stringify(formData) });
     }
 }
 
 export async function deleteBrand(id: string) {
-    const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.from("brands").delete().eq("id", id);
-    if (error) throw new Error(error.message);
+    await callCatalog(`/brands/${id}`, { method: 'DELETE' });
 }
 
 export async function getBrandDetail(slug: string) {
-    const supabase = await createSupabaseServerClient();
-
-    let brand;
-    if (slug === "uncategorized") {
-        brand = {
-            id: "uncategorized",
-            name: "Uncategorized",
-            slug: "uncategorized",
-            description: "Products pending brand assignment",
-            is_virtual: true
-        };
-    } else {
-        const { data, error } = await supabase
-            .from("brands")
-            .select("*")
-            .eq("slug", slug)
-            .single();
-        if (error) throw new Error(error.message);
-        brand = data;
-    }
-
-    // Fetch Products
-    let pQuery = supabase.from("products").select("id, name, slug, thumbnail_url, is_active");
-    if (slug === "uncategorized") {
-        pQuery = pQuery.or('brand_type.is.null,brand_type.eq."",brand_type.eq.generic');
-    } else {
-        pQuery = pQuery.eq("brand_type", slug);
-    }
-    const { data: products, error: pError } = await pQuery.order("name");
-    if (pError) throw new Error(pError.message);
-
-    // Fetch all brands for dropdowns
-    const { data: brandsList, error: bListError } = await supabase
-        .from("brands")
-        .select("name, slug")
-        .order("name");
-
-    return {
-        brand,
-        products: products || [],
-        brandsList: brandsList || []
-    };
+    return callCatalog(`/brands/detail/${encodeURIComponent(slug)}`);
 }
 
 export async function updateProductBrand(productId: string, brandSlug: string) {
-    const supabase = await createSupabaseServerClient();
-    const { error } = await supabase
-        .from("products")
-        .update({ brand_type: brandSlug })
-        .eq("id", productId);
-    if (error) throw new Error(error.message);
+    await callCatalog(`/products/${productId}/brand`, { method: 'PATCH', body: JSON.stringify({ brandSlug }) });
 }
 
 export async function bulkUpdateProductBrand(productIds: string[], brandSlug: string) {
-    const supabase = await createSupabaseServerClient();
-    // Using .in filter for bulk update
-    const { error } = await supabase
-        .from("products")
-        .update({ brand_type: brandSlug })
-        .in("id", productIds);
-    if (error) throw new Error(error.message);
+    await callCatalog('/products/bulk/brand', { method: 'POST', body: JSON.stringify({ productIds, brandSlug }) });
 }
 
 /**
@@ -260,40 +195,22 @@ export async function getCustomers() {
 
 export async function getCategories() {
     await ensureAdmin("support");
-    const supabase = await createSupabaseServerClient();
-    const { data, count, error } = await supabase
-        .from("categories")
-        .select("*", { count: "exact" })
-        .order("name");
-
-    if (error) throw new Error(error.message);
-    return { categories: data || [], totalCount: count || 0 };
+    return callCatalog('/categories');
 }
 
-export async function upsertCategory(formData: any, id?: string) {
+export async function upsertCategory(formData: Record<string, unknown>, id?: string) {
     await ensureAdmin("editor");
-    const supabase = await createSupabaseServerClient();
-
     if (id) {
-        const { error } = await supabase
-            .from("categories")
-            .update(formData)
-            .eq("id", id);
-        if (error) throw new Error(error.message);
+        await callCatalog(`/categories/${id}`, { method: 'PATCH', body: JSON.stringify(formData) });
     } else {
-        const { error } = await supabase
-            .from("categories")
-            .insert({ ...formData, is_active: true });
-        if (error) throw new Error(error.message);
+        await callCatalog('/categories', { method: 'POST', body: JSON.stringify(formData) });
     }
     revalidatePath("/admin/categories");
 }
 
 export async function deleteCategory(id: string) {
     await ensureAdmin("manager");
-    const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.from("categories").delete().eq("id", id);
-    if (error) throw new Error(error.message);
+    await callCatalog(`/categories/${id}`, { method: 'DELETE' });
     revalidatePath("/admin/categories");
 }
 
@@ -351,38 +268,7 @@ export async function getAnalyticsSummary() {
 
 export async function getCategoryDetail(categoryId: string) {
     await ensureAdmin("support");
-    const supabase = await createSupabaseServerClient();
-
-    const [subsRes, linksRes] = await Promise.all([
-        supabase
-            .from("categories")
-            .select("*")
-            .eq("parent_id", categoryId)
-            .order("name"),
-        supabase
-            .from("product_categories")
-            .select("product_id")
-            .eq("category_id", categoryId)
-    ]);
-
-    if (subsRes.error) throw new Error(subsRes.error.message);
-    if (linksRes.error) throw new Error(linksRes.error.message);
-
-    let products: any[] = [];
-    if (linksRes.data?.length) {
-        const { data, error } = await supabase
-            .from("products")
-            .select("*")
-            .in("id", linksRes.data.map((l: any) => l.product_id))
-            .order("name");
-        if (error) throw new Error(error.message);
-        products = data || [];
-    }
-
-    return {
-        subcategories: subsRes.data || [],
-        products
-    };
+    return callCatalog(`/categories/${categoryId}/detail`);
 }
 
 
@@ -445,13 +331,5 @@ export async function getActionItems() {
 
 export async function getBrands() {
     await ensureAdmin("support");
-    const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase
-        .from("brands")
-        .select("name, slug")
-        .eq("is_active", true)
-        .order("name");
-
-    if (error) throw new Error(error.message);
-    return data || [];
+    return callCatalog('/brands');
 }

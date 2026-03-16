@@ -58,6 +58,34 @@ importers:
         specifier: ^5.0.0
         version: 5.9.3
 
+  apps/catalog-service:
+    dependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.48.1
+        version: 2.97.0
+      '@trovestak/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      dotenv:
+        specifier: ^16.4.0
+        version: 16.6.1
+      express:
+        specifier: ^4.21.0
+        version: 4.22.1
+    devDependencies:
+      '@types/express':
+        specifier: ^4.17.0
+        version: 4.17.25
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.33
+      tsx:
+        specifier: ^4.19.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+
   apps/db-importer:
     dependencies:
       '@supabase/supabase-js':
@@ -131,6 +159,37 @@ importers:
         specifier: ^3.0.0
         version: 3.5.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
     devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.33
+      tsx:
+        specifier: ^4.19.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+
+  apps/order-service:
+    dependencies:
+      '@google-cloud/pubsub':
+        specifier: ^4.0.0
+        version: 4.11.0(encoding@0.1.13)
+      '@supabase/supabase-js':
+        specifier: ^2.48.1
+        version: 2.97.0
+      '@trovestak/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      dotenv:
+        specifier: ^16.4.0
+        version: 16.6.1
+      express:
+        specifier: ^4.21.0
+        version: 4.22.1
+    devDependencies:
+      '@types/express':
+        specifier: ^4.17.0
+        version: 4.17.25
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.33
