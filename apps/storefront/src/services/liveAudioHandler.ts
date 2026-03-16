@@ -11,6 +11,7 @@
 
 export class LiveAudioHandler {
   private audioContext: AudioContext | null = null;
+  private playbackContext: AudioContext | null = null;
   private processor: ScriptProcessorNode | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
   private stream: MediaStream | null = null;
@@ -21,7 +22,10 @@ export class LiveAudioHandler {
 
   async start() {
     this.audioContext = new AudioContext({ sampleRate: 16000 });
-    this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    this.playbackContext = new AudioContext({ sampleRate: 24000 });
+    this.stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+    });
     this.source = this.audioContext.createMediaStreamSource(this.stream);
 
     this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
@@ -45,14 +49,16 @@ export class LiveAudioHandler {
     this.processor?.disconnect();
     this.stream?.getTracks().forEach((t) => t.stop());
     this.audioContext?.close();
+    this.playbackContext?.close();
     this.audioContext = null;
+    this.playbackContext = null;
     this.source = null;
     this.processor = null;
     this.stream = null;
   }
 
   playChunk(base64Data: string) {
-    if (!this.audioContext || this.audioContext.state === "suspended") return;
+    if (!this.playbackContext || this.playbackContext.state === "suspended") return;
 
     const binary = atob(base64Data);
     const bytes = new Uint8Array(binary.length);
@@ -61,14 +67,14 @@ export class LiveAudioHandler {
     const floatData = new Float32Array(pcmData.length);
     for (let i = 0; i < pcmData.length; i++) floatData[i] = pcmData[i] / 32768.0;
 
-    const buffer = this.audioContext.createBuffer(1, floatData.length, 24000);
+    const buffer = this.playbackContext.createBuffer(1, floatData.length, 24000);
     buffer.getChannelData(0).set(floatData);
 
-    const src = this.audioContext.createBufferSource();
+    const src = this.playbackContext.createBufferSource();
     src.buffer = buffer;
-    src.connect(this.audioContext.destination);
+    src.connect(this.playbackContext.destination);
 
-    const startTime = Math.max(this.nextStartTime, this.audioContext.currentTime);
+    const startTime = Math.max(this.nextStartTime, this.playbackContext.currentTime);
     src.start(startTime);
     this.nextStartTime = startTime + buffer.duration;
 
@@ -88,7 +94,7 @@ export class LiveAudioHandler {
       }
     });
     this.activeSources = [];
-    this.nextStartTime = this.audioContext?.currentTime ?? 0;
+    this.nextStartTime = this.playbackContext?.currentTime ?? 0;
   }
 
   private floatTo16BitPCM(float32Array: Float32Array): Int16Array {

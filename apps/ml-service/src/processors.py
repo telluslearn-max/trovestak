@@ -129,11 +129,11 @@ def process_user_event(message_data: str):
             # For the hackathon, we'll try a direct update to a specific category affinity table or similar
             # Let's assume there's a table `user_taste_profiles` with `user_id`, `category_id`, `affinity_score`
             supabase.table("user_taste_profiles").upsert({
-                "user_id": user_id,
+                "session_id": user_id,
                 "category_id": category_id,
-                "tf_affinity_score": score,
+                "affinity": score,
                 "updated_at": "now()"
-            }, on_conflict="user_id, category_id").execute()
+            }, on_conflict="session_id,category_id").execute()
 
         # 5. Also log to BigQuery for future retraining
         row = {

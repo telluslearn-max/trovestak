@@ -187,3 +187,85 @@ async def get_recommendations(req: RecommendRequest):
             log.error("Failed to publish recommendation.ready", {"error": str(e)})
 
     return {"user_id": req.user_id, "recommendations": results}
+
+
+# ── Train endpoint ─────────────────────────────────────────────────────────────
+
+class TrainRequest(BaseModel):
+    session_id: str
+
+
+@app.post("/train")
+async def train_for_session(req: TrainRequest):
+    """
+    Reads this session's user_events from Supabase, fine-tunes the TF model,
+    and persists category affinities to user_taste_profiles.
+    """
+    if not recommender:
+        return {"error": "Model not initialized"}
+
+    sb_url = os.environ.get("SUPABASE_URL")
+    sb_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not sb_url or not sb_key:
+        return {"error": "Supabase not configured"}
+
+    from supabase import create_client
+    sb = create_client(sb_url, sb_key)
+
+    result = sb.table("user_events") \
+        .select("session_id, category_id, metadata") \
+        .eq("session_id", req.session_id) \
+        .order("created_at", desc=False) \
+        .limit(200) \
+        .execute()
+
+    flat_events = []
+    for e in (result.data or []):
+        if not e.get("category_id"):
+            continue
+        meta = e.get("metadata") or {}
+        flat_events.append({
+            "session_id": e["session_id"],
+            "category_id": e["category_id"],
+            "view_duration": meta.get("view_duration", 0),
+            "scroll_depth": meta.get("scroll_depth", 0),
+        })
+
+    train_result = recommender.train_on_events(flat_events)
+
+    if train_result.get("affinities"):
+        rows = [
+            {
+                "session_id": req.session_id,
+                "category_id": cat_id,
+                "affinity": score,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+            for cat_id, score in train_result["affinities"].items()
+        ]
+        sb.table("user_taste_profiles") \
+            .upsert(rows, on_conflict="session_id,category_id") \
+            .execute()
+
+    return {"session_id": req.session_id, **train_result}
+
+
+# ── Affinities endpoint ────────────────────────────────────────────────────────
+
+@app.get("/affinities/{session_id}")
+async def get_affinities(session_id: str):
+    """Returns stored TF affinity scores for a session."""
+    sb_url = os.environ.get("SUPABASE_URL")
+    sb_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not sb_url or not sb_key:
+        return {"affinities": []}
+
+    from supabase import create_client
+    sb = create_client(sb_url, sb_key)
+    result = sb.table("user_taste_profiles") \
+        .select("category_id, affinity") \
+        .eq("session_id", session_id) \
+        .order("affinity", desc=True) \
+        .execute()
+
+    return {"session_id": session_id, "affinities": result.data or []}

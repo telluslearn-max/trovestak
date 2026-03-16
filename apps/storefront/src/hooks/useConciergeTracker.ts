@@ -30,6 +30,15 @@ export function useConciergeTracker({
                 category_id: categoryId
             });
             hasTrackedView.current = true;
+            // Trigger TF model training on accumulated session events (fire-and-forget)
+            void fetch(
+                `${process.env.NEXT_PUBLIC_ML_SERVICE_URL ?? "http://localhost:8001"}/train`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ session_id: sessionId }),
+                }
+            ).catch(() => {});
         };
 
         trackView();

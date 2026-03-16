@@ -888,7 +888,7 @@ export function ProductForm({ productId }: ProductFormProps) {
                                         <div className="space-y-3">
                                             {specGroups.length === 0 && (
                                                 <div className="border-2 border-dashed border-border/30 rounded-xl py-10 text-center text-muted-foreground/50 text-sm">
-                                                    No spec groups yet. Click "Add Group" to start.
+                                                    No spec groups yet. Click &quot;Add Group&quot; to start.
                                                 </div>
                                             )}
                                             {specGroups.map((group) => (

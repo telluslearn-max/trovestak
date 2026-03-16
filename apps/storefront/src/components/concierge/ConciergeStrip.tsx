@@ -29,6 +29,9 @@ import React, {
 } from "react";
 import { GoogleGenAI, Modality } from "@google/genai";
 import { LiveAudioHandler } from "@/services/liveAudioHandler";
+import { useWakeword } from "@/hooks/useWakeword";
+import { useCartStore } from "@/stores/cart";
+import { useRouter } from "next/navigation";
 
 // ─────────────────────────────────────────────
 // Gemini Live config (copied from agent-service)
@@ -100,6 +103,29 @@ CONSTRAINTS:
   call whatsapp_handoff immediately as a product request.
 - Never quote a price not retrieved from the catalog
 - Never say "I don't know" — if you don't have the answer, escalate to WhatsApp
+- SESSION END: When the user says goodbye, bye, thanks I'm done, close, end, stop, or any
+  clear farewell — say a warm 1-sentence closing ("Happy shopping — come back anytime!")
+  then immediately call end_session. Never leave a farewell without closing the session.
+
+CART & CHECKOUT:
+- Use add_to_cart ONLY after the customer explicitly confirms ("yes", "add that", "put it in my bag").
+- Use view_cart before initiating checkout to confirm cart contents with the customer.
+- Use remove_from_cart if the customer changes their mind about an item.
+
+PRE-CHECKOUT (required before calling initiate_checkout for ANY method):
+1. Call view_cart — read the items and total aloud to confirm.
+2. Collect customer's full name.
+3. Ask for their phone number for delivery updates.
+4. Ask: "What's your delivery address? Street and building name."
+5. Ask: "Which county are you in?"
+6. Ask: "How would you like to pay? M-Pesa STK Push, Manual Till, or Cash on Delivery?"
+
+Once you have all six pieces of information, call initiate_checkout — the customer will be redirected to the checkout page.
+
+CHECKOUT REDIRECT:
+- After calling initiate_checkout, tell the customer: "I'm taking you to checkout now — your details are pre-filled. Please sign in or continue as guest, then confirm your order."
+- Do NOT attempt to collect a PIN or transaction code — payment happens on the checkout page.
+- End the session once the customer confirms they can see the checkout page.
 `.trim();
 
 const CONCIERGE_TOOL_DECLARATIONS = [
@@ -170,11 +196,75 @@ const CONCIERGE_TOOL_DECLARATIONS = [
       required: ["query"],
     },
   },
+  {
+    name: "end_session",
+    description: "End the TroveVoice session. Call this when the user says goodbye, bye, close, end, stop, or signals they want to finish. Always say a warm 1-sentence closing before calling this.",
+    parameters: {
+      type: "OBJECT",
+      properties: {},
+    },
+  },
+  {
+    name: "add_to_cart",
+    description: "Add a product to the customer's shopping cart. Only call this after the customer explicitly confirms they want to add it (e.g. 'yes', 'add that', 'put it in my bag').",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        product_id: { type: "STRING", description: "Product ID from search results" },
+        quantity: { type: "NUMBER", description: "Quantity to add, default 1" },
+      },
+      required: ["product_id"],
+    },
+  },
+  {
+    name: "remove_from_cart",
+    description: "Remove a product from the customer's shopping cart.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        product_id: { type: "STRING", description: "Product ID to remove" },
+      },
+      required: ["product_id"],
+    },
+  },
+  {
+    name: "view_cart",
+    description: "Get a summary of the customer's current shopping cart contents and total.",
+    parameters: {
+      type: "OBJECT",
+      properties: {},
+    },
+  },
+  {
+    name: "initiate_checkout",
+    description: "Redirect the customer to the checkout page with their details pre-filled. Call ONLY after confirming cart contents and collecting name, phone, address, county, and payment method.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        payment_method: { type: "STRING", description: "Payment: 'mpesa' for M-Pesa STK push, 'manual_till' for manual till payment, 'cod' for cash on delivery" },
+        phone: { type: "STRING", description: "Customer phone number e.g. 0712345678 or +254712345678" },
+        customer_name: { type: "STRING", description: "Customer full name for the order record" },
+        address: { type: "STRING", description: "Customer delivery address — street and building name" },
+        county: { type: "STRING", description: "Kenyan county for delivery e.g. Nairobi, Mombasa, Kisumu" },
+      },
+      required: ["payment_method", "phone", "customer_name", "address", "county"],
+    },
+  },
 ];
 
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
+
+export interface ProductCard {
+  id: string;
+  name: string;
+  brand: string | null;
+  nav_category: string;
+  sell_price: number;
+  slug?: string;
+  availability?: string;
+}
 
 export type ConciergeState =
   | "idle"
@@ -206,6 +296,8 @@ interface StripState {
   agentText: string;
   activeTool: string | null;
   errorMsg: string | null;
+  displayProducts: ProductCard[];
+  displayMode: "list" | "compare" | null;
 }
 
 type StripAction =
@@ -217,7 +309,9 @@ type StripAction =
   | { type: "AGENT_TEXT"; text: string }
   | { type: "SPEAKING" }
   | { type: "ERROR"; msg: string }
-  | { type: "RESET" };
+  | { type: "RESET" }
+  | { type: "SHOW_PRODUCTS"; products: ProductCard[]; mode: "list" | "compare" }
+  | { type: "CLEAR_PRODUCTS" };
 
 // ─────────────────────────────────────────────
 // State machine
@@ -229,6 +323,8 @@ const initial: StripState = {
   agentText: "",
   activeTool: null,
   errorMsg: null,
+  displayProducts: [],
+  displayMode: null,
 };
 
 function reducer(state: StripState, action: StripAction): StripState {
@@ -249,6 +345,10 @@ function reducer(state: StripState, action: StripAction): StripState {
       return { ...state, phase: "speaking" };
     case "ERROR":
       return { ...state, phase: "error", errorMsg: action.msg };
+    case "SHOW_PRODUCTS":
+      return { ...state, displayProducts: action.products, displayMode: action.mode };
+    case "CLEAR_PRODUCTS":
+      return { ...state, displayProducts: [], displayMode: null };
     case "RESET":
       return { ...initial };
     default:
@@ -293,6 +393,9 @@ const ToolBadge: React.FC<{ name: string }> = ({ name }) => {
     get_concierge_context: "Reading your taste profile",
     compare_products: "Comparing specs",
     get_ml_recommendations: "Personalising picks",
+    add_to_cart: "Adding to cart",
+    remove_from_cart: "Updating cart",
+    view_cart: "Checking your cart",
     initiate_checkout: "Initiating checkout",
     whatsapp_handoff: "Connecting to agent",
     research_agent: "Researching intent",
@@ -302,6 +405,48 @@ const ToolBadge: React.FC<{ name: string }> = ({ name }) => {
       <span style={toolDot} />
       {labels[name] ?? name}
     </span>
+  );
+};
+
+/** Single product card */
+const ProductCardView: React.FC<{ product: ProductCard }> = ({ product }) => {
+  const card = (
+    <div style={cardStyle}>
+      <div style={cardCategoryTag}>{product.nav_category}</div>
+      <div style={cardName}>{product.name}</div>
+      {product.brand && <div style={cardBrand}>{product.brand}</div>}
+      <div style={cardPrice}>KES {product.sell_price.toLocaleString()}</div>
+      {product.availability && (
+        <div style={{
+          ...cardAvail,
+          color: product.availability === "in_stock" ? "#2d8f72" : "#c0392b",
+        }}>
+          {product.availability === "in_stock" ? "In stock" : "Limited stock"}
+        </div>
+      )}
+    </div>
+  );
+  return product.slug
+    ? <a href={`/products/${product.slug}`} style={cardLink} target="_blank" rel="noopener noreferrer">{card}</a>
+    : <>{card}</>;
+};
+
+/** Product panel — floats above the strip */
+const ProductPanel: React.FC<{
+  products: ProductCard[];
+  mode: "list" | "compare" | null;
+  onDismiss: () => void;
+}> = ({ products, mode, onDismiss }) => {
+  if (!products.length) return null;
+  return (
+    <div style={panelRoot} className="cs-fade-in">
+      <div style={mode === "compare" ? compareGrid : listRow}>
+        {products.map((p) => <ProductCardView key={p.id} product={p} />)}
+      </div>
+      <button style={panelDismiss} onClick={onDismiss} aria-label="Dismiss products" className="cs-stop-btn">
+        ✕
+      </button>
+    </div>
   );
 };
 
@@ -331,10 +476,23 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
   pageContext,
   bottom = 24,
 }) => {
+  const router = useRouter();
+  const routerRef = useRef<ReturnType<typeof useRouter> | null>(null);
+  useEffect(() => { routerRef.current = router; }, [router]);
+
   const [state, dispatch] = useReducer(reducer, initial);
   const [sessionId] = useState(() => crypto.randomUUID());
   const sessionRef = useRef<any>(null);
   const audioHandlerRef = useRef<LiveAudioHandler | null>(null);
+
+  // Stable ref so wakeword hook doesn't re-subscribe when connect() re-creates
+  const connectRef = useRef<() => void>(() => {});
+
+  // Wakeword listener — only active while session is idle
+  const { listening: wakeListening, supported: wakeSupported } = useWakeword({
+    onWakeword: useCallback(() => connectRef.current(), []),
+    enabled: state.phase === "idle",
+  });
 
   // ── Animate transcription text in character by character ──
   const [displayedTranscription, setDisplayedTranscription] = useState("");
@@ -378,6 +536,9 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
             body: JSON.stringify(call.args),
           });
           response = await res.json();
+          if (response.products?.length) {
+            dispatch({ type: "SHOW_PRODUCTS", products: response.products.slice(0, 3), mode: "list" });
+          }
         } else if (call.name === "compare_products") {
           const res = await fetch("/api/concierge/compare", {
             method: "POST",
@@ -385,6 +546,9 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
             body: JSON.stringify(call.args),
           });
           response = await res.json();
+          if (response.products?.length) {
+            dispatch({ type: "SHOW_PRODUCTS", products: response.products, mode: "compare" });
+          }
         } else if (call.name === "get_concierge_context") {
           const res = await fetch("/api/concierge/context", {
             method: "POST",
@@ -416,6 +580,91 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
               `${q} review Kenya 2025`,
             ],
           };
+        } else if (call.name === "end_session") {
+          response = { closed: true };
+          try {
+            session.sendToolResponse({ functionResponses: [{ id: call.id, name: call.name, response }] });
+          } catch { /* ignore */ }
+          setTimeout(() => {
+            try { sessionRef.current?.close(); } catch { /* ignore */ }
+            sessionRef.current = null;
+            audioHandlerRef.current?.stop();
+            audioHandlerRef.current = null;
+            dispatch({ type: "RESET" });
+          }, 900);
+          return;
+        } else if (call.name === "add_to_cart") {
+          const productRes = await fetch(`/api/concierge/product?id=${encodeURIComponent(call.args?.product_id ?? "")}`);
+          const product = await productRes.json();
+          if (product.error || !product.id) {
+            response = { error: "Product not found" };
+          } else {
+            const { addItem, getCartCount } = useCartStore.getState();
+            addItem({
+              id: `${product.id}-${product.variant_id}`,
+              product_id: product.id,
+              variant_id: product.variant_id,
+              title: product.name,
+              quantity: call.args?.quantity ?? 1,
+              unit_price: product.sell_price,
+              thumbnail: product.thumbnail_url ?? undefined,
+            });
+            const count = getCartCount();
+            response = {
+              added: product.name,
+              unit_price: product.sell_price,
+              cart_count: count,
+              message: `${product.name} added to your cart. You now have ${count} item${count !== 1 ? "s" : ""} in your cart.`,
+            };
+          }
+        } else if (call.name === "remove_from_cart") {
+          const { cart, removeItem } = useCartStore.getState();
+          const item = cart?.items.find(i => i.product_id === (call.args?.product_id ?? ""));
+          if (item) {
+            removeItem(item.id);
+            response = { removed: true, name: item.title, message: `${item.title} removed from your cart.` };
+          } else {
+            response = { removed: false, message: "That item is not in your cart." };
+          }
+        } else if (call.name === "view_cart") {
+          const { cart, getCartCount } = useCartStore.getState();
+          if (!cart?.items.length) {
+            response = { items: [], total: 0, message: "Your cart is empty." };
+          } else {
+            response = {
+              items: cart.items.map(i => ({
+                name: i.title,
+                quantity: i.quantity,
+                unit_price: i.unit_price,
+                line_total: i.quantity * i.unit_price,
+              })),
+              subtotal: cart.subtotal,
+              total: cart.total,
+              item_count: getCartCount(),
+            };
+          }
+        } else if (call.name === "initiate_checkout") {
+          const { cart } = useCartStore.getState();
+          if (!cart?.items.length) {
+            response = { error: "Cart is empty. Add products before checking out." };
+          } else {
+            // Persist voice-collected data so checkout page can pre-fill the form
+            try {
+              sessionStorage.setItem("voice_checkout_prefill", JSON.stringify({
+                customer_name: call.args?.customer_name ?? "",
+                phone: call.args?.phone ?? "",
+                payment_method: call.args?.payment_method ?? "",
+                address: call.args?.address ?? "",
+                county: call.args?.county ?? "",
+              }));
+            } catch { /* storage unavailable */ }
+            // Navigate to checkout — payment is handled there
+            routerRef.current?.push("/checkout?voice=1");
+            response = {
+              status: "redirecting",
+              message: "Taking you to checkout now. Your details are pre-filled — please sign in or continue as guest, then confirm your order.",
+            };
+          }
         }
       } catch (e: any) {
         response = { error: e.message };
@@ -488,8 +737,11 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
             // User speech transcription (enabled by inputAudioTranscription config)
             const transcript = msg.serverContent?.inputTranscription?.text;
             if (transcript) dispatch({ type: "TRANSCRIPTION", text: transcript });
-            // Agent interrupted user
-            if (msg.serverContent?.interrupted) audioHandlerRef.current?.interrupt();
+            // Agent interrupted by user — stop playback and flip to listening
+            if (msg.serverContent?.interrupted) {
+              audioHandlerRef.current?.interrupt();
+              dispatch({ type: "LISTENING" });
+            }
             // Tool calls
             if (msg.toolCall?.functionCalls?.length) {
               await handleToolCalls(msg.toolCall.functionCalls, session);
@@ -551,6 +803,9 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
     dispatch({ type: "RESET" });
   }, []);
 
+  // Keep connectRef in sync so wakeword hook always calls the latest version
+  useEffect(() => { connectRef.current = connect; }, [connect]);
+
   // Cleanup on unmount
   useEffect(() => () => { disconnect(); }, [disconnect]);
 
@@ -571,18 +826,31 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
 
       <div style={{ ...stripRoot, bottom }} aria-live="polite" aria-label="TroveVoice concierge">
 
+        {/* ── Product panel (shows above strip when agent returns results) ── */}
+        <ProductPanel
+          products={state.displayProducts}
+          mode={state.displayMode}
+          onDismiss={() => dispatch({ type: "CLEAR_PRODUCTS" })}
+        />
+
         {/* ── Idle: collapsed pill ── */}
         {phase === "idle" && (
           <button
             style={collapsedPill}
             onClick={connect}
             aria-label="Start TroveVoice"
-            className="cs-collapsed-pill"
+            className={`cs-collapsed-pill${wakeSupported ? " cs-wake-active" : ""}`}
           >
-            <span style={pillMicWrap}>
+            <span style={{
+              ...pillMicWrap,
+              ...(wakeSupported ? pillMicWrapWake : {}),
+            }}>
               <MicIcon size={16} />
+              {wakeSupported && <span style={wakeDot} className={wakeListening ? "cs-wake-dot" : ""} />}
             </span>
-            <span style={pillLabel}>Ask TroveVoice</span>
+            <span style={pillLabel}>
+              {wakeSupported ? "Say \"Hey TroveVoice\"" : "Ask TroveVoice"}
+            </span>
           </button>
         )}
 
@@ -605,10 +873,17 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
                 ...(isSpeaking ? micButtonSpeaking : {}),
                 ...(isError ? micButtonError : {}),
               }}
-              className={isListening ? "cs-mic-pulse" : ""}
-              onClick={isError ? connect : undefined}
-              aria-label={isListening ? "Listening" : "TroveVoice"}
-              disabled={!isError && !isListening}
+              className={isSpeaking ? "cs-mic-speaking" : isListening ? "cs-mic-pulse" : ""}
+              onClick={
+                isError ? connect
+                : isSpeaking ? () => {
+                    audioHandlerRef.current?.interrupt();
+                    dispatch({ type: "LISTENING" });
+                  }
+                : undefined
+              }
+              aria-label={isSpeaking ? "Interrupt" : isListening ? "Listening" : "TroveVoice"}
+              disabled={!isError && !isListening && !isSpeaking}
             >
               <MicIcon size={16} />
             </button>
@@ -709,6 +984,25 @@ const CSS = `
   }
   .cs-collapsed-pill:active { transform: scale(0.98); }
 
+  /* Passive wakeword listening — subtle teal border pulse on pill */
+  @keyframes cs-wake-pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(45,143,114,0.18), 0 4px 20px rgba(0,0,0,0.07); }
+    50%      { box-shadow: 0 0 0 4px rgba(45,143,114,0.08), 0 4px 20px rgba(0,0,0,0.07); }
+  }
+  .cs-wake-active {
+    border-color: rgba(45,143,114,0.25) !important;
+    animation: cs-wake-pulse 2.8s ease-in-out infinite;
+  }
+
+  /* Wake dot blink */
+  @keyframes cs-wake-dot {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%     { opacity: 0.4; transform: scale(0.7); }
+  }
+  .cs-wake-dot {
+    animation: cs-wake-dot 1.8s ease-in-out infinite;
+  }
+
   /* Connecting scan-line */
   @keyframes cs-scan {
     0%   { left: -60%; }
@@ -745,6 +1039,12 @@ const CSS = `
     50%  { transform: scaleY(1); }
     100% { transform: scaleY(0.25); }
   }
+
+  /* Mic button during speaking — clickable barge-in affordance */
+  .cs-mic-speaking:hover {
+    background: rgba(45,143,114,0.2) !important;
+  }
+  .cs-mic-speaking:active { transform: scale(0.92); }
 
   /* Stop button hover */
   .cs-stop-btn {
@@ -819,6 +1119,7 @@ const pillMicWrap: React.CSSProperties = {
   justifyContent: "center",
   color: "#1a1a1a",
   flexShrink: 0,
+  position: "relative",
 };
 
 const pillLabel: React.CSSProperties = {
@@ -827,6 +1128,22 @@ const pillLabel: React.CSSProperties = {
   color: "#6b6b68",
   letterSpacing: "-0.01em",
   paddingRight: 2,
+};
+
+const pillMicWrapWake: React.CSSProperties = {
+  background: "rgba(45,143,114,0.08)",
+  color: "#2d8f72",
+};
+
+const wakeDot: React.CSSProperties = {
+  position: "absolute",
+  top: 4,
+  right: 4,
+  width: 6,
+  height: 6,
+  borderRadius: "50%",
+  background: "#2d8f72",
+  border: "1.5px solid #ffffff",
 };
 
 const activeStrip: React.CSSProperties = {
@@ -868,7 +1185,9 @@ const micButton: React.CSSProperties = {
   width: 36,
   height: 36,
   borderRadius: "50%",
-  border: "1px solid rgba(26,26,26,0.1)",
+  borderWidth: 1,
+  borderStyle: "solid",
+  borderColor: "rgba(26,26,26,0.1)",
   background: "#f6f6f4",
   display: "flex",
   alignItems: "center",
@@ -892,6 +1211,7 @@ const micButtonSpeaking: React.CSSProperties = {
   background: "rgba(45,143,114,0.1)",
   color: "var(--cs-teal, #2d8f72)",
   borderColor: "rgba(45,143,114,0.3)",
+  cursor: "pointer",
 };
 
 const micButtonError: React.CSSProperties = {
@@ -1012,6 +1332,109 @@ const stopButton: React.CSSProperties = {
   flexShrink: 0,
   cursor: "pointer",
   outline: "none",
+};
+
+// ── Product panel styles ───────────────────────────────────────────────────
+
+const panelRoot: React.CSSProperties = {
+  position: "relative",
+  width: "calc(100vw - 48px)",
+  maxWidth: 600,
+  marginBottom: 10,
+  pointerEvents: "auto",
+};
+
+const listRow: React.CSSProperties = {
+  display: "flex",
+  gap: 10,
+  overflowX: "auto",
+  paddingBottom: 2,
+};
+
+const compareGrid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+  gap: 10,
+};
+
+const cardStyle: React.CSSProperties = {
+  background: "#ffffff",
+  border: "1px solid rgba(26,26,26,0.1)",
+  borderRadius: 14,
+  padding: "12px 14px",
+  boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+  minWidth: 140,
+  flexShrink: 0,
+  display: "flex",
+  flexDirection: "column",
+  gap: 2,
+};
+
+const cardLink: React.CSSProperties = {
+  textDecoration: "none",
+  color: "inherit",
+  display: "block",
+  flexShrink: 0,
+  transition: "transform 0.12s",
+};
+
+const cardCategoryTag: React.CSSProperties = {
+  fontSize: 10,
+  fontWeight: 500,
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+  color: "#6b6b68",
+  marginBottom: 2,
+};
+
+const cardName: React.CSSProperties = {
+  fontSize: 13,
+  fontWeight: 600,
+  color: "#1a1a1a",
+  lineHeight: 1.3,
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
+} as React.CSSProperties;
+
+const cardBrand: React.CSSProperties = {
+  fontSize: 11,
+  color: "#6b6b68",
+  marginTop: 1,
+};
+
+const cardPrice: React.CSSProperties = {
+  fontSize: 14,
+  fontWeight: 700,
+  color: "#1a1a1a",
+  marginTop: 6,
+  letterSpacing: "-0.02em",
+};
+
+const cardAvail: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 450,
+  marginTop: 2,
+};
+
+const panelDismiss: React.CSSProperties = {
+  position: "absolute",
+  top: -6,
+  right: -6,
+  width: 22,
+  height: 22,
+  borderRadius: "50%",
+  border: "1px solid rgba(26,26,26,0.1)",
+  background: "#ffffff",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 10,
+  color: "#b0afa9",
+  cursor: "pointer",
+  outline: "none",
+  boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
 };
 
 // Waveform bar styles

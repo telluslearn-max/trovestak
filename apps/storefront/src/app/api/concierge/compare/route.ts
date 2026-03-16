@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await supabase
         .from("products")
-        .select("id, name, brand, nav_category, sell_price, content_specifications")
+        .select("id, name, brand, nav_category, sell_price, content_specifications, slug")
         .in("id", product_ids);
 
     if (error) {

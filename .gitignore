@@ -44,3 +44,7 @@ logs/
 # Temporary
 tmp/
 .tmp/
+
+# Experiment / sample directories (not part of the project)
+ideas/files*/
+ideas/luxe-concierge-live/

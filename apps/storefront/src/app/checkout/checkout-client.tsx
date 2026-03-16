@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,12 +12,15 @@ import {
     ShoppingBag,
     Phone,
     ShieldCheck,
+    LogIn,
+    X,
 } from "lucide-react";
 import { formatKES } from "@/lib/formatters";
 import { useCartStore } from "@/stores/cart";
 import { kenyanCounties } from "@/lib/counties";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+import { supabase } from "@/lib/supabase";
 import {
     validateDiscountAction,
     getShippingRateAction,
@@ -56,6 +59,57 @@ export default function CheckoutClient() {
         address: "", city: "", county: "", postalCode: "",
     });
 
+    const [isVoiceCheckout, setIsVoiceCheckout] = useState(false);
+    const [showAuthBanner, setShowAuthBanner] = useState(false);
+    const [pendingPrefill, setPendingPrefill] = useState<{
+        customer_name: string; phone: string; payment_method: string;
+        address: string; county: string;
+    } | null>(null);
+
+    // Read voice prefill data on mount — store it but don't apply until auth is dismissed
+    useEffect(() => {
+        const isVoice = new URLSearchParams(window.location.search).get("voice") === "1";
+        setIsVoiceCheckout(isVoice);
+        if (!isVoice) return;
+
+        setShowAuthBanner(true);
+        try {
+            const raw = sessionStorage.getItem("voice_checkout_prefill");
+            sessionStorage.removeItem("voice_checkout_prefill");
+            if (!raw) return;
+            setPendingPrefill(JSON.parse(raw));
+        } catch { /* storage unavailable or invalid JSON */ }
+    }, []);
+
+    // Apply prefill to form after auth step (sign-in or guest dismiss)
+    const applyPrefill = useCallback((data: typeof pendingPrefill) => {
+        if (!data) return;
+        const nameParts = data.customer_name?.trim().split(" ") ?? [];
+        setShippingForm(prev => ({
+            ...prev,
+            firstName: nameParts[0] ?? "",
+            lastName: nameParts.slice(1).join(" "),
+            phone: data.phone || prev.phone,
+            address: data.address || prev.address,
+            county: data.county || prev.county,
+        }));
+        const methodMap: Record<string, "mpesa_stk" | "manual_till" | "cod"> = {
+            mpesa: "mpesa_stk", manual_till: "manual_till", cod: "cod",
+        };
+        if (data.payment_method && methodMap[data.payment_method]) {
+            setPaymentMethod(methodMap[data.payment_method]);
+        }
+        if (data.phone && data.payment_method === "mpesa") {
+            setMpesaPhone(data.phone);
+        }
+        setPendingPrefill(null);
+    }, []);
+
+    const dismissAuthBanner = useCallback(() => {
+        setShowAuthBanner(false);
+        applyPrefill(pendingPrefill);
+    }, [applyPrefill, pendingPrefill]);
+
     const [discountCode, setDiscountCode] = useState("");
     const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: string; value: number } | null>(null);
     const [isValidatingDiscount, setIsValidatingDiscount] = useState(false);
@@ -75,6 +129,49 @@ export default function CheckoutClient() {
         setShippingForm({ ...shippingForm, county: countyName });
         const result = await getShippingRateAction(countyName);
         if (result.rate !== undefined) setShippingRate(result.rate);
+    };
+
+    // ── Google Sign-In via GCP Identity Services ──────────────
+    // Load the GSI script and initialise on mount so the credential
+    // callback is wired up before the user clicks the button.
+    const handleGoogleCredential = useCallback(async (credentialResponse: { credential: string }) => {
+        const { error } = await supabase.auth.signInWithIdToken({
+            provider: "google",
+            token: credentialResponse.credential,
+        });
+        if (!error) dismissAuthBanner();
+    }, [dismissAuthBanner]);
+
+    useEffect(() => {
+        const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+        if (!clientId) return;
+
+        const existing = document.getElementById("gsi-script");
+        if (existing) {
+            // Already loaded — just initialise
+            (window as any).google?.accounts.id.initialize({
+                client_id: clientId,
+                callback: handleGoogleCredential,
+            });
+            return;
+        }
+
+        const script = document.createElement("script");
+        script.id = "gsi-script";
+        script.src = "https://accounts.google.com/gsi/client";
+        script.async = true;
+        script.defer = true;
+        script.onload = () => {
+            (window as any).google?.accounts.id.initialize({
+                client_id: clientId,
+                callback: handleGoogleCredential,
+            });
+        };
+        document.head.appendChild(script);
+    }, [handleGoogleCredential]);
+
+    const handleGoogleSignIn = () => {
+        (window as any).google?.accounts.id.prompt();
     };
 
     const handlePlaceOrder = async (e: React.FormEvent) => {
@@ -214,6 +311,56 @@ export default function CheckoutClient() {
                     </Link>
                     <h1 className="text-[28px] font-semibold text-[#1d1d1f]">Checkout</h1>
                 </div>
+
+                <AnimatePresence>
+                    {showAuthBanner && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -12 }}
+                            className="bg-white rounded-2xl p-5 mb-6 flex items-center justify-between gap-4"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-full bg-[#f5f5f7] flex items-center justify-center shrink-0">
+                                    <LogIn className="w-4 h-4 text-[#1d1d1f]" />
+                                </div>
+                                <div>
+                                    <p className="text-[14px] font-semibold text-[#1d1d1f]">Sign in to save this order</p>
+                                    <p className="text-[12px] text-[#6e6e73]">Track your order and earn rewards</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={handleGoogleSignIn}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black text-white text-[13px] font-medium hover:bg-[#1d1d1f] transition-colors"
+                                >
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                                    </svg>
+                                    Google
+                                </button>
+                                <Link
+                                    href={`/auth/login?redirect=/checkout${isVoiceCheckout ? "?voice=1" : ""}`}
+                                    className="px-4 py-2 rounded-xl border border-[#d2d2d7] text-[#1d1d1f] text-[13px] font-medium hover:bg-[#f5f5f7] transition-colors"
+                                >
+                                    Email
+                                </Link>
+                                <button
+                                    type="button"
+                                    onClick={dismissAuthBanner}
+                                    className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-[#f5f5f7] transition-colors"
+                                    aria-label="Continue as guest"
+                                >
+                                    <X className="w-4 h-4 text-[#6e6e73]" />
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 <form onSubmit={handlePlaceOrder}>
                     <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">

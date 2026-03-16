@@ -288,7 +288,6 @@ export const conciergeTools = [
     searchProductsTool,
     getConciergeContextTool,
     compareProductsTool,
-    initiateCheckoutTool,
     getMlRecommendationsTool,
     whatsappHandoffTool,
 ];

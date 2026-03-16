@@ -249,7 +249,7 @@ export default function TrackingClient() {
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <p className="text-sm text-muted-foreground">
-                                        Our logistics team is monitoring your order. If you have questions about current status or estimated arrival, we're here to help.
+                                        Our logistics team is monitoring your order. If you have questions about current status or estimated arrival, we&apos;re here to help.
                                     </p>
                                     <div className="flex gap-2">
                                         <Button asChild variant="outline" className="flex-1 bg-background">

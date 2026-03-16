@@ -111,13 +111,7 @@ async function bootstrap() {
                                 log.info("BIDI session open (WebSocket established)");
                             },
                             onmessage: (msg: any) => {
-                                // console.log("[DEBUG] msg keys:", Object.keys(msg));
-                                if (msg.serverContent) {
-                                    console.log("[DEBUG] serverContent keys:", Object.keys(msg.serverContent));
-                                    if (msg.serverContent.modelTurn) console.log("[DEBUG]   - has modelTurn");
-                                    if (msg.serverContent.interrupted) console.log("[DEBUG]   - has interrupted");
-                                }
-                                
+
                                 // ── SETUP COMPLETE: Tell client to start recording now ──
                                 if (msg.setupComplete) {
                                     log.info("Gemini setup complete — session ready for audio");
@@ -171,24 +165,6 @@ async function bootstrap() {
                                 }
 
                                 // ── Relay transcription (user speech → text) ──
-                                const inputTranscription = msg.serverContent?.modelTurn?.parts?.[0]?.text; // WAIT SDK abstracts it?
-                                // Let's check where it lives
-                                if (msg.serverContent?.turnComplete) {
-                                     console.log("[DEBUG] Turn complete triggered");
-                                }
-
-                                // Let's log any text part that comes back regardless
-                                let transcriptionMsg = msg.serverContent?.interrupted ? "interrupted" : null;
-                                // 
-                                // Actually, let's just log msg:
-                                if (Object.keys(msg).length > 0 && !msg.serverContent?.modelTurn) {
-                                   try { console.log("[DEBUG] Non-modelTurn msg:", JSON.stringify(msg).substring(0,200)); } catch(e){}
-                                }
-                                
-                                if (msg.serverContent?.inputTranscription) {
-                                     console.log("[DEBUG] User transcription found:", msg.serverContent.inputTranscription);
-                                }
-                                
                                 const userText = msg.serverContent?.inputTranscription?.text || msg.serverContent?.interrupted;
                                 if (userText) {
                                     try {
@@ -206,6 +182,7 @@ async function bootstrap() {
                                         const functionResponses = [];
                                         for (const fc of toolCall.functionCalls) {
                                             log.info(`Executing tool: ${fc.name}`);
+                                            try { clientWs.send(JSON.stringify({ type: "tool_call", name: fc.name })); } catch (e) {}
                                             const tool = conciergeTools.find((t: any) => t.name === fc.name);
                                             let response: any;
                                             if (tool) {
@@ -216,17 +193,53 @@ async function bootstrap() {
                                                     response = { error: e.message };
                                                 }
                                             } else if (fc.name === "research_agent") {
-                                                // Stub: expand query into Kenya-specific searches
+                                                // Real Research Agent Logic: Expand query into Kenya-specific searches using Gemini
                                                 const q = fc.args?.query || "";
-                                                response = {
-                                                    queries: [
-                                                        `${q} Kenya price`,
-                                                        `best ${q} under 50000 KES`,
-                                                        `${q} Samsung Tecno Infinix`,
-                                                        `affordable ${q} Nairobi`,
-                                                        `${q} review Kenya 2025`
-                                                    ]
-                                                };
+                                                log.info(`Research Agent expanding query: "${q}"`);
+                                                try {
+                                                    const genAI = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+                                                    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                                                    const prompt = `
+                                                        You are a market researcher for TroveStack, a premium electronics store in Kenya.
+                                                        The user expressed this vague shopping intent: "${q}"
+                                                        
+                                                        Perform "query expansion" to generate 5 specific product search queries that would help 
+                                                        this user. Consider:
+                                                        - Popular brands in Kenya: Samsung, Apple, Tecno, Infinix, Sony.
+                                                        - Local price points and market trends.
+                                                        - Specific technical specs that matter for the intent.
+                                                        
+                                                        Return ONLY a JSON array of 5 strings.
+                                                    `.trim();
+                                                    
+                                                    const result = await model.generateContent(prompt);
+                                                    const text = result.response.text();
+                                                    // Extract JSON array from potentially markdown-wrapped text
+                                                    const jsonStr = text.match(/\[.*\]/s)?.[0] || text;
+                                                    const queries = JSON.parse(jsonStr);
+                                                    
+                                                    response = {
+                                                        queries: Array.isArray(queries) ? queries : [
+                                                            `${q} Kenya price`,
+                                                            `best ${q} under 50000 KES`,
+                                                            `${q} Samsung Tecno Infinix`,
+                                                            `affordable ${q} Nairobi`,
+                                                            `${q} review Kenya 2025`
+                                                        ]
+                                                    };
+                                                    log.info("Research Agent expansion complete", { queries: response.queries });
+                                                } catch (e: any) {
+                                                    log.warn("Research Agent failed — using fallback stubs", { err: e.message });
+                                                    response = {
+                                                        queries: [
+                                                            `${q} Kenya price`,
+                                                            `best ${q} under 50000 KES`,
+                                                            `${q} Samsung Tecno Infinix`,
+                                                            `affordable ${q} Nairobi`,
+                                                            `${q} review Kenya 2025`
+                                                        ]
+                                                    };
+                                                }
                                             } else {
                                                 response = { error: `Tool not found: ${fc.name}` };
                                             }
@@ -267,7 +280,6 @@ async function bootstrap() {
 
             clientWs.on("message", async (data) => {
                 if (Buffer.isBuffer(data)) {
-                    console.log(`[DEBUG] Received ${data.length} bytes of audio from UI`);
                     if (!liveSession) {
                         // Buffer audio briefly (only if Gemini is still warming up < 1s)
                         if (pendingAudio.length > 50) pendingAudio.shift(); // cap at ~25KB

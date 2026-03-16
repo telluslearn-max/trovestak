@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import pandas as pd
+import zlib
 from typing import List, Dict, Any, Optional
 import os
 from src.utils import GCPLogger
@@ -86,6 +87,56 @@ class TroveTensorFlowModel:
         except Exception as e:
             log.error("Prediction failed", {"error": str(e)})
             return 0.5
+
+    def train_on_events(self, events: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Fine-tunes the model on a session's behavioral events.
+        events: [{ session_id, category_id, view_duration, scroll_depth }]
+        Returns: { trained, samples, affinities: {category_id: score} }
+        """
+        if not events:
+            return {"trained": False, "samples": 0, "affinities": {}}
+
+        session_id = events[0].get("session_id", "unknown")
+        user_int = zlib.adler32(session_id.encode()) % 1000
+
+        users, cats, metrics, labels = [], [], [], []
+        for e in events:
+            cat_id = e.get("category_id", "")
+            if not cat_id:
+                continue
+            cat_int = zlib.adler32(cat_id.encode()) % 100
+            duration = float(e.get("view_duration") or 0)
+            depth = float(e.get("scroll_depth") or 0)
+            # Engaged = deep scroll or long view → label 1.0; quick pass → label 0.5
+            label = 1.0 if (depth > 0.6 or duration > 5) else 0.5
+            users.append([user_int])
+            cats.append([cat_int])
+            metrics.append([duration, depth])
+            labels.append([label])
+
+        if not users:
+            return {"trained": False, "samples": 0, "affinities": {}}
+
+        self.model.fit(
+            [np.array(users), np.array(cats), np.array(metrics)],
+            np.array(labels),
+            epochs=3,
+            batch_size=min(len(users), 16),
+            verbose=0,
+        )
+
+        # Predict final affinity for each unique category
+        affinities: Dict[str, float] = {}
+        seen_cats = {e["category_id"] for e in events if e.get("category_id")}
+        for cat_id in seen_cats:
+            cat_int = zlib.adler32(cat_id.encode()) % 100
+            score = self.predict_affinity(user_int, cat_int, [0.0, 0.0])
+            affinities[cat_id] = round(score, 4)
+
+        self.save()
+        log.info(f"Trained on {len(users)} events for session {session_id[:8]}...", {"affinities": affinities})
+        return {"trained": True, "samples": len(users), "affinities": affinities}
 
     def save(self):
         """
