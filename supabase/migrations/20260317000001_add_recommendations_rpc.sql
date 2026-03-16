@@ -1,7 +1,7 @@
 -- Returns products similar to those the session has viewed.
 -- Uses the centroid of viewed product embeddings as the taste vector.
 CREATE OR REPLACE FUNCTION get_recommendations(
-    p_session_id TEXT,
+    p_session_id UUID,
     p_limit       INT DEFAULT 5
 )
 RETURNS TABLE (
@@ -14,24 +14,35 @@ RETURNS TABLE (
     images       TEXT[],
     score        FLOAT
 )
-LANGUAGE sql STABLE AS $$
-    WITH viewed AS (
-        SELECT DISTINCT ue.product_id, p.embedding
+LANGUAGE sql STABLE
+SET search_path = public, extensions
+AS $$
+    WITH last_viewed AS (
+        SELECT ue.product_id
         FROM   user_events ue
-        JOIN   products p ON p.id = ue.product_id
         WHERE  ue.session_id = p_session_id
           AND  ue.product_id IS NOT NULL
-          AND  p.embedding IS NOT NULL
+        ORDER BY ue.created_at DESC
+        LIMIT 1
     ),
-    avg_emb AS (
-        SELECT avg(embedding) AS centroid FROM viewed
+    taste_vector AS (
+        SELECT p.embedding
+        FROM   products p
+        JOIN   last_viewed lv ON p.id = lv.product_id
+        WHERE  p.embedding IS NOT NULL
+    ),
+    viewed_ids AS (
+        SELECT DISTINCT product_id
+        FROM   user_events
+        WHERE  session_id = p_session_id
+          AND  product_id IS NOT NULL
     )
     SELECT  p.id, p.name, p.brand, p.nav_category, p.sell_price, p.slug, p.images,
-            1 - (p.embedding <=> ae.centroid) AS score
-    FROM    products p, avg_emb ae
+            1 - (p.embedding <=> tv.embedding) AS score
+    FROM    products p, taste_vector tv
     WHERE   p.status = 'published'
       AND   p.embedding IS NOT NULL
-      AND   p.id NOT IN (SELECT product_id FROM viewed WHERE product_id IS NOT NULL)
-    ORDER BY p.embedding <=> ae.centroid
+      AND   p.id NOT IN (SELECT product_id FROM viewed_ids)
+    ORDER BY p.embedding <=> tv.embedding
     LIMIT   p_limit;
 $$;
