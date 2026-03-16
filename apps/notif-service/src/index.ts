@@ -58,6 +58,26 @@ const supabase = supabaseUrl && supabaseServiceKey
 async function handleOrderCreated(event: OrderCreatedEvent) {
     const { data } = event;
     log.info("Order confirmation email logged (Resend skipped)", { order: data.order_id, to: data.email });
+
+    if (!supabase) { log.warn('handleOrderCreated: no Supabase client — skipping stock decrement'); return; }
+
+    const { data: items, error } = await supabase
+        .from('order_items')
+        .select('variant_id, quantity')
+        .eq('order_id', data.order_id);
+
+    if (error) { log.error('handleOrderCreated: failed to fetch order items', { error }); return; }
+
+    for (const item of items ?? []) {
+        if (!item.variant_id) continue;
+        const { error: decrementError } = await supabase.rpc('decrement_stock', {
+            p_variant_id: item.variant_id,
+            p_qty: item.quantity,
+        });
+        if (decrementError) log.error('Stock decrement failed', { variant_id: item.variant_id, error: decrementError });
+    }
+
+    log.info('Stock decremented for order', { order_id: data.order_id, items: items?.length ?? 0 });
 }
 
 async function handlePaymentConfirmed(event: PaymentConfirmedEvent) {

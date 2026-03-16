@@ -164,9 +164,9 @@ async function bootstrap() {
                                 const userText = msg.serverContent?.inputTranscription?.text || msg.serverContent?.interrupted;
                                 if (userText) {
                                     try {
-                                        clientWs.send(JSON.stringify({ 
-                                            type: "transcription", 
-                                            content: inputTranscription.text 
+                                        clientWs.send(JSON.stringify({
+                                            type: "transcription",
+                                            content: userText
                                         }));
                                     } catch (e) {}
                                 }

@@ -184,7 +184,7 @@ app.post("/callback/mpesa", async (req, res) => {
             const successEvent = createEvent(TOPICS.PAYMENT_CONFIRMED, "mpesa-service", {
                 order_id: order.id,
                 mpesa_receipt: mpesaReceipt,
-                amount_kes: order.total_amount / 100,
+                amount_kes: order.total_amount,
                 phone: getItem("PhoneNumber") || "",
                 confirmed_at: new Date().toISOString()
             });

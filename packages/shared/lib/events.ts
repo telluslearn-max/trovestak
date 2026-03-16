@@ -38,7 +38,7 @@ export interface OrderCreatedData {
     user_id?: string;
     customer_name?: string;
     email: string;
-    total_amount: number;  // in cents
+    total_amount: number;  // whole KES integer (e.g. 13000 = KES 13,000)
     items: Array<{ product_id: string; title: string; quantity: number; unit_price: number }>;
     shipping_address: {
         first_name: string;
