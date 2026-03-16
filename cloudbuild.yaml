@@ -1,19 +1,94 @@
 steps:
-- name: 'gcr.io/cloud-builders/docker'
-  args: [
-    'build',
-    '-t', '$_IMAGE',
-    '-f', '$_DOCKERFILE',
-    '--build-arg', 'NEXT_PUBLIC_SUPABASE_URL=$_SUPABASE_URL',
-    '--build-arg', 'NEXT_PUBLIC_SUPABASE_ANON_KEY=$_SUPABASE_ANON_KEY',
-    '--build-arg', 'NEXT_PUBLIC_APP_URL=$_APP_URL',
-    '--build-arg', 'NEXT_PUBLIC_AGENT_WS_URL=$_AGENT_WS_URL',
-    '.'
-  ]
-substitutions:
-  _SUPABASE_URL: ''
-  _SUPABASE_ANON_KEY: ''
-  _APP_URL: ''
-  _AGENT_WS_URL: ''
-images:
-- '$_IMAGE'
+  # User-facing services (public)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: deploy-storefront
+    args:
+      - run
+      - deploy
+      - storefront
+      - --source=apps/storefront
+      - --region=us-central1
+      - --project=trovestak
+      - --allow-unauthenticated
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: deploy-agent-service
+    args:
+      - run
+      - deploy
+      - agent-service
+      - --source=apps/agent-service
+      - --region=us-central1
+      - --project=trovestak
+      - --allow-unauthenticated
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: deploy-gateway
+    args:
+      - run
+      - deploy
+      - gateway
+      - --source=apps/gateway
+      - --region=us-central1
+      - --project=trovestak
+      - --allow-unauthenticated
+
+  # Internal services (authenticated only)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: deploy-order-service
+    args:
+      - run
+      - deploy
+      - order-service
+      - --source=apps/order-service
+      - --region=us-central1
+      - --project=trovestak
+      - --no-allow-unauthenticated
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: deploy-catalog-service
+    args:
+      - run
+      - deploy
+      - catalog-service
+      - --source=apps/catalog-service
+      - --region=us-central1
+      - --project=trovestak
+      - --no-allow-unauthenticated
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: deploy-mpesa-service
+    args:
+      - run
+      - deploy
+      - mpesa-service
+      - --source=apps/mpesa-service
+      - --region=us-central1
+      - --project=trovestak
+      - --no-allow-unauthenticated
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: deploy-notif-service
+    args:
+      - run
+      - deploy
+      - notif-service
+      - --source=apps/notif-service
+      - --region=us-central1
+      - --project=trovestak
+      - --no-allow-unauthenticated
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: deploy-ml-service
+    args:
+      - run
+      - deploy
+      - ml-service
+      - --source=apps/ml-service
+      - --region=us-central1
+      - --project=trovestak
+      - --no-allow-unauthenticated
+
+timeout: '1800s'
+options:
+  logging: CLOUD_LOGGING_ONLY
