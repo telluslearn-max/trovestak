@@ -1,6 +1,6 @@
 FROM node:22-slim AS base
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@10.30.0 --activate
+RUN corepack enable && corepack prepare pnpm@10.4.0 --activate
 
 # Copy all files (monorepo root)
 COPY . .

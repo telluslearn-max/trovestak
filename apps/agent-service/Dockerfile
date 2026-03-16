@@ -1,7 +1,7 @@
 FROM node:22-slim
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@10.30.0 --activate
+RUN corepack enable && corepack prepare pnpm@10.4.0 --activate
 
 # Copy entire monorepo — symlinks will resolve correctly since nothing moves
 COPY . .
