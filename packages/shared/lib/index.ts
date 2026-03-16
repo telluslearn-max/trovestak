@@ -2,15 +2,7 @@
 // SHARED PACKAGE - EXPORTS
 // ============================================
 
-// Product normalizer types (existing)
-export * from './types.js';
-export * from './variant-detector.js';
-export * from './seo-generator.js';
-export * from './spec-generator.js';
-export * from './content-generator.js';
-export { transformProduct, processCSV, generateIndex } from './transform-engine.js';
-
-// Commerce domain types (new - for microservices)
+// Commerce domain types (microservices event contracts)
 export * from './commerce-types.js';
 
 // Formatting utilities
@@ -28,11 +20,15 @@ export * from './env.js';
 // Supabase clients
 export * from './supabase.js';
 
-// Daraja M-Pesa helpers
+// Phone normalisation (Kenya numbers)
+// Note: Daraja-specific helpers live in apps/mpesa-service/src/daraja.ts
 export * from './daraja.js';
 
 // Pub/Sub Event Publisher
 export * from './publisher.js';
+
+// Note: Product import tools (transform-engine, variant-detector, seo/spec/content-generator)
+// have moved to apps/catalog-service/src/import/
 
 
 

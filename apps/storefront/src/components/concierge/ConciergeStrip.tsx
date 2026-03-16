@@ -17,7 +17,7 @@ interface MemoryTag {
     color: "purple" | "green" | "amber";
 }
 
-interface PageContext {
+interface LocalPageContext {
     type: "home" | "product" | "store" | "cart" | "checkout" | "other";
     productId?: string;
     productName?: string;
@@ -26,7 +26,7 @@ interface PageContext {
 
 // ─── Page context from pathname ──────────────────────────────────────────────
 
-function getPageContext(pathname: string): PageContext {
+function getPageContext(pathname: string): LocalPageContext {
     if (pathname === "/") return { type: "home" };
     if (pathname.startsWith("/products/")) return { type: "product" };
     if (pathname.startsWith("/store")) return { type: "store" };
@@ -35,7 +35,7 @@ function getPageContext(pathname: string): PageContext {
     return { type: "other" };
 }
 
-function getNudgeMessage(ctx: PageContext, tags: MemoryTag[]): string {
+function getNudgeMessage(ctx: LocalPageContext, tags: MemoryTag[]): string {
     const hasPrefs = tags.some(t => t.color === "purple");
     if (ctx.type === "product" && ctx.productName) {
         return hasPrefs
@@ -105,7 +105,7 @@ export function ConciergeStrip() {
     const [dismissed, setDismissed] = useState(false);
     const [memoryTags, setMemoryTags] = useState<MemoryTag[]>([]);
     const [nudgeMessage, setNudgeMessage] = useState("");
-    const [pageContext, setPageContext] = useState<PageContext>({ type: "home" });
+    const [pageContext, setPageContext] = useState<LocalPageContext>({ type: "home" });
 
     const nudgeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const scrollTracked = useRef(false);

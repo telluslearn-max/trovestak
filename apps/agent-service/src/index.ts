@@ -43,8 +43,36 @@ async function bootstrap() {
         // ── Phase 2: heavy AI deps (load after port is bound) ────────────────────────
         const { GoogleGenAI, Modality } = await import("@google/genai");
         const { CONCIERGE_INSTRUCTIONS, getGenAITools } = await import("./agent.js");
-        const { conciergeTools } = await import("./tools.js");
+        const { conciergeTools, recommendationCache } = await import("./tools.js");
         log.info("AI modules loaded — ready for connections");
+
+        // ── Recommendation pre-warm subscriber (non-blocking) ─────────────────
+        const recSub = process.env.PUBSUB_SUBSCRIPTION_RECOMMENDATION_READY;
+        if (recSub && process.env.GOOGLE_CLOUD_PROJECT) {
+            try {
+                const { PubSub } = await import("@google-cloud/pubsub");
+                const pubsub = new PubSub({ projectId: process.env.GOOGLE_CLOUD_PROJECT });
+                const sub = pubsub.subscription(recSub);
+                sub.on("message", (message: any) => {
+                    try {
+                        const event = JSON.parse(message.data.toString());
+                        const { user_id, recommendations } = event.data ?? {};
+                        if (user_id && Array.isArray(recommendations)) {
+                            recommendationCache.set(user_id, { recommendations, cachedAt: Date.now() });
+                            log.info("Pre-warmed recommendations cached", { user_id, count: recommendations.length });
+                        }
+                        message.ack();
+                    } catch (e) {
+                        log.error("recommendation.ready parse error", { e });
+                        message.nack();
+                    }
+                });
+                sub.on("error", (err: any) => log.error("recommendation.ready sub error", { err: err.message }));
+                log.info(`Subscribed to ${recSub}`);
+            } catch (e: any) {
+                log.warn("recommendation.ready subscriber failed (non-fatal)", { err: e.message });
+            }
+        }
 
         wss.on("connection", async (clientWs, req) => {
             const url = new URL(req.url || "/", `http://${req.headers.host}`);

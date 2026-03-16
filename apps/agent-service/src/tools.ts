@@ -1,5 +1,12 @@
 import { createSupabaseAdminClient, TOPICS, createEvent, publishEvent } from "@trovestak/shared";
 
+// ─── Pre-warmed recommendation cache ─────────────────────────────────────────
+// Populated by the recommendation.ready Pub/Sub subscriber in index.ts.
+// Key: session_id / user_id. TTL: 5 minutes.
+interface CachedRec { recommendations: any[]; cachedAt: number; }
+export const recommendationCache = new Map<string, CachedRec>();
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
 /**
  * CONCIERGE TOOLS — TroveStack AI Bible §9
  *
@@ -238,6 +245,12 @@ export const getMlRecommendationsTool = {
         required: ["session_id"]
     },
     execute: async (input: any) => {
+        // Check pre-warmed cache first (populated by recommendation.ready PubSub)
+        const cached = recommendationCache.get(input.session_id);
+        if (cached && Date.now() - cached.cachedAt < CACHE_TTL_MS) {
+            return { recommendations: cached.recommendations, source: "cache" };
+        }
+
         const supabase = createSupabaseAdminClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -245,7 +258,7 @@ export const getMlRecommendationsTool = {
         const { data, error } = await supabase
             .rpc("get_recommendations", { p_session_id: input.session_id, p_limit: input.limit || 5 });
         if (error) return { recommendations: [] };
-        return { recommendations: data };
+        return { recommendations: data, source: "supabase" };
     }
 };
 

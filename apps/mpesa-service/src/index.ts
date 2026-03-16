@@ -8,10 +8,9 @@ import {
     PaymentInitiateEvent,
     createEvent,
     createSupabaseAdminClient,
-    getDarajaToken,
-    initiateSTKPushRequest,
-    normalizePhone
+    normalizePhone,
 } from "@trovestak/shared";
+import { getDarajaToken, initiateSTKPushRequest } from "./daraja.js";
 
 /**
  * MPESA SERVICE - Production Implementation
@@ -188,7 +187,9 @@ app.post("/callback/mpesa", async (req, res) => {
                 phone: getItem("PhoneNumber") || "",
                 confirmed_at: new Date().toISOString()
             });
-            await pubsub.topic(env.PUBSUB_TOPIC_PAYMENT_CONFIRMED).publishMessage({ json: successEvent });
+            if (pubsub) {
+                await pubsub.topic(env.PUBSUB_TOPIC_PAYMENT_CONFIRMED).publishMessage({ json: successEvent });
+            }
 
         } else {
             // ── PAYMENT FAILED ────────────────────────────────────────────────────
@@ -209,7 +210,9 @@ app.post("/callback/mpesa", async (req, res) => {
                 reason: ResultDesc,
                 phone: "" // Not always available in failure
             });
-            await pubsub.topic(env.PUBSUB_TOPIC_PAYMENT_FAILED).publishMessage({ json: failedEvent });
+            if (pubsub) {
+                await pubsub.topic(env.PUBSUB_TOPIC_PAYMENT_FAILED).publishMessage({ json: failedEvent });
+            }
         }
 
         res.json({ ResultCode: 0, ResultDesc: "Success" });

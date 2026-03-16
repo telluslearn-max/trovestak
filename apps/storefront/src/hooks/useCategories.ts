@@ -37,7 +37,7 @@ export function useCategories(options: UseCategoriesOptions = {}): UseCategories
     try {
       const { categories: allCategories } = await getCategories();
 
-      let filtered = allCategories;
+      let filtered: Category[] = (allCategories as Category[]) ?? [];
 
       if (parentId === null) {
         filtered = filtered.filter(c => !c.parent_id);

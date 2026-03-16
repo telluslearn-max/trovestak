@@ -54,6 +54,42 @@ supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 supabase: Client = create_client(supabase_url, supabase_key) if supabase_url and supabase_key else None
 
+def process_stock_updated(message_data: str):
+    """
+    Processes a 'stock.updated' event from catalog-service.
+    On restock (positive change), invalidates cached recommendations for the affected variant's
+    product so users see the restocked item surface again.
+    """
+    try:
+        event = json.loads(message_data)
+        data = event.get("data", {})
+        variant_id = data.get("variant_id")
+        change = data.get("change", 0)
+        reason = data.get("reason", "unknown")
+
+        if change > 0 and supabase:
+            # Restock: fetch the product_id for this variant, then delete cached recommendations
+            # that excluded this product so it can resurface in fresh scores.
+            result = supabase.table("product_variants") \
+                .select("product_id") \
+                .eq("id", variant_id) \
+                .maybe_single() \
+                .execute()
+            product_id = result.data.get("product_id") if result.data else None
+            if product_id:
+                supabase.table("product_recommendations") \
+                    .delete() \
+                    .contains("excluded_product_ids", [product_id]) \
+                    .execute()
+                log.info(f"Invalidated recommendations for restocked product {product_id}")
+
+        log.info(f"stock.updated processed", {"variant_id": variant_id, "change": change, "reason": reason})
+        return True
+    except Exception as e:
+        log.error("Failed to process stock.updated event", {"error": str(e)})
+        return False
+
+
 def process_user_event(message_data: str):
     """
     Processes a 'user_event' from the storefront.

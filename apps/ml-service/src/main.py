@@ -48,22 +48,29 @@ async def lifespan(app: FastAPI):
     # 2. Start Pub/Sub subscribers in background
     try:
         from google.cloud import pubsub_v1
-        from src.processors import process_order_created, process_user_event
+        from src.processors import process_order_created, process_user_event, process_stock_updated
 
         subscriber = pubsub_v1.SubscriberClient()
 
-        def callback(message):
+        def make_callback(handler):
+            def callback(message):
+                log.info(f"Received message: {message.message_id}")
+                try:
+                    data_str = message.data.decode("utf-8")
+                    success = handler(data_str)
+                    message.ack() if success else message.nack()
+                except Exception as e:
+                    log.error("Callback failed", {"error": str(e)})
+                    message.nack()
+            return callback
+
+        def order_callback(message):
             log.info(f"Received message: {message.message_id}")
             try:
                 data_str = message.data.decode("utf-8")
                 event = json.loads(data_str)
                 event_type = event.get("type", event.get("topic", "unknown"))
-
-                if "order.created" in event_type:
-                    success = process_order_created(data_str)
-                else:
-                    success = process_user_event(data_str)
-
+                success = process_order_created(data_str) if "order.created" in event_type else process_user_event(data_str)
                 message.ack() if success else message.nack()
             except Exception as e:
                 log.error("Callback failed", {"error": str(e)})
@@ -74,16 +81,23 @@ async def lifespan(app: FastAPI):
             env["GOOGLE_CLOUD_PROJECT"],
             env["PUBSUB_SUBSCRIPTION_ORDER_CREATED_ML"]
         )
-        subscriber.subscribe(orders_path, callback=callback)
+        subscriber.subscribe(orders_path, callback=order_callback)
         log.info(f"Subscribed to {orders_path}")
 
-        # Sub 2: User Events (optional)
+        # Sub 2: Stock Updated — invalidate recommendations on restock
+        stock_sub = os.environ.get("PUBSUB_SUBSCRIPTION_STOCK_UPDATED_ML")
+        if stock_sub:
+            stock_path = subscriber.subscription_path(env["GOOGLE_CLOUD_PROJECT"], stock_sub)
+            subscriber.subscribe(stock_path, callback=make_callback(process_stock_updated))
+            log.info(f"Subscribed to {stock_path}")
+
+        # Sub 3: User Events (optional)
         user_events_sub = os.environ.get("PUBSUB_SUBSCRIPTION_USER_EVENTS_ML")
         if user_events_sub:
             events_path = subscriber.subscription_path(
                 env["GOOGLE_CLOUD_PROJECT"], user_events_sub
             )
-            subscriber.subscribe(events_path, callback=callback)
+            subscriber.subscribe(events_path, callback=make_callback(process_user_event))
             log.info(f"Subscribed to {events_path}")
 
     except Exception as e:

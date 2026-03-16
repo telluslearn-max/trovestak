@@ -42,7 +42,7 @@ export default function ProductsPage() {
       const { products, stats } = await getProductsAdminList();
       setProducts(products);
       setStats(stats);
-      setCategories(["All", ...new Set(products.map(p => p.category).filter(Boolean))]);
+      setCategories(["All", ...new Set((products as any[]).map((p: any) => p.category as string | undefined).filter(Boolean) as string[])]);
     } catch (error: any) {
       console.error("Error fetching products:", error);
       toast.error(error.message || "Failed to load products");
