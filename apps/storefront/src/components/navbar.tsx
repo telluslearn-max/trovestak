@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ShoppingBag, Menu, X, ChevronRight, ChevronDown } from "lucide-react";
 import { useCartStore } from "@/stores/cart";
+import { useSearchStore } from "@/stores/search";
 
 // Map display category names to actual database slugs
 const categorySlugMapping: Record<string, string> = {
@@ -635,10 +636,12 @@ const navItems = [
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [scrollDir, setScrollDir] = useState<'up' | 'down'>('up');
+  const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeMegaMenu, setActiveMegaMenu] = useState<string | null>(null);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { setIsOpen: setSearchOpen } = useSearchStore();
   const [expandedMobileCategories, setExpandedMobileCategories] = useState<string[]>([]);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
@@ -656,7 +659,7 @@ export default function Navbar() {
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && searchQuery.trim()) {
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-      setIsSearchOpen(false);
+      setSearchOpen(false);
       setSearchQuery("");
     }
   };
@@ -670,11 +673,16 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 0);
-    window.addEventListener("scroll", handleScroll);
+    const handleScroll = () => {
+      const y = window.scrollY;
+      setIsScrolled(y > 0);
+      setScrollDir(y > lastScrollY && y > 44 ? 'down' : 'up');
+      setLastScrollY(y);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
     setMounted(true);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [lastScrollY]);
 
   const handleMouseLeave = () => {
     closeTimeoutRef.current = setTimeout(() => {
@@ -717,8 +725,9 @@ export default function Navbar() {
         ref={navRef}
         className="fixed top-0 left-0 right-0 z-[9999] h-[44px] transition-all duration-300"
         style={{
-          backgroundColor: "rgba(29, 29, 31, 0.92)",
-          backdropFilter: "saturate(180%) blur(20px)",
+          backgroundColor: scrollDir === 'down' && isScrolled ? 'transparent' : "rgba(29, 29, 31, 0.92)",
+          backdropFilter: scrollDir === 'down' && isScrolled ? 'none' : "saturate(180%) blur(20px)",
+          transform: scrollDir === 'down' && isScrolled ? 'translateY(-100%)' : 'translateY(0)',
         }}
       >
         <div className="max-w-[980px] mx-auto px-4 h-full flex items-center justify-between">
@@ -754,14 +763,14 @@ export default function Navbar() {
 
           <div className="flex items-center space-x-6">
             <button
-              onClick={() => setIsSearchOpen(true)}
+              onClick={() => setSearchOpen(true)}
               className="text-[rgba(245,245,247,0.88)] hover:text-white transition-colors duration-300"
               aria-label="Search"
             >
               <Search className="w-4 h-4" strokeWidth={1.5} />
             </button>
-            <Link
-              href="/cart"
+            <button
+              onClick={() => setIsOpen(true)}
               className="relative text-[rgba(245,245,247,0.88)] hover:text-white transition-colors duration-300"
               aria-label="Shopping bag"
             >
@@ -771,7 +780,7 @@ export default function Navbar() {
                   {cartCountNum}
                 </span>
               )}
-            </Link>
+            </button>
           </div>
 
           <button
@@ -895,38 +904,7 @@ export default function Navbar() {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {isSearchOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[10000] bg-[rgba(29,29,31,0.95)] backdrop-blur-xl"
-          >
-            <div className="max-w-[680px] mx-auto px-4 pt-20">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                <input
-                  type="text"
-                  placeholder="Search Trovestak"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={handleSearch}
-                  autoFocus
-                  className="w-full pl-12 pr-12 py-3 text-[19px] bg-[rgba(245,245,247,0.1)] text-white rounded-xl outline-none placeholder-gray-500"
-                  style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}
-                />
-                <button
-                  onClick={() => setIsSearchOpen(false)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[rgba(245,245,247,0.88)] hover:text-white text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Search overlay is rendered via SearchOverlay in StorefrontWrapper */}
 
       <AnimatePresence>
         {isMobileMenuOpen && (
