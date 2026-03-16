@@ -1,44 +1,48 @@
 # Current Feature
 
-## Active Task: End-to-End Voice Flow Test
+## Active Task: Admin Dashboard — Full Implementation
 
 **Status:** In Progress
-**Branch:** `fix/whatsapp-number` (test-only, no code changes expected unless bugs surface)
-**Priority:** P0 — Hackathon demo
+**Branch:** `feature/admin-dashboard`
+**Priority:** P0 — Devpost demo + commercial launch
 
-### What We're Testing
+### Scope
 
-Full TroveVoice chain:
-1. User speaks a vague query → `researchAgent` expands to 5 specific queries
-2. `search_products` runs semantic search → returns results
-3. User asks to compare two products → `compare_products` called
-4. User says "I'll take it" → `initiate_checkout` fires M-Pesa STK Push
+Build the entire admin dashboard from stubs to fully functional operations center. Supabase-backed, event-driven microservices on GCP. Modus operandi applied to every step.
 
-### Test Scenarios
+### Implementation Steps
 
-| # | Utterance | Expected tool | Expected outcome |
-|---|-----------|--------------|-----------------|
-| 1 | "I need a good laptop under 80k shillings" | `research_agent` → `search_products` | 5 product results returned |
-| 2 | "Compare the Samsung and the Sony" | `compare_products` | Side-by-side comparison spoken |
-| 3 | "I'll take the Sony, my number is 0712345678" | `initiate_checkout` | STK Push triggered |
+| # | Step | Status |
+|---|------|--------|
+| 0 | DB cleanup migration | ⏳ In progress |
+| 1 | Update CLAUDE.md with full modus workflow | Pending |
+| 2 | Port ProductNew.jsx → product-form.tsx | Pending |
+| 3 | orders/fulfillment — dispatch queue | Pending |
+| 4 | finance/reconciliation + finance/actions.ts | Pending |
+| 5 | finance/transactions + finance/invoices | Pending |
+| 6 | marketing/promotions (discount codes) | Pending |
+| 7 | marketing/flash-sales | Pending |
+| 8 | marketing/seo bulk editor | Pending |
+| 9 | marketing/email campaigns | Pending |
+| 10 | analytics/traffic — Kenya delivery heatmap | Pending |
+| 11 | shipping/zones + rates | Pending |
+| 12 | inventory/alerts — stock alerts | Pending |
+| 13 | inventory/trade-ins — valuations + intake | Pending |
+| 14 | Dashboard enhancements (bell + map card) | Pending |
+| 15 | GCP: Pub/Sub topics + fulfillment-service + Cloud Scheduler | Pending |
 
-### Known State Before This Test
+### Architecture
 
-- ✅ 173 products embedded (gemini-embedding-001, 768-dim)
-- ✅ `match_products()` RPC live in Supabase
-- ✅ All 6 tools wired in agent-service
-- ✅ researchAgent wired as sub-agent
+- **DB:** Supabase (`lgxqlgyciazmlllowhel`) — canonical store for all services
+- **Events:** Cloud Pub/Sub (existing + new topics: order.dispatched, order.delivered, stock.low, email.campaign)
+- **New service:** `apps/fulfillment-service/` (Cloud Run, mirrors notif-service)
+- **Analytics:** BigQuery additive-only, not replacing Supabase
 
 ### How to Run
 
 ```bash
-# Terminal 1 — agent-service
-cd apps/agent-service && pnpm dev
-
-# Terminal 2 — storefront
-cd apps/storefront && pnpm dev
-
-# Then open http://localhost:3000 and click the TroveVoice bubble
+cd apps/storefront && pnpm dev   # localhost:3000
+# Admin at localhost:3000/admin
 ```
 
 ---

@@ -65,24 +65,24 @@ export function VariationBulkEdit({
 
     try {
       const ids = Array.from(selectedIds);
-      const updates: { regular_price?: number; stock_quantity?: number } = {};
+      const updates: { price_kes?: number; stock_quantity?: number } = {};
 
-      // Calculate price update
+      // Calculate price update (prices are whole KES integers — no cents)
       if (updatePrice && priceValue) {
-        const basePrice = parseFloat(priceValue);
-        
+        const basePrice = Math.round(parseFloat(priceValue));
+
         if (priceType === "set") {
-          updates.regular_price = Math.round(basePrice * 100);
+          updates.price_kes = basePrice;
         } else {
-          // For add/subtract, we need to get current prices
+          // For add/subtract, use the first selected variant's price as reference
           const selectedVars = variations.filter(v => selectedIds.has(v.id));
-          const currentPrices = selectedVars.map(v => v.regular_price || 0);
-          const avgPrice = currentPrices.reduce((a, b) => a + b, 0) / currentPrices.length;
-          
+          const currentPrices = selectedVars.map(v => (v as any).price_kes || 0);
+          const avgPrice = Math.round(currentPrices.reduce((a: number, b: number) => a + b, 0) / currentPrices.length);
+
           if (priceType === "add") {
-            updates.regular_price = Math.round((avgPrice + basePrice) * 100);
+            updates.price_kes = avgPrice + basePrice;
           } else {
-            updates.regular_price = Math.round(Math.max(0, avgPrice - basePrice) * 100);
+            updates.price_kes = Math.max(0, avgPrice - basePrice);
           }
         }
       }
@@ -147,8 +147,8 @@ export function VariationBulkEdit({
                   {variation.name}
                 </Label>
                 <span className="text-xs text-[#86868B]">
-                  {variation.regular_price 
-                    ? `KES ${(variation.regular_price / 100).toLocaleString()}` 
+                  {(variation as any).price_kes
+                    ? `KES ${((variation as any).price_kes as number).toLocaleString()}`
                     : "No price"
                   }
                 </span>

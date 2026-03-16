@@ -26,6 +26,8 @@ export function ConciergeVoice({ onClose }: Props) {
     const [error, setError] = useState<string | null>(null);
 
     const wsRef = useRef<WebSocket | null>(null);
+    const reconnectAttempts = useRef(0);
+    const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
     const playerNodeRef = useRef<AudioWorkletNode | null>(null);
     const recorderNodeRef = useRef<AudioWorkletNode | null>(null);
@@ -149,7 +151,22 @@ export function ConciergeVoice({ onClose }: Props) {
             
             ws.onclose = (event) => {
                 console.log("[Concierge] WebSocket Closed:", event.code, event.reason);
-                onClose();
+                // Normal close (user dismissed) — don't reconnect
+                if (!isMounted.current || event.code === 1000 || event.code === 1001) {
+                    onClose();
+                    return;
+                }
+                // Unexpected close — retry with exponential backoff (max 3 attempts)
+                if (reconnectAttempts.current < 3) {
+                    const delay = Math.pow(2, reconnectAttempts.current) * 1000;
+                    reconnectAttempts.current++;
+                    setTranscription(`Connection lost. Reconnecting in ${delay / 1000}s...`);
+                    reconnectTimer.current = setTimeout(() => {
+                        if (isMounted.current) initConcierge();
+                    }, delay);
+                } else {
+                    setError("Connection lost. Please close and try again.");
+                }
             };
 
         } catch (err: any) {
@@ -160,7 +177,8 @@ export function ConciergeVoice({ onClose }: Props) {
     };
 
     const cleanup = () => {
-        wsRef.current?.close();
+        if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+        wsRef.current?.close(1000);
         streamRef.current?.getTracks().forEach(t => t.stop());
         try {
             if (audioContextRef.current && audioContextRef.current.state !== 'closed') {

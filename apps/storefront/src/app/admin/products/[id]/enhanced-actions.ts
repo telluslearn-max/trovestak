@@ -319,17 +319,23 @@ export async function addProductVariant(
 ) {
   const supabase = await createSupabaseServerClient();
 
-  const { error } = await supabase.from("product_variants_detail").insert({
+  const { error } = await supabase.from("product_variants").insert({
     product_id: productId,
-    ...variant,
-    is_available: true,
+    name: variant.variant_name,
+    price_kes: variant.price_delta ?? 0,
+    options: {
+      type: variant.variant_type,
+      ...(variant.hex_primary && { hex_primary: variant.hex_primary }),
+      ...(variant.hex_secondary && { hex_secondary: variant.hex_secondary }),
+      ...(variant.is_default !== undefined && { is_default: variant.is_default }),
+    },
   });
 
   if (error) throw new Error(error.message);
 
   await logAdminActivity({
     action: "ADD_VARIANT",
-    resource: "product_variants_detail",
+    resource: "product_variants",
     resourceId: productId,
     metadata: variant,
   });
@@ -342,7 +348,7 @@ export async function deleteProductVariant(variantId: string, productId: string)
   const supabase = await createSupabaseServerClient();
 
   const { error } = await supabase
-    .from("product_variants_detail")
+    .from("product_variants")
     .delete()
     .eq("id", variantId);
 
@@ -350,7 +356,7 @@ export async function deleteProductVariant(variantId: string, productId: string)
 
   await logAdminActivity({
     action: "DELETE_VARIANT",
-    resource: "product_variants_detail",
+    resource: "product_variants",
     resourceId: variantId,
   });
 

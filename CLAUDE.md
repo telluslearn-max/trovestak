@@ -60,28 +60,60 @@
 
 **How to work with me (Claude):**
 
-- Follow the modus operandi workflow for every task:
-  ```
-  /feature load   → document + create branch
-  /feature start  → implement
-  /feature test   → test manually or TDD
-  /feature review → code review checklist
-                  → commit + merge + push
-  /feature done   → mark complete
-  ```
+### Modus Operandi — apply to every task
 
-- **Code review checklist** (run before every commit):
-  - [ ] File/component structure clean
-  - [ ] State management correct
-  - [ ] No unused imports or dead code
-  - [ ] No over-engineering
-  - [ ] Security concerns addressed
-  - [ ] Error handling in place
+```
+/feature load [name]
+  → Update current-feature.md with task + context
+  → Create branch: feature/<name> or fix/<name>
+
+/feature start
+  → Implement the change
+
+/feature test
+  → Manual browser test or tsc type-check
+  → If NEEDS WORK → iterate until passing
+
+/feature review
+  → Run code review checklist (below)
+  → If NEEDS WORK → iterate until passing
+  → Commit (Co-Authored-By), push
+
+/feature done
+  → Mark completed in current-feature.md
+  → Start next task only after this step
+```
+
+**The NEEDS WORK loop is not optional.** Every task cycles through test → review → iterate until both pass. Never commit code that has failed either gate.
+
+### Code review checklist (run before every commit)
+
+- [ ] File/component structure clean
+- [ ] State management correct (Zustand / useState / server action — right tool for scope)
+- [ ] No unused imports or dead code
+- [ ] Problem solved correctly — no wrong assumptions about schema or API shape
+- [ ] Dependencies correct and specified
+- [ ] No over-engineering (no abstraction for a single use-case)
+- [ ] Security: no secrets logged, user input validated at boundaries
+- [ ] Error handling: async errors caught, nothing silently swallowed
+
+### Context files (do not delete)
+
+| File | Purpose |
+|------|---------|
+| `CLAUDE.md` | Project overview + coding standards + this workflow |
+| `current-feature.md` | Active task — updated at start and end of every feature |
+| `ideas/TROVESTAK_AI_BIBLE.md` | Canonical product spec (1171 lines) |
+| `C:\Users\Administrator\.claude\plans\foamy-weaving-yao.md` | Admin dashboard implementation plan |
+
+### Rules
 
 - **Be explicit about scope.** Tell me exactly what to change and what to leave alone.
 - **One task at a time.** Don't start the next task until the current one is committed.
-- **`current-feature.md` is updated automatically** at the start of every task — it always reflects what's in progress.
-- **Never guess column names or API shapes** — check the actual schema or source first.
+- **Never guess column names or API shapes** — read the actual schema or source first.
+- **Each workstream runs on its own branch.** Admin dashboard → `feature/admin-dashboard`. Never commit admin work to `main` directly.
+- **Supabase is the canonical DB.** All services connect to `lgxqlgyciazmlllowhel`. No service maintains its own DB.
+- **Prices are whole KES integers.** `price_kes = 75000` means KES 75,000. Never divide by 100.
 
 ---
 
