@@ -1,42 +1,42 @@
-"use server";
+'use server';
 
-import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { revalidatePath } from "next/cache";
-import { ensureAdmin } from "@/lib/admin/guard";
-import { logAdminActivity } from "@/lib/admin/activity";
+import { revalidatePath } from 'next/cache';
+import { ensureAdmin } from '@/lib/admin/guard';
+import { logAdminActivity } from '@/lib/admin/activity';
+
+const ORDER_SERVICE_URL = process.env.ORDER_SERVICE_URL || 'http://localhost:8082';
+const SERVICE_SECRET = process.env.ORDER_SERVICE_SECRET || '';
+
+function serviceHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'x-service-token': SERVICE_SECRET,
+    };
+}
 
 export async function getOrders() {
-    await ensureAdmin("support");
-    const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase
-        .from("orders")
-        .select(`
-            *,
-            profiles:user_id (full_name, email)
-        `)
-        .order("created_at", { ascending: false });
-
-    if (error) throw new Error(error.message);
-    return data || [];
+    await ensureAdmin('support');
+    const res = await fetch(`${ORDER_SERVICE_URL}/orders`, { headers: serviceHeaders() });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
 }
 
 export async function updateOrderStatus(id: string, status: string) {
-    await ensureAdmin("editor");
-    const supabase = await createSupabaseServerClient();
-    const { error } = await supabase
-        .from("orders")
-        .update({ status })
-        .eq("id", id);
+    await ensureAdmin('editor');
 
-    if (error) throw new Error(error.message);
+    const res = await fetch(`${ORDER_SERVICE_URL}/orders/${id}/status`, {
+        method: 'PATCH',
+        headers: serviceHeaders(),
+        body: JSON.stringify({ status }),
+    });
+    if (!res.ok) throw new Error(await res.text());
 
     await logAdminActivity({
-        action: "UPDATE_ORDER_STATUS",
-        resource: "orders",
+        action: 'UPDATE_ORDER_STATUS',
+        resource: 'orders',
         resourceId: id,
         metadata: { status },
     });
 
-    revalidatePath("/admin/orders");
+    revalidatePath('/admin/orders');
 }
-

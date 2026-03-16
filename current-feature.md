@@ -1,36 +1,23 @@
 # Current Feature
 
-## Active Task: Concierge & ML Handover
+## Active Task: Microservices Phase 1 — Extract order-service
 
-**Status:** Complete — ready for review
-**Branch:** `feature/store-upgrade`
-**Priority:** P1 — TroveVoice memory + recommendations
+**Status:** Planning
+**Branch:** `feature/store-upgrade` (Phase 0 done here; Phase 1 needs new branch)
+**Priority:** P2 — architectural hardening post-competition
 
-### What We Built
+### What We're Doing
 
-Fixed all broken TroveVoice concierge functionality: behavioral tracking, taste memory, ML recommendations, and page-context awareness.
+Extracting order creation + fulfillment logic from storefront server actions into a dedicated `order-service` (Express/TypeScript). See `ideas/MICROSERVICES_ARCHITECTURE.md` for full spec.
 
-### Step Progress
+### Phase 0 — Completed (2026-03-17)
 
-| Step | Description | Status |
-|------|-------------|--------|
-| 1 | Create 3 missing Supabase tables (user_events, user_preferences, user_taste_profiles) | ✅ Done |
-| 2 | Replace Python ML service with pgvector SQL RPC + update getMlRecommendationsTool | ✅ Done |
-| 3 | Wire pageContext into WebSocket (useAudioPipeline, ConciergeStrip, index.ts) | ✅ Done |
-| 4 | Fix CategoryTracker + pass categoryId in ProductPageClient | ✅ Done |
-| 5 | getConciergeContextTool derives preferences from user_events | ✅ Done |
-| 6 | Add tool call logging in index.ts | ✅ Done |
-
-### Key Files
-
-- `supabase/migrations/20260317000000_add_user_tracking.sql` — 3 missing tables
-- `supabase/migrations/20260317000001_add_recommendations_rpc.sql` — pgvector SQL recommendations
-- `apps/agent-service/src/tools.ts` — getMlRecommendationsTool → Supabase RPC; getConciergeContextTool → derive from events
-- `apps/agent-service/src/index.ts` — context message handler; Gemini context injection; tool logging
-- `apps/storefront/src/hooks/useAudioPipeline.ts` — pageContext param; send on WS open
-- `apps/storefront/src/components/concierge/ConciergeStrip.tsx` — pass pageContext to useAudioPipeline
-- `apps/storefront/src/components/concierge/CategoryTracker.tsx` — accept productId prop
-- `apps/storefront/src/app/products/[slug]/ProductPageClient.tsx` — pass categoryId to useConciergeTracker
+| Fix | File | Status |
+|-----|------|--------|
+| Transcription crash | `agent-service/src/index.ts:169` | ✅ Done |
+| M-Pesa amount /100 | `mpesa-service/src/index.ts:187` | ✅ Done |
+| Stock decrement | `notif-service/src/index.ts` + migration `20260317000002` | ✅ Done |
+| "in cents" comment | `shared/lib/events.ts:41` | ✅ Done |
 
 ---
 
@@ -45,3 +32,4 @@ Fixed all broken TroveVoice concierge functionality: behavioral tracking, taste 
 | Apple Store storefront rebuild (all 22 steps) | `feature/apple-store-storefront` | 2026-03-16 |
 | Admin dashboard + GCP infrastructure (all 13 steps) | `fix/storefront-production` | 2026-03-16 |
 | Concierge & ML handover (all 6 steps) | `feature/store-upgrade` | 2026-03-17 |
+| Phase 0 live defect fixes (transcription, M-Pesa amount, stock decrement) | `feature/store-upgrade` | 2026-03-17 |
