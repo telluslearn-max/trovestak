@@ -1,4 +1,4 @@
-import { createSupabaseAdminClient } from "@trovestak/shared";
+import { createSupabaseAdminClient, TOPICS, createEvent, publishEvent } from "@trovestak/shared";
 
 /**
  * CONCIERGE TOOLS — TroveStack AI Bible §9
@@ -57,7 +57,17 @@ export const searchProductsTool = {
                 const filtered = max_price_kes
                     ? data.filter((p: any) => p.sell_price <= max_price_kes)
                     : data;
-                if (filtered.length > 0) return { products: filtered, search_type: "semantic" };
+                if (filtered.length > 0) {
+                    // Publish agent.intent for ml-service behavioral signals (fire-and-forget)
+                    publishEvent(TOPICS.AGENT_INTENT, createEvent(TOPICS.AGENT_INTENT, 'agent-service', {
+                        query,
+                        category: category || null,
+                        max_price_kes: max_price_kes || null,
+                        result_count: filtered.length,
+                        search_type: 'semantic',
+                    })).catch(() => { /* non-blocking */ });
+                    return { products: filtered, search_type: "semantic" };
+                }
             }
         } catch (e) {
             // Semantic search failed — fall through to text search
@@ -74,6 +84,18 @@ export const searchProductsTool = {
         if (max_price_kes) q = (q as any).lte("sell_price", max_price_kes);
 
         const { data } = await (q as any).limit(5);
+
+        if (data?.length > 0) {
+            // Publish agent.intent for text search results too (fire-and-forget)
+            publishEvent(TOPICS.AGENT_INTENT, createEvent(TOPICS.AGENT_INTENT, 'agent-service', {
+                query,
+                category: category || null,
+                max_price_kes: max_price_kes || null,
+                result_count: data.length,
+                search_type: 'text',
+            })).catch(() => { /* non-blocking */ });
+        }
+
         return { products: data || [], search_type: "text" };
     }
 };

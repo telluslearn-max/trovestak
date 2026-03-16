@@ -10,6 +10,7 @@
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
+        "@google-cloud/pubsub": "^4.0.0",
         "@supabase/supabase-js": "^2.48.1",
         "@trovestak/shared": "workspace:*",
         "dotenv": "^16.4.0",

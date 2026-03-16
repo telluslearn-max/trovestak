@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
-import { createLogger, createSupabaseAdminClient } from '@trovestak/shared';
+import { PubSub } from '@google-cloud/pubsub';
+import { createLogger, createSupabaseAdminClient, TOPICS, createEvent, publishEvent, OrderCreatedEvent } from '@trovestak/shared';
 
 const log = createLogger('catalog-service');
 const PORT = parseInt(process.env.PORT || '8083');
@@ -350,7 +351,19 @@ app.post('/products/bulk/upsert', requireServiceToken, wrap(async (req, res) => 
     const { data, error } = await supabase.from('products')
         .upsert(productsData.map(p => ({ ...p, updated_at: new Date().toISOString() }))).select();
     if (error) throw new Error(error.message);
-    res.json({ success: true, count: data?.length || 0 });
+
+    const count = data?.length || 0;
+
+    // Publish product.import to trigger ml-service re-embedding (fire-and-forget)
+    if (pubsub && count > 0) {
+        publishEvent(TOPICS.PRODUCT_IMPORT, createEvent(TOPICS.PRODUCT_IMPORT, 'catalog-service', {
+            count,
+            product_ids: (data || []).map((p: Record<string, unknown>) => p.id as string),
+            imported_at: new Date().toISOString(),
+        })).catch(err => log.warn('publishEvent PRODUCT_IMPORT failed', { err }));
+    }
+
+    res.json({ success: true, count });
 }));
 
 // POST /products/bulk/brand
@@ -1005,5 +1018,73 @@ app.delete('/trade-ins/:id', requireServiceToken, wrap(async (req, res) => {
 
 // ── Health ────────────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'catalog-service' }));
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PUB/SUB — order.created → stock decrement
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const canUsePubSub = !!(process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.NODE_ENV === 'production');
+let pubsub: PubSub | null = null;
+
+async function handleOrderCreated(event: OrderCreatedEvent) {
+    const orderId = event.data.order_id;
+    log.info('order.created received — decrementing stock', { order_id: orderId });
+
+    const { data: items, error } = await supabase
+        .from('order_items')
+        .select('variant_id, quantity')
+        .eq('order_id', orderId);
+
+    if (error) { log.error('Failed to fetch order items for stock decrement', { error }); return; }
+
+    for (const item of items ?? []) {
+        if (!item.variant_id) continue;
+        const { error: decrementError } = await supabase.rpc('decrement_stock', {
+            p_variant_id: item.variant_id,
+            p_qty: item.quantity,
+        });
+        if (decrementError) {
+            log.error('Stock decrement failed', { variant_id: item.variant_id, error: decrementError });
+        } else {
+            // Publish stock.updated for ml-service
+            publishEvent(
+                TOPICS.STOCK_UPDATED,
+                createEvent(TOPICS.STOCK_UPDATED, 'catalog-service', {
+                    variant_id: item.variant_id,
+                    change: -item.quantity,
+                    reason: 'order_placed',
+                    order_id: orderId,
+                })
+            ).catch(err => log.warn('publishEvent STOCK_UPDATED failed', { err }));
+        }
+    }
+
+    log.info('Stock decrement complete', { order_id: orderId, items: items?.length ?? 0 });
+}
+
+if (canUsePubSub) {
+    try {
+        pubsub = new PubSub({ projectId: process.env.GOOGLE_CLOUD_PROJECT });
+        const subName = process.env.PUBSUB_SUBSCRIPTION_ORDER_CREATED;
+        if (subName) {
+            const sub = pubsub.subscription(subName);
+            sub.on('message', async (message) => {
+                try {
+                    const payload = JSON.parse(message.data.toString()) as OrderCreatedEvent;
+                    await handleOrderCreated(payload);
+                    message.ack();
+                } catch (e) {
+                    log.error('Error handling order.created', { e });
+                    message.nack();
+                }
+            });
+            log.info(`Subscribed to ${subName}`);
+        } else {
+            log.warn('PUBSUB_SUBSCRIPTION_ORDER_CREATED not set — stock decrement via PubSub disabled');
+        }
+    } catch (e) {
+        log.warn('PubSub init failed — stock decrement unavailable', { e });
+    }
+}
 
 app.listen(PORT, () => log.info(`catalog-service listening on :${PORT}`));

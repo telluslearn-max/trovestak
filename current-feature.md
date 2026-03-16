@@ -1,16 +1,16 @@
 # Current Feature
 
-## Active Task: Microservices Phase 1 — Extract order-service
+## Active Task: Microservices Migration — Phase 5 (notif-service delivery)
 
-**Status:** Planning
-**Branch:** `feature/store-upgrade` (Phase 0 done here; Phase 1 needs new branch)
+**Status:** Phase 5 next
+**Branch:** `feature/store-upgrade`
 **Priority:** P2 — architectural hardening post-competition
 
-### What We're Doing
+---
 
-Extracting order creation + fulfillment logic from storefront server actions into a dedicated `order-service` (Express/TypeScript). See `ideas/MICROSERVICES_ARCHITECTURE.md` for full spec.
+## Completed Phases
 
-### Phase 0 — Completed (2026-03-17)
+### Phase 0 — Live defect fixes (2026-03-17) ✅
 
 | Fix | File | Status |
 |-----|------|--------|
@@ -19,9 +19,53 @@ Extracting order creation + fulfillment logic from storefront server actions int
 | Stock decrement | `notif-service/src/index.ts` + migration `20260317000002` | ✅ Done |
 | "in cents" comment | `shared/lib/events.ts:41` | ✅ Done |
 
+### Phase 1 — Extract order-service (2026-03-17) ✅
+
+- `apps/order-service/` created (Express/TS, port 8082)
+- 13 REST endpoints: checkout, fulfillment, cart validation, shipping rates, discount codes
+- Subscribes to `payment.confirmed` / `payment.failed` Pub/Sub
+- Publishes `order.created`, `payment.initiate`, `order.dispatched`, `order.updated`
+- Storefront checkout + admin order actions → thin HTTP dispatchers
+
+### Phase 2 — Extract catalog-service (2026-03-17) ✅
+
+- `apps/catalog-service/` created (Express/TS, port 8083)
+- 65+ REST endpoints: products, variants, relations, attributes, templates, bundles, marketing, brands, categories, suppliers, trade-ins
+- Subscribes to `order.created` → stock decrement (replaced notif-service temp fix)
+- Publishes `stock.updated` (after decrement), `product.import` (after bulk upsert)
+- 9 storefront admin action files → thin HTTP dispatchers
+
+### Phase 3 — API Gateway (2026-03-17) ✅
+
+- `apps/gateway/` created (nginx, port 8080)
+- `limit_req_zone` rate limiting: payment=5r/m, admin=60r/m, general=300r/m
+- WebSocket upgrade support for agent-service
+- `X-Request-ID` injection for distributed tracing
+- Env-var-driven upstream config (envsubst at container start)
+
+### Phase 4 — Activate unused Pub/Sub topics (2026-03-17) ✅
+
+| Topic | Producer | Consumer | Status |
+|-------|----------|----------|--------|
+| `order.updated` | order-service (on status change) | notif-service (SMS) | ✅ Active |
+| `agent.intent` | agent-service/tools.ts (search_products) | ml-service | ✅ Active |
+| `product.import` | catalog-service (/products/bulk/upsert) | ml-service | ✅ Active |
+| `stock.updated` | catalog-service (handleOrderCreated) | ml-service | ✅ Active |
+| `recommendation.ready` | ml-service (Python) | agent-service | Declared — ml-service Phase 5+ |
+
+All new subscriptions added to `infra/pubsub-topics.yaml`.
+
 ---
 
-## Completed Tasks
+## Next: Phase 5 — notif-service delivery
+
+Replace all `log.info("... skipped")` stubs with real provider calls:
+- **Resend API** — order confirmation email (`handleOrderCreated`), payment receipt (`handlePaymentConfirmed`)
+- **Africa's Talking** — payment confirmed SMS, dispatch SMS, order status update SMS (`handleOrderUpdated`)
+
+---
+
+## Completed Tasks (pre-migration)
 
 | Task | Branch | Date |
 |------|--------|------|
@@ -32,4 +76,8 @@ Extracting order creation + fulfillment logic from storefront server actions int
 | Apple Store storefront rebuild (all 22 steps) | `feature/apple-store-storefront` | 2026-03-16 |
 | Admin dashboard + GCP infrastructure (all 13 steps) | `fix/storefront-production` | 2026-03-16 |
 | Concierge & ML handover (all 6 steps) | `feature/store-upgrade` | 2026-03-17 |
-| Phase 0 live defect fixes (transcription, M-Pesa amount, stock decrement) | `feature/store-upgrade` | 2026-03-17 |
+| Phase 0 live defect fixes | `feature/store-upgrade` | 2026-03-17 |
+| Phase 1 — order-service extraction | `feature/store-upgrade` | 2026-03-17 |
+| Phase 2 — catalog-service extraction | `feature/store-upgrade` | 2026-03-17 |
+| Phase 3 — API gateway (nginx) | `feature/store-upgrade` | 2026-03-17 |
+| Phase 4 — activate unused Pub/Sub topics | `feature/store-upgrade` | 2026-03-17 |

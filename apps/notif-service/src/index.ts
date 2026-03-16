@@ -42,7 +42,8 @@ const env = validateEnv([
     "PUBSUB_SUBSCRIPTION_ORDER_CREATED",
     "PUBSUB_SUBSCRIPTION_PAYMENT_CONFIRMED",
     "PUBSUB_SUBSCRIPTION_STOCK_LOW",
-    "PUBSUB_SUBSCRIPTION_ORDER_DISPATCHED"
+    "PUBSUB_SUBSCRIPTION_ORDER_DISPATCHED",
+    "PUBSUB_SUBSCRIPTION_ORDER_UPDATED"
 ]);
 
 const pubsub = new PubSub({ projectId: env.GOOGLE_CLOUD_PROJECT });
@@ -57,27 +58,8 @@ const supabase = supabaseUrl && supabaseServiceKey
 // 2. Event Handlers
 async function handleOrderCreated(event: OrderCreatedEvent) {
     const { data } = event;
+    // Stock decrement is handled by catalog-service (order.created → catalog-order-created subscription)
     log.info("Order confirmation email logged (Resend skipped)", { order: data.order_id, to: data.email });
-
-    if (!supabase) { log.warn('handleOrderCreated: no Supabase client — skipping stock decrement'); return; }
-
-    const { data: items, error } = await supabase
-        .from('order_items')
-        .select('variant_id, quantity')
-        .eq('order_id', data.order_id);
-
-    if (error) { log.error('handleOrderCreated: failed to fetch order items', { error }); return; }
-
-    for (const item of items ?? []) {
-        if (!item.variant_id) continue;
-        const { error: decrementError } = await supabase.rpc('decrement_stock', {
-            p_variant_id: item.variant_id,
-            p_qty: item.quantity,
-        });
-        if (decrementError) log.error('Stock decrement failed', { variant_id: item.variant_id, error: decrementError });
-    }
-
-    log.info('Stock decremented for order', { order_id: data.order_id, items: items?.length ?? 0 });
 }
 
 async function handlePaymentConfirmed(event: PaymentConfirmedEvent) {
@@ -88,6 +70,14 @@ async function handlePaymentConfirmed(event: PaymentConfirmedEvent) {
 async function handleStockLow(event: StockLowEvent) {
     const { data } = event;
     log.warn(`Stock low for ${data.product_name}`);
+}
+
+async function handleOrderUpdated(event: { data: { order_id: string; status: string; updated_at: string } }) {
+    const { data } = event;
+    log.info("Order status updated — SMS notification logged (Africa's Talking skipped)", {
+        order: data.order_id,
+        status: data.status,
+    });
 }
 
 async function handleOrderDispatched(event: OrderDispatchedEvent) {
@@ -108,6 +98,7 @@ const subscriptions = [
     { name: env.PUBSUB_SUBSCRIPTION_PAYMENT_CONFIRMED, handler: handlePaymentConfirmed },
     { name: env.PUBSUB_SUBSCRIPTION_STOCK_LOW, handler: handleStockLow },
     { name: env.PUBSUB_SUBSCRIPTION_ORDER_DISPATCHED, handler: handleOrderDispatched },
+    { name: env.PUBSUB_SUBSCRIPTION_ORDER_UPDATED, handler: handleOrderUpdated },
 ];
 
 function startSubscribers() {

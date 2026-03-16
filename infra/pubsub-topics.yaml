@@ -68,6 +68,23 @@ subscriptions:
     ack_deadline_seconds: 120
     subscriber: mpesa-service
 
+  # order-service subscriptions
+  - name: order-payment-confirmed
+    topic: payment.confirmed
+    ack_deadline_seconds: 60
+    subscriber: order-service
+
+  - name: order-payment-failed
+    topic: payment.failed
+    ack_deadline_seconds: 60
+    subscriber: order-service
+
+  # catalog-service subscriptions
+  - name: catalog-order-created
+    topic: order.created
+    ack_deadline_seconds: 60
+    subscriber: catalog-service
+
   # ml-service subscriptions
   - name: ml-agent-intent
     topic: agent.intent
@@ -78,3 +95,20 @@ subscriptions:
     topic: product.import
     ack_deadline_seconds: 300
     subscriber: ml-service
+
+  - name: ml-stock-updated
+    topic: stock.updated
+    ack_deadline_seconds: 30
+    subscriber: ml-service
+
+  # agent-service subscriptions
+  - name: agent-recommendation-ready
+    topic: recommendation.ready
+    ack_deadline_seconds: 30
+    subscriber: agent-service
+
+  # notif-service additional subscriptions
+  - name: notif-order-updated
+    topic: order.updated
+    ack_deadline_seconds: 60
+    subscriber: notif-service
