@@ -463,6 +463,11 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
       audioHandlerRef.current = handler;
       await handler.start(); // getUserMedia + AudioContext
 
+      // Build system instruction with catalog baked in (sent as part of connection setup)
+      const systemWithCatalog = catalogText
+        ? `${CONCIERGE_SYSTEM_PROMPT}\n\nPRODUCT CATALOG (the ONLY products TroveStack stocks — never recommend anything outside this list):\n${catalogText}`
+        : CONCIERGE_SYSTEM_PROMPT;
+
       // Connect to Gemini Live directly from browser
       const session = await ai.live.connect({
         model: "gemini-2.5-flash-native-audio-preview-09-2025",
@@ -505,21 +510,18 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: "Aoede" } },
           },
-          systemInstruction: CONCIERGE_SYSTEM_PROMPT,
+          systemInstruction: systemWithCatalog,
           tools: [{ functionDeclarations: CONCIERGE_TOOL_DECLARATIONS as any }],
         },
       });
       sessionRef.current = session;
 
-      // Inject catalog + page context as a silent turn
+      // Inject page context as a silent turn (catalog is in systemInstruction)
       try {
         const contextParts: string[] = [
           `[Session: ${sessionId}]`,
           pageContext
             ? `[Page: ${pageContext.pageType}${pageContext.productName ? `, viewing: ${pageContext.productName}` : ""}]`
-            : "",
-          catalogText
-            ? `\n[PRODUCT CATALOG — the complete list of products TroveStack currently sells. You may ONLY recommend products from this list:\n${catalogText}\n]`
             : "",
         ].filter(Boolean);
 
