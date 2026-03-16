@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const SUPABASE_HOSTNAME = "lgxqlgyciazmlllowhel.supabase.co";
 
@@ -45,6 +46,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // ── Deployment optimization ───────────────────────────────────────────────
   output: "standalone",
+  // Required for pnpm monorepo: include hoisted node_modules from workspace root
+  outputFileTracingRoot: path.join(__dirname, "../../"),
 
   // ── Build quality gates — re-enabled for production safety ─────────────────
   // TypeScript and ESLint errors are NOW surfaced during builds.
