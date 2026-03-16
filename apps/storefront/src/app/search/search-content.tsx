@@ -89,7 +89,7 @@ export default function SearchPageContent() {
     const getMinPrice = (product: Product): number => {
         if (!product.product_variants || product.product_variants.length === 0) return 0;
         const prices = product.product_variants.map(v => v.price_kes).filter(Boolean);
-        return prices.length > 0 ? Math.min(...prices) / 100 : 0;
+        return prices.length > 0 ? Math.min(...prices) : 0;
     };
 
     return (

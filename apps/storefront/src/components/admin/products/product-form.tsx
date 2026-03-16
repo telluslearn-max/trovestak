@@ -103,7 +103,7 @@ export function ProductForm({ productId }: ProductFormProps) {
     const [showMediaLibrary, setShowMediaLibrary] = useState<"main" | "gallery" | null>(null);
 
     // Core product fields
-    const [basicInfo, setBasicInfo] = useState({ name: "", slug: "", description: "" });
+    const [basicInfo, setBasicInfo] = useState({ name: "", slug: "", description: "", status: "draft" });
     const [productData, setProductData] = useState<ProductData>({
         product_type: "simple",
         stock_status: "instock",
@@ -151,6 +151,7 @@ export function ProductForm({ productId }: ProductFormProps) {
                         name: product.name || "",
                         slug: product.slug || "",
                         description: product.description || "",
+                        status: (product as any).status || (product.is_active ? "published" : "draft"),
                     });
                     setProductData({
                         cost_price: product.cost_price,
@@ -214,7 +215,7 @@ export function ProductForm({ productId }: ProductFormProps) {
                 slug,
                 description: basicInfo.description,
                 ...productData,
-                ...(status && { status }),
+                status: status || basicInfo.status,
             };
             const result = await upsertProduct(productId || null, payload, categorySlug || undefined);
             if (result.success) {
@@ -308,12 +309,13 @@ export function ProductForm({ productId }: ProductFormProps) {
                         Save Draft
                     </Button>
                     <Button
-                        type="submit"
+                        type="button"
                         disabled={saving}
+                        onClick={(e) => onSubmit(e as any, "published")}
                         className="h-10 px-6 rounded-xl font-bold text-[11px] uppercase tracking-wider"
                     >
                         {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                        {saving ? "Saving..." : isNew ? "Publish Product" : "Save Changes"}
+                        {saving ? "Saving..." : isNew ? "Publish" : "Save Changes"}
                     </Button>
                 </div>
             </div>
@@ -398,7 +400,7 @@ export function ProductForm({ productId }: ProductFormProps) {
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-3 gap-4">
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">URL Slug <span className="normal-case font-normal">(auto)</span></Label>
                                             <Input
@@ -418,6 +420,18 @@ export function ProductForm({ productId }: ProductFormProps) {
                                                 <option value="catalog">Visible in Catalog</option>
                                                 <option value="search">Search Only</option>
                                                 <option value="hidden">Hidden</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Status</Label>
+                                            <select
+                                                className="flex h-12 w-full rounded-xl border border-border/60 bg-background px-4 text-sm"
+                                                value={basicInfo.status}
+                                                onChange={(e) => setBasicInfo(prev => ({ ...prev, status: e.target.value }))}
+                                            >
+                                                <option value="draft">Draft</option>
+                                                <option value="published">Published</option>
+                                                <option value="archived">Archived</option>
                                             </select>
                                         </div>
                                     </div>

@@ -63,7 +63,7 @@ export async function getWishlistItemsAction() {
         variant_id: item.variant_id,
         title: item.products?.name || '',
         unit_price: item.products?.product_variants?.[0]?.price_kes
-            ? Math.round(item.products.product_variants[0].price_kes / 100)
+            ? item.products.product_variants[0].price_kes
             : 0,
         thumbnail: item.products?.thumbnail_url,
         slug: item.products?.slug || '',

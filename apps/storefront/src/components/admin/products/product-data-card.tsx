@@ -52,6 +52,8 @@ export interface ProductData {
   seo_canonical?: string;
   attributes?: { name: string; value: string }[];
   upsell_ids?: string[];
+  sale_price_start?: string;
+  sale_price_end?: string;
 }
 
 interface ProductDataCardProps {
@@ -151,14 +153,14 @@ function GeneralTab({ product, onChange }: { product: ProductData; onChange: (da
         </div>
 
         <div className="grid gap-2">
-          <Label>Regular Price (KES)</Label>
+          <Label>Compare-at Price (KES)</Label>
           <Input
             type="number"
-            value={product.regular_price || ""}
-            onChange={(e) => onChange({ regular_price: Number(e.target.value) || undefined })}
+            value={product.sale_price || ""}
+            onChange={(e) => onChange({ sale_price: Number(e.target.value) || undefined })}
             placeholder="0"
           />
-          <p className="text-xs text-gray-500">Original price before sale</p>
+          <p className="text-xs text-gray-500">Original price shown as strikethrough</p>
         </div>
 
         <div className="grid gap-2">

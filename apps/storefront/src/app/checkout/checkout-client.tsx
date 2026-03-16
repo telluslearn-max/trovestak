@@ -6,25 +6,26 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     ArrowLeft,
-    CreditCard,
-    MapPin,
     Check,
     Loader2,
     AlertCircle,
     ShoppingBag,
-    Zap,
     Phone,
     ShieldCheck,
-    ChevronRight
 } from "lucide-react";
 import { formatKES } from "@/lib/formatters";
 import { useCartStore } from "@/stores/cart";
 import { kenyanCounties } from "@/lib/counties";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { validateDiscountAction, getShippingRateAction, validateCartAction, initiateMpesaStkAction, getMpesaStatusAction, createManualOrderAction } from "./actions";
+import {
+    validateDiscountAction,
+    getShippingRateAction,
+    validateCartAction,
+    initiateMpesaStkAction,
+    getMpesaStatusAction,
+    createManualOrderAction,
+} from "./actions";
 
 interface ShippingForm {
     firstName: string;
@@ -40,7 +41,7 @@ interface ShippingForm {
 export default function CheckoutClient() {
     const router = useRouter();
     const { cart, clearCart, toggleVat } = useCartStore();
-    const [step, setStep] = useState<"shipping" | "payment">("shipping");
+
     const [isProcessing, setIsProcessing] = useState(false);
     const [paymentStatus, setPaymentStatus] = useState<"idle" | "processing" | "awaiting_pin" | "success" | "error" | "timeout">("idle");
     const [errorMessage, setErrorMessage] = useState("");
@@ -50,62 +51,40 @@ export default function CheckoutClient() {
     const [paymentMethod, setPaymentMethod] = useState<"mpesa_stk" | "manual_till" | "cod">("mpesa_stk");
     const [transactionCode, setTransactionCode] = useState("");
 
-
     const [shippingForm, setShippingForm] = useState<ShippingForm>({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phone: "",
-        address: "",
-        city: "",
-        county: "",
-        postalCode: "",
+        firstName: "", lastName: "", email: "", phone: "",
+        address: "", city: "", county: "", postalCode: "",
     });
 
     const [discountCode, setDiscountCode] = useState("");
     const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: string; value: number } | null>(null);
     const [isValidatingDiscount, setIsValidatingDiscount] = useState(false);
-    const [shippingRate, setShippingRate] = useState(1500); // Default fallback
-
-    const handleShippingSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setStep("payment");
-        setMpesaPhone(shippingForm.phone);
-    };
+    const [shippingRate, setShippingRate] = useState(1500);
 
     const handleApplyDiscount = async () => {
         if (!discountCode) return;
         setIsValidatingDiscount(true);
         setErrorMessage("");
-
         const result = await validateDiscountAction(discountCode);
-
-        if (result.error) {
-            setErrorMessage(result.error);
-            setAppliedDiscount(null);
-        } else if (result.discount) {
-            setAppliedDiscount(result.discount);
-        }
+        if (result.error) { setErrorMessage(result.error); setAppliedDiscount(null); }
+        else if (result.discount) { setAppliedDiscount(result.discount); }
         setIsValidatingDiscount(false);
     };
 
     const handleCountyChange = async (countyName: string) => {
         setShippingForm({ ...shippingForm, county: countyName });
-
         const result = await getShippingRateAction(countyName);
-        if (result.rate !== undefined) {
-            setShippingRate(result.rate);
-        }
+        if (result.rate !== undefined) setShippingRate(result.rate);
     };
 
-    const handlePayment = async () => {
+    const handlePlaceOrder = async (e: React.FormEvent) => {
+        e.preventDefault();
         if (!cart) return;
-        
+
         if (paymentMethod === "mpesa_stk" && (!mpesaPhone || mpesaPhone.length < 10)) {
             setErrorMessage("Please enter a valid M-Pesa phone number");
             return;
         }
-
         if (paymentMethod === "manual_till" && (!transactionCode || transactionCode.length < 8)) {
             setErrorMessage("Please enter a valid transaction code");
             return;
@@ -116,19 +95,13 @@ export default function CheckoutClient() {
         setErrorMessage("");
 
         try {
-            // ── Step 0: Reconcile cart with server (price + stock validation) ───────
             const reconcileRes = await validateCartAction(cart?.items ?? []);
-
             if (!reconcileRes.valid) {
                 if (reconcileRes.errors.length > 0) {
                     setPaymentStatus("error");
                     setErrorMessage(reconcileRes.errors[0]);
                     setIsProcessing(false);
                     return;
-                }
-
-                if (reconcileRes.warnings.length > 0) {
-                    setErrorMessage(`Note: ${reconcileRes.warnings[0]}`);
                 }
             }
 
@@ -141,29 +114,23 @@ export default function CheckoutClient() {
                 city: shippingForm.city,
                 county: shippingForm.county,
                 postalCode: shippingForm.postalCode,
-                items: (cart?.items ?? []).map(i => ({ id: i.id, product_id: i.product_id, variant_id: i.variant_id, title: i.title, quantity: i.quantity, unit_price: i.unit_price })),
-                subtotal: subtotal,
+                items: (cart?.items ?? []).map(i => ({
+                    id: i.id, product_id: i.product_id, variant_id: i.variant_id,
+                    title: i.title, quantity: i.quantity, unit_price: i.unit_price,
+                })),
+                subtotal,
                 shippingAmount: subtotal > 500000 ? 0 : shippingRate,
                 discountAmount: discountAmount || 0,
                 vatAmount: vatAmount || 0,
             };
 
             if (paymentMethod === "mpesa_stk") {
-                // ── Step 1: Create order + initiate STK Push ──────────────────────────
-                const initiateRes = await initiateMpesaStkAction(
-                    mpesaPhone,
-                    total, // Pass cents directly to backend
-                    orderData
-                );
-
-                if (initiateRes.error) {
-                    throw new Error(initiateRes.error);
-                }
+                const initiateRes = await initiateMpesaStkAction(mpesaPhone, total, orderData);
+                if (initiateRes.error) throw new Error(initiateRes.error);
 
                 setOrderId(initiateRes.orderId!);
                 setPaymentStatus("awaiting_pin");
 
-                // Step 2: Poll for payment confirmation
                 const POLL_INTERVAL = 3000;
                 const MAX_POLLS = 40;
                 let polls = 0;
@@ -171,28 +138,21 @@ export default function CheckoutClient() {
                 const poll = async () => {
                     polls++;
                     setPollCount(polls);
-
                     try {
                         const statusData = await getMpesaStatusAction(initiateRes.orderId!);
-
                         if (statusData.status === "paid") {
                             setPaymentStatus("success");
                             clearCart();
                             setTimeout(() => router.push(`/order-confirmation?orderId=${initiateRes.orderId}`), 1500);
                             return;
                         }
-
-                        if (statusData.status === "failed") {
-                            throw new Error("Payment was declined or cancelled. Please try again.");
-                        }
-
+                        if (statusData.status === "failed") throw new Error("Payment was declined or cancelled.");
                         if (statusData.status === "timeout" || polls >= MAX_POLLS) {
                             setPaymentStatus("timeout");
-                            setErrorMessage("Payment timed out. If you entered your PIN, please contact support with your order ID.");
+                            setErrorMessage("Taking longer than expected. If you entered your PIN, your payment may still process.");
                             setIsProcessing(false);
                             return;
                         }
-
                         setTimeout(poll, POLL_INTERVAL);
                     } catch (err: any) {
                         setPaymentStatus("error");
@@ -200,16 +160,10 @@ export default function CheckoutClient() {
                         setIsProcessing(false);
                     }
                 };
-
                 setTimeout(poll, POLL_INTERVAL);
             } else {
-                // Manual Till or COD
                 const res = await createManualOrderAction(total, orderData, paymentMethod, transactionCode);
-                
-                if (res.error) {
-                    throw new Error(res.error);
-                }
-
+                if (res.error) throw new Error(res.error);
                 setPaymentStatus("success");
                 clearCart();
                 setTimeout(() => router.push(`/order-confirmation?orderId=${res.orderId}`), 1500);
@@ -223,17 +177,12 @@ export default function CheckoutClient() {
 
     if (!cart || cart.items.length === 0) {
         return (
-            <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
-                <div className="h-24 w-24 rounded-[2rem] bg-muted/30 flex items-center justify-center mb-8 border border-border/50">
-                    <ShoppingBag className="w-10 h-10 text-muted-foreground/40" />
-                </div>
-                <h1 className="text-4xl font-black tracking-tight text-foreground mb-4">Your bag is empty</h1>
-                <p className="text-muted-foreground font-medium mb-12 uppercase text-xs tracking-[0.2em]">Ready to find your next favorite thing?</p>
-                <Link
-                    href="/store"
-                    className="h-16 px-12 bg-primary text-white rounded-2xl font-black text-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/20"
-                >
-                    Explore Products
+            <div className="min-h-screen bg-[#f5f5f7] flex flex-col items-center justify-center p-6 text-center">
+                <ShoppingBag className="w-16 h-16 text-[#6e6e73] mb-6" />
+                <h1 className="text-[32px] font-semibold text-[#1d1d1f] mb-2">Your bag is empty</h1>
+                <p className="text-[#6e6e73] mb-8">Add some products before checking out.</p>
+                <Link href="/store" className="px-8 py-3 bg-black text-white rounded-full text-[17px] font-medium hover:bg-[#1d1d1f] transition-colors">
+                    Browse Products
                 </Link>
             </div>
         );
@@ -242,324 +191,310 @@ export default function CheckoutClient() {
     const subtotal = cart.subtotal;
     const vatAmount = cart.vat_total || 0;
 
-    // Calculate discount
     let discountAmount = 0;
     if (appliedDiscount) {
-        if (appliedDiscount.type === "percentage") {
-            discountAmount = (subtotal * appliedDiscount.value) / 100;
-        } else {
-            discountAmount = appliedDiscount.value * 100; // Fixed amount in cents
-        }
+        if (appliedDiscount.type === "percentage") discountAmount = (subtotal * appliedDiscount.value) / 100;
+        else discountAmount = appliedDiscount.value * 100;
     }
 
     const shippingCharge = subtotal > 500000 ? 0 : shippingRate;
     const total = subtotal + vatAmount + (shippingCharge * 100) - discountAmount;
 
+    const isAwaitingPin = paymentStatus === "awaiting_pin";
+    const isSuccess = paymentStatus === "success";
+    const canSubmit = !isProcessing && !isSuccess && !isAwaitingPin;
+
     return (
-        <div className="min-h-screen bg-background pb-32 pt-32 px-6">
-            <div className="max-w-7xl mx-auto">
-                <div className="flex items-center gap-6 mb-16">
-                    <Link href="/cart" className="h-12 w-12 rounded-2xl bg-card border border-border/50 flex items-center justify-center hover:bg-muted/50 transition-colors shadow-sm">
-                        <ArrowLeft className="h-5 w-5 text-muted-foreground" />
+        <div className="min-h-screen bg-[#f5f5f7] pt-[44px]">
+            <div className="max-w-6xl mx-auto px-4 py-12">
+                {/* Header */}
+                <div className="flex items-center gap-4 mb-10">
+                    <Link href="/cart" className="w-9 h-9 rounded-full bg-white flex items-center justify-center hover:bg-gray-100 transition-colors">
+                        <ArrowLeft className="w-4 h-4 text-[#1d1d1f]" />
                     </Link>
-                    <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-1">Final Step</p>
-                        <h1 className="text-4xl font-black tracking-tighter text-foreground">Checkout</h1>
-                    </div>
+                    <h1 className="text-[28px] font-semibold text-[#1d1d1f]">Checkout</h1>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-                    <div className="lg:col-span-7 space-y-12">
-                        <AnimatePresence mode="wait">
-                            {step === "shipping" ? (
-                                <motion.div
-                                    key="shipping"
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    className="bg-card rounded-[2.5rem] p-10 shadow-xl shadow-black/[0.02] border border-border/50"
-                                >
-                                    <SectionHeader
-                                        icon={<MapPin className="w-5 h-5" />}
-                                        title="Shipping Logistics"
-                                        subtitle="Where should we deliver your premium gear?"
-                                    />
+                <form onSubmit={handlePlaceOrder}>
+                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
+                        {/* ── Left column ── */}
+                        <div className="space-y-4">
 
-                                    <form onSubmit={handleShippingSubmit} className="space-y-10">
-                                        <div className="grid grid-cols-2 gap-8">
-                                            <InputGroup label="First Name" value={shippingForm.firstName} onChange={(v) => setShippingForm({ ...shippingForm, firstName: v })} placeholder="John" required />
-                                            <InputGroup label="Last Name" value={shippingForm.lastName} onChange={(v) => setShippingForm({ ...shippingForm, lastName: v })} placeholder="Doe" required />
-                                        </div>
-
-                                        <InputGroup label="Email Address" type="email" value={shippingForm.email} onChange={(v) => setShippingForm({ ...shippingForm, email: v })} placeholder="john@example.com" required />
-
-                                        <div className="grid grid-cols-2 gap-8">
-                                            <InputGroup label="Contact Phone" type="tel" value={shippingForm.phone} onChange={(v) => setShippingForm({ ...shippingForm, phone: v })} placeholder="0712 345 678" required />
-                                            <div className="space-y-3">
-                                                <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">County</label>
-                                                <select
-                                                    required
-                                                    value={shippingForm.county}
-                                                    onChange={(e) => handleCountyChange(e.target.value)}
-                                                    className="w-full h-14 px-6 rounded-2xl bg-muted/30 border-none text-foreground font-black focus:ring-4 focus:ring-primary/10 transition-all appearance-none outline-none"
-                                                >
-                                                    <option value="">Select County</option>
-                                                    {kenyanCounties.map((c) => <option key={c.code} value={c.name}>{c.name}</option>)}
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <InputGroup label="Delivery Address" value={shippingForm.address} onChange={(v) => setShippingForm({ ...shippingForm, address: v })} placeholder="Apartment, Street, Building..." required />
-
-                                        <button type="submit" className="w-full h-16 bg-foreground text-background rounded-2xl font-black text-lg flex items-center justify-center hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-black/10 group">
-                                            Continue to Payment <ChevronRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-                                        </button>
-                                    </form>
-                                </motion.div>
-                            ) : (
-                                <motion.div
-                                    key="payment"
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    className="space-y-8"
-                                >
-                                    <div className="bg-card rounded-[2.5rem] p-10 shadow-xl shadow-black/[0.02] border border-border/50">
-                                        <SectionHeader icon={<CreditCard className="w-5 h-5" />} title="Payment Authentication" subtitle="Securely verify your purchase via M-Pesa" />
-
-                                        <div className="flex gap-4 mb-8">
-                                            <button 
-                                                onClick={() => { setPaymentMethod("mpesa_stk"); setErrorMessage(""); }}
-                                                className={cn("flex-1 py-4 px-4 rounded-2xl flex flex-col items-center justify-center gap-2 border transition-all", paymentMethod === "mpesa_stk" ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:bg-muted/30")}
-                                            >
-                                                <Zap className={cn("h-6 w-6", paymentMethod === "mpesa_stk" ? "text-primary" : "text-muted-foreground")} />
-                                                <span className="text-[10px] font-black uppercase tracking-widest">STK Push</span>
-                                            </button>
-                                            <button 
-                                                onClick={() => { setPaymentMethod("manual_till"); setErrorMessage(""); }}
-                                                className={cn("flex-1 py-4 px-4 rounded-2xl flex flex-col items-center justify-center gap-2 border transition-all", paymentMethod === "manual_till" ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:bg-muted/30")}
-                                            >
-                                                <Phone className={cn("h-6 w-6", paymentMethod === "manual_till" ? "text-primary" : "text-muted-foreground")} />
-                                                <span className="text-[10px] font-black uppercase tracking-widest">Manual Till</span>
-                                            </button>
-                                            <button 
-                                                onClick={() => { setPaymentMethod("cod"); setErrorMessage(""); }}
-                                                className={cn("flex-1 py-4 px-4 rounded-2xl flex flex-col items-center justify-center gap-2 border transition-all", paymentMethod === "cod" ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:bg-muted/30")}
-                                            >
-                                                <MapPin className={cn("h-6 w-6", paymentMethod === "cod" ? "text-primary" : "text-muted-foreground")} />
-                                                <span className="text-[10px] font-black uppercase tracking-widest">COD</span>
-                                            </button>
-                                        </div>
-
-                                        <div className="p-8 rounded-3xl bg-primary/5 border border-primary/20 mb-10">
-                                            <AnimatePresence mode="wait">
-                                                <motion.div
-                                                    key={paymentMethod}
-                                                    initial={{ opacity: 0, y: 10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    exit={{ opacity: 0, y: -10 }}
-                                                    className="space-y-6"
-                                                >
-                                                    {paymentMethod === "mpesa_stk" && (
-                                                        <>
-                                                            <div className="flex items-center gap-4 mb-6">
-                                                                <div className="h-12 w-12 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                                                                    <Zap className="h-6 w-6 text-white" />
-                                                                </div>
-                                                                <div>
-                                                                    <h3 className="font-black text-foreground">Lipa Na M-Pesa</h3>
-                                                                    <p className="text-xs font-medium text-muted-foreground">Instant STK Push Verification</p>
-                                                                </div>
-                                                            </div>
-                                                            <InputGroup label="Payment Phone (M-Pesa)" value={mpesaPhone} onChange={setMpesaPhone} placeholder="07XX XXX XXX" disabled={isProcessing} />
-                                                        </>
-                                                    )}
-
-                                                    {paymentMethod === "manual_till" && (
-                                                        <>
-                                                            <div className="flex items-center gap-4 mb-6">
-                                                                <div className="h-12 w-12 rounded-xl bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                                                                    <Phone className="h-6 w-6 text-white" />
-                                                                </div>
-                                                                <div>
-                                                                    <h3 className="font-black text-foreground">Manual Till Payment</h3>
-                                                                    <p className="text-xs font-medium text-muted-foreground">Pay to Till: 123456</p>
-                                                                </div>
-                                                            </div>
-                                                            <p className="text-sm font-medium text-muted-foreground my-4">Please go to your M-Pesa menu, select Buy Goods and Services, enter Till Number <strong>123456</strong>, and pay <strong>{formatKES(total)}</strong>. Enter the transaction code below.</p>
-                                                            <InputGroup label="M-Pesa Transaction Code" value={transactionCode} onChange={setTransactionCode} placeholder="OXX123XXXX" disabled={isProcessing} />
-                                                        </>
-                                                    )}
-
-                                                    {paymentMethod === "cod" && (
-                                                        <>
-                                                            <div className="flex items-center gap-4 mb-6">
-                                                                <div className="h-12 w-12 rounded-xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
-                                                                    <MapPin className="h-6 w-6 text-white" />
-                                                                </div>
-                                                                <div>
-                                                                    <h3 className="font-black text-foreground">Cash on Delivery</h3>
-                                                                    <p className="text-xs font-medium text-muted-foreground">Pay when you receive the item</p>
-                                                                </div>
-                                                            </div>
-                                                            <p className="text-sm font-medium text-muted-foreground my-4">You will pay <strong>{formatKES(total)}</strong> via cash or M-Pesa when our rider delivers your order.</p>
-                                                        </>
-                                                    )}
-
-                                                    {errorMessage && <p className="text-xs font-bold text-destructive flex items-center gap-2"><AlertCircle className="h-4 w-4" /> {errorMessage}</p>}
-                                                    {paymentStatus === "awaiting_pin" && paymentMethod === "mpesa_stk" && <p className="text-xs font-bold text-amber-500 flex items-center gap-2"><Phone className="h-4 w-4 animate-pulse" /> STK Push sent! Enter your M-Pesa PIN on your phone...</p>}
-                                                    {paymentStatus === "awaiting_pin" && pollCount > 0 && <p className="text-[10px] text-muted-foreground">Checking payment status... ({pollCount})</p>}
-                                                    {paymentStatus === "success" && <p className="text-xs font-bold text-emerald-500 flex items-center gap-2"><Check className="h-4 w-4" /> ORDER CONFIRMED! Redirecting...</p>}
-                                                    {orderId && (paymentStatus === "timeout" || paymentStatus === "error") && <p className="text-[10px] text-muted-foreground mt-1">Order ref: {orderId.slice(0, 8).toUpperCase()}</p>}
-
-                                                    <button
-                                                        onClick={handlePayment}
-                                                        disabled={isProcessing || paymentStatus === "success" || paymentStatus === "awaiting_pin"}
-                                                        className="w-full h-16 bg-primary text-white rounded-2xl font-black text-lg flex items-center justify-center hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary/20 disabled:opacity-50"
-                                                    >
-                                                        {paymentStatus === "awaiting_pin" ? <><Loader2 className="h-5 w-5 animate-spin mr-2" />Waiting for PIN...</> : paymentStatus === "success" ? "ORDER CONFIRMED ✓" : (paymentMethod === "cod" ? "CONFIRM ORDER" : `PAY ${formatKES(total)}`)}
-                                                    </button>
-                                                </motion.div>
-                                            </AnimatePresence>
-                                        </div>
-
-                                        <button onClick={() => setStep("shipping")} className="text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">
-                                            ← Re-edit shipping details
-                                        </button>
+                            {/* Section 1: Contact + Shipping */}
+                            <div className="bg-white rounded-2xl p-6">
+                                <h2 className="text-[17px] font-semibold text-[#1d1d1f] mb-5">Shipping Details</h2>
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField label="First Name" value={shippingForm.firstName} onChange={(v) => setShippingForm({ ...shippingForm, firstName: v })} placeholder="John" required />
+                                        <FormField label="Last Name" value={shippingForm.lastName} onChange={(v) => setShippingForm({ ...shippingForm, lastName: v })} placeholder="Doe" required />
                                     </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-
-                        <div className="bg-muted/30 rounded-3xl p-10 border border-border/50 flex items-start gap-6">
-                            <ShieldCheck className="h-10 w-10 text-primary opacity-20" />
-                            <div>
-                                <h4 className="font-black text-foreground mb-1 uppercase text-[10px] tracking-widest">Marketeo Buyer Protection</h4>
-                                <p className="text-xs font-medium text-muted-foreground leading-relaxed">Your transaction is secured with end-to-end encryption. Items are verified for authenticity before dispatch. 14-day hassle-free returns on all standard products.</p>
+                                    <FormField label="Email" type="email" value={shippingForm.email} onChange={(v) => setShippingForm({ ...shippingForm, email: v })} placeholder="john@example.com" required />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField label="Phone" type="tel" value={shippingForm.phone} onChange={(v) => setShippingForm({ ...shippingForm, phone: v })} placeholder="0712 345 678" required />
+                                        <div className="space-y-1.5">
+                                            <label className="text-[12px] font-medium text-[#6e6e73]">County</label>
+                                            <select
+                                                required
+                                                value={shippingForm.county}
+                                                onChange={(e) => handleCountyChange(e.target.value)}
+                                                className="w-full h-11 px-4 rounded-xl bg-[#f5f5f7] text-[#1d1d1f] text-[14px] outline-none focus:ring-2 focus:ring-black/20 appearance-none"
+                                            >
+                                                <option value="">Select county</option>
+                                                {kenyanCounties.map((c) => <option key={c.code} value={c.name}>{c.name}</option>)}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <FormField label="Delivery Address" value={shippingForm.address} onChange={(v) => setShippingForm({ ...shippingForm, address: v })} placeholder="Street, building, apartment..." required />
+                                </div>
                             </div>
+
+                            {/* Section 2: Payment */}
+                            <div className="bg-white rounded-2xl p-6">
+                                <h2 className="text-[17px] font-semibold text-[#1d1d1f] mb-5">Payment</h2>
+
+                                {/* Method tabs */}
+                                <div className="grid grid-cols-3 gap-2 mb-5">
+                                    {([
+                                        { id: 'mpesa_stk', label: 'STK Push' },
+                                        { id: 'manual_till', label: 'Manual Till' },
+                                        { id: 'cod', label: 'Cash on Delivery' },
+                                    ] as const).map((m) => (
+                                        <button
+                                            key={m.id}
+                                            type="button"
+                                            onClick={() => { setPaymentMethod(m.id); setErrorMessage(""); }}
+                                            className={cn(
+                                                'py-2.5 px-3 rounded-xl text-[13px] font-medium border transition-all',
+                                                paymentMethod === m.id
+                                                    ? 'bg-black text-white border-black'
+                                                    : 'bg-[#f5f5f7] text-[#1d1d1f] border-transparent hover:border-[#d2d2d7]'
+                                            )}
+                                        >
+                                            {m.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* STK Push fields */}
+                                {paymentMethod === "mpesa_stk" && (
+                                    <div className="space-y-4">
+                                        <FormField
+                                            label="M-Pesa Phone Number"
+                                            type="tel"
+                                            value={mpesaPhone}
+                                            onChange={setMpesaPhone}
+                                            placeholder="07XX XXX XXX"
+                                            disabled={isProcessing}
+                                        />
+                                        {/* Inline STK status */}
+                                        <AnimatePresence>
+                                            {isAwaitingPin && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                    exit={{ opacity: 0, height: 0 }}
+                                                    className="overflow-hidden"
+                                                >
+                                                    <div className="flex items-center gap-3 p-4 rounded-xl bg-green-50 border border-green-200">
+                                                        <Phone className="w-5 h-5 text-green-600 animate-pulse shrink-0" />
+                                                        <div>
+                                                            <p className="text-[14px] font-medium text-green-800">STK Push sent to {mpesaPhone}</p>
+                                                            <p className="text-[12px] text-green-600">Enter your M-Pesa PIN to confirm payment...{pollCount > 0 ? ` (${pollCount})` : ''}</p>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                )}
+
+                                {/* Manual Till fields */}
+                                {paymentMethod === "manual_till" && (
+                                    <div className="space-y-4">
+                                        <div className="p-4 rounded-xl bg-[#f5f5f7]">
+                                            <p className="text-[14px] text-[#1d1d1f] font-medium">Pay to Till: <strong>123456</strong></p>
+                                            <p className="text-[13px] text-[#6e6e73] mt-1">Amount: {formatKES(total)}</p>
+                                        </div>
+                                        <FormField
+                                            label="M-Pesa Transaction Code"
+                                            value={transactionCode}
+                                            onChange={setTransactionCode}
+                                            placeholder="OXX123XXXX"
+                                            disabled={isProcessing}
+                                        />
+                                    </div>
+                                )}
+
+                                {/* COD */}
+                                {paymentMethod === "cod" && (
+                                    <div className="p-4 rounded-xl bg-[#f5f5f7]">
+                                        <p className="text-[14px] text-[#1d1d1f]">
+                                            Pay <strong>{formatKES(total)}</strong> when your order is delivered.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Error message */}
+                                {errorMessage && (
+                                    <div className="flex items-start gap-2 mt-4 p-3 rounded-xl bg-red-50 border border-red-200">
+                                        <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                                        <p className="text-[13px] text-red-700">{errorMessage}</p>
+                                    </div>
+                                )}
+
+                                {/* Timeout recovery */}
+                                {orderId && (paymentStatus === "timeout" || paymentStatus === "error") && (
+                                    <div className="mt-3 flex items-center gap-3">
+                                        <p className="text-[12px] text-[#6e6e73]">Ref: {orderId.slice(0, 8).toUpperCase()}</p>
+                                        <Link href="/account/orders" className="text-[12px] font-medium text-[#0071e3] hover:underline">
+                                            Check payment status
+                                        </Link>
+                                    </div>
+                                )}
+
+                                {/* Success */}
+                                {isSuccess && (
+                                    <div className="flex items-center gap-3 mt-4 p-4 rounded-xl bg-green-50 border border-green-200">
+                                        <Check className="w-5 h-5 text-green-600 shrink-0" />
+                                        <p className="text-[14px] font-medium text-green-800">Order confirmed! Redirecting...</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Trust badge */}
+                            <div className="flex items-center gap-3 px-4 py-3 bg-white rounded-2xl">
+                                <ShieldCheck className="w-5 h-5 text-[#6e6e73] shrink-0" />
+                                <p className="text-[13px] text-[#6e6e73]">
+                                    All transactions are secured with end-to-end encryption. 14-day returns on all products.
+                                </p>
+                            </div>
+
+                            {/* Submit button */}
+                            <button
+                                type="submit"
+                                disabled={!canSubmit}
+                                className={cn(
+                                    'w-full h-14 rounded-full text-[17px] font-semibold transition-all flex items-center justify-center gap-2',
+                                    isSuccess ? 'bg-green-600 text-white' :
+                                    isAwaitingPin ? 'bg-black/50 text-white cursor-not-allowed' :
+                                    'bg-black text-white hover:bg-[#1d1d1f] disabled:opacity-50'
+                                )}
+                            >
+                                {isAwaitingPin && <Loader2 className="w-5 h-5 animate-spin" />}
+                                {isSuccess ? 'Order Confirmed' :
+                                 isAwaitingPin ? 'Waiting for PIN...' :
+                                 paymentMethod === 'cod' ? 'Place Order' :
+                                 `Pay ${formatKES(total)}`}
+                            </button>
                         </div>
-                    </div>
 
-                    <div className="lg:col-span-5">
-                        <div className="bg-card rounded-[2.5rem] p-10 shadow-xl shadow-black/[0.02] border border-border/50 sticky top-32">
-                            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-muted-foreground/50 mb-10">Order Manifest</h2>
+                        {/* ── Right column: Order summary ── */}
+                        <div className="bg-white rounded-2xl p-6 sticky top-[60px]">
+                            <h2 className="text-[17px] font-semibold text-[#1d1d1f] mb-5">Order Summary</h2>
 
-                            <div className="space-y-6 mb-10">
+                            {/* Cart items */}
+                            <div className="space-y-4 mb-5">
                                 {cart.items.map((item) => (
-                                    <div key={item.id} className="flex gap-6 group">
-                                        <div className="relative h-20 w-20 rounded-2xl overflow-hidden bg-muted/50 border border-border/50 flex-shrink-0 group-hover:scale-105 transition-transform">
-                                            {item.thumbnail ? <img src={item.thumbnail} alt={item.title} className="object-cover h-full w-full" /> : <div className="h-full w-full flex items-center justify-center text-[10px] font-black text-muted-foreground/30">IMG</div>}
+                                    <div key={item.id} className="flex gap-3">
+                                        <div className="w-14 h-14 rounded-xl bg-[#f5f5f7] shrink-0 overflow-hidden">
+                                            {item.thumbnail ? (
+                                                <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <ShoppingBag className="w-5 h-5 text-[#6e6e73]" />
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="flex-1 py-1">
-                                            <h3 className="text-sm font-black text-foreground mb-1 line-clamp-1">{item.title}</h3>
-                                            <p className="text-[10px] font-heavy text-muted-foreground uppercase tracking-widest mb-2">QTY: {item.quantity}</p>
-                                            <p className="text-sm font-black text-primary">{formatKES(item.unit_price * item.quantity)}</p>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-[14px] font-medium text-[#1d1d1f] truncate">{item.title}</p>
+                                            <p className="text-[12px] text-[#6e6e73]">Qty {item.quantity}</p>
                                         </div>
+                                        <p className="text-[14px] font-medium text-[#1d1d1f] shrink-0">{formatKES(item.unit_price * item.quantity)}</p>
                                     </div>
                                 ))}
                             </div>
 
-                            {/* Discount Code Input */}
-                            <div className="mb-10 pt-8 border-t border-border/30">
-                                <div className="flex gap-3">
-                                    <div className="flex-1 relative">
-                                        <input
-                                            type="text"
-                                            value={discountCode}
-                                            onChange={(e) => setDiscountCode(e.target.value)}
-                                            placeholder="Discount Code"
-                                            className="w-full h-14 bg-muted/30 border-none rounded-2xl text-foreground font-black px-6 focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/20 outline-none uppercase"
-                                        />
-                                        {appliedDiscount && (
-                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                                <Badge className="bg-emerald-500 text-white border-none font-black text-[10px] uppercase">Applied</Badge>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <Button
-                                        onClick={handleApplyDiscount}
-                                        disabled={!discountCode || isValidatingDiscount}
-                                        className="h-14 px-8 rounded-2xl font-black bg-foreground text-background"
-                                    >
-                                        {isValidatingDiscount ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
-                                    </Button>
-                                </div>
+                            {/* Discount code */}
+                            <div className="flex gap-2 mb-5">
+                                <input
+                                    type="text"
+                                    value={discountCode}
+                                    onChange={(e) => setDiscountCode(e.target.value)}
+                                    placeholder="Discount code"
+                                    className="flex-1 h-10 px-4 rounded-xl bg-[#f5f5f7] text-[14px] text-[#1d1d1f] outline-none focus:ring-2 focus:ring-black/20"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleApplyDiscount}
+                                    disabled={!discountCode || isValidatingDiscount}
+                                    className="h-10 px-4 rounded-xl bg-black text-white text-[14px] font-medium disabled:opacity-50"
+                                >
+                                    {isValidatingDiscount ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+                                </button>
                             </div>
 
-                            <div className="space-y-4 pt-8 border-t border-border/30">
+                            {/* Totals */}
+                            <div className="space-y-2.5 pt-4 border-t border-[#f5f5f7]">
                                 <SummaryRow label="Subtotal" value={formatKES(subtotal)} />
-
                                 {appliedDiscount && (
-                                    <SummaryRow
-                                        label={`Discount (${appliedDiscount.code})`}
-                                        value={`-${formatKES(discountAmount)}`}
-                                        isFree
-                                    />
+                                    <SummaryRow label={`Discount (${appliedDiscount.code})`} value={`-${formatKES(discountAmount)}`} green />
                                 )}
-
-                                {/* VAT Toggle */}
-                                <div className="flex items-center justify-between py-3">
-                                    <div className="flex flex-col">
-                                        <span className="text-xs font-black uppercase tracking-widest text-muted-foreground/50">Include VAT</span>
-                                        <span className="text-[10px] text-muted-foreground/40">Standard 16%</span>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[14px] text-[#6e6e73]">VAT (16%)</span>
+                                        <Switch
+                                            checked={cart.vat_enabled}
+                                            onCheckedChange={(checked) => toggleVat(checked)}
+                                            className="scale-75"
+                                        />
                                     </div>
-                                    <Switch
-                                        checked={cart.vat_enabled}
-                                        onCheckedChange={(checked) => toggleVat(checked)}
-                                    />
+                                    <span className={cn('text-[14px]', cart.vat_enabled ? 'text-[#1d1d1f]' : 'text-[#6e6e73] line-through')}>
+                                        {formatKES(vatAmount)}
+                                    </span>
                                 </div>
-
-                                <SummaryRow label="VAT (16%)" value={cart.vat_enabled ? formatKES(vatAmount) : formatKES(0)} muted={!cart.vat_enabled} />
-                                <SummaryRow label="Logistics" value={shippingCharge === 0 ? "FREE" : formatKES(shippingCharge * 100)} isFree={shippingCharge === 0} />
-                                <div className="pt-6 border-t border-border/30 flex items-center justify-between">
-                                    <span className="text-lg font-black text-foreground uppercase tracking-tighter">Grand Total</span>
-                                    <span className="text-3xl font-black text-foreground tracking-tighter">{formatKES(total)}</span>
+                                <SummaryRow
+                                    label="Shipping"
+                                    value={shippingCharge === 0 ? 'Free' : formatKES(shippingCharge * 100)}
+                                    green={shippingCharge === 0}
+                                />
+                                <div className="flex justify-between items-center pt-3 border-t border-[#f5f5f7]">
+                                    <span className="text-[17px] font-semibold text-[#1d1d1f]">Total</span>
+                                    <span className="text-[22px] font-semibold text-[#1d1d1f]">{formatKES(total)}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </form>
             </div>
         </div>
     );
 }
 
-function SectionHeader({ icon, title, subtitle }: { icon: React.ReactNode, title: string, subtitle: string }) {
+function FormField({ label, value, onChange, placeholder, type = "text", required, disabled }: {
+    label: string; value: string; onChange: (v: string) => void;
+    placeholder: string; type?: string; required?: boolean; disabled?: boolean;
+}) {
     return (
-        <div className="flex items-center gap-6 mb-12">
-            <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-                <div className="text-white">{icon}</div>
-            </div>
-            <div>
-                <h2 className="text-2xl font-black tracking-tight text-foreground">{title}</h2>
-                <p className="text-sm font-medium text-muted-foreground">{subtitle}</p>
-            </div>
-        </div>
-    );
-}
-
-function InputGroup({ label, value, onChange, placeholder, type = "text", required, disabled }: { label: string, value: string, onChange: (v: string) => void, placeholder: string, type?: string, required?: boolean, disabled?: boolean }) {
-    return (
-        <div className="space-y-3">
-            <label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1">{label}</label>
+        <div className="space-y-1.5">
+            <label className="text-[12px] font-medium text-[#6e6e73]">{label}</label>
             <input
                 type={type}
                 required={required}
                 disabled={disabled}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                className="w-full h-14 bg-muted/30 border-none rounded-2xl text-foreground font-black px-6 focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-muted-foreground/20 outline-none disabled:opacity-50"
                 placeholder={placeholder}
+                className="w-full h-11 px-4 rounded-xl bg-[#f5f5f7] text-[14px] text-[#1d1d1f] outline-none focus:ring-2 focus:ring-black/20 placeholder:text-[#aaaaaa] disabled:opacity-50"
             />
         </div>
     );
 }
 
-function SummaryRow({ label, value, isFree, muted }: { label: string, value: string, isFree?: boolean, muted?: boolean }) {
+function SummaryRow({ label, value, green }: { label: string; value: string; green?: boolean }) {
     return (
         <div className="flex justify-between items-center">
-            <span className="text-xs font-black uppercase tracking-widest text-muted-foreground/50">{label}</span>
-            <span className={cn("text-sm font-black", isFree ? "text-emerald-500" : muted ? "text-muted-foreground/30" : "text-foreground")}>{value}</span>
+            <span className="text-[14px] text-[#6e6e73]">{label}</span>
+            <span className={cn('text-[14px]', green ? 'text-green-600 font-medium' : 'text-[#1d1d1f]')}>{value}</span>
         </div>
     );
 }

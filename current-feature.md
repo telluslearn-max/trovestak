@@ -1,45 +1,52 @@
 # Current Feature
 
-## Active Task: End-to-End Voice Flow Test
+## Active Task: Admin Dashboard + GCP Infrastructure
 
-**Status:** In Progress
-**Branch:** `fix/whatsapp-number` (test-only, no code changes expected unless bugs surface)
-**Priority:** P0 — Hackathon demo
+**Status:** Complete — ready for review
+**Branch:** `fix/storefront-production`
+**Priority:** P1 — Operations readiness
 
-### What We're Testing
+### What We Built
 
-Full TroveVoice chain:
-1. User speaks a vague query → `researchAgent` expands to 5 specific queries
-2. `search_products` runs semantic search → returns results
-3. User asks to compare two products → `compare_products` called
-4. User says "I'll take it" → `initiate_checkout` fires M-Pesa STK Push
+Full admin panel implementation (13 steps) and GCP Pub/Sub + Cloud Scheduler infrastructure.
 
-### Test Scenarios
+### Step Progress
 
-| # | Utterance | Expected tool | Expected outcome |
-|---|-----------|--------------|-----------------|
-| 1 | "I need a good laptop under 80k shillings" | `research_agent` → `search_products` | 5 product results returned |
-| 2 | "Compare the Samsung and the Sony" | `compare_products` | Side-by-side comparison spoken |
-| 3 | "I'll take the Sony, my number is 0712345678" | `initiate_checkout` | STK Push triggered |
+| Step | Description | Status |
+|------|-------------|--------|
+| 1 | Create branch + update current-feature.md | ✅ Done |
+| 2 | DB cleanup migration | ✅ Done |
+| 3 | Update CLAUDE.md with modus workflow | ✅ Done |
+| 4 | Port ProductNew.jsx → product-form.tsx | ✅ Done |
+| 5 | orders/fulfillment — dispatch queue | ✅ Done |
+| 6 | finance/reconciliation + finance/actions.ts | ✅ Done |
+| 7 | finance/transactions + finance/invoices | ✅ Done |
+| 8 | marketing/actions.ts + promotions + flash-sales | ✅ Done |
+| 9 | analytics/traffic — Kenya county heatmap | ✅ Done |
+| 10 | shipping/zones | ✅ Done |
+| 11 | inventory/alerts + inventory/trade-ins | ✅ Done |
+| 12 | admin/page.tsx — order bell + delivery counties | ✅ Done |
+| 13 | GCP Pub/Sub topics + Cloud Scheduler | ✅ Done |
 
-### Known State Before This Test
+### Key Files
 
-- ✅ 173 products embedded (gemini-embedding-001, 768-dim)
-- ✅ `match_products()` RPC live in Supabase
-- ✅ All 6 tools wired in agent-service
-- ✅ researchAgent wired as sub-agent
-
-### How to Run
-
-```bash
-# Terminal 1 — agent-service
-cd apps/agent-service && pnpm dev
-
-# Terminal 2 — storefront
-cd apps/storefront && pnpm dev
-
-# Then open http://localhost:3000 and click the TroveVoice bubble
-```
+- `apps/storefront/src/app/admin/orders/fulfillment/` — Dispatch queue + rider assignment
+- `apps/storefront/src/app/admin/finance/` — Reconciliation, transactions, invoices
+- `apps/storefront/src/app/admin/marketing/` — Promotions + flash sales
+- `apps/storefront/src/app/admin/analytics/traffic/` — Kenya county delivery heatmap
+- `apps/storefront/src/app/admin/shipping/zones/` — Shipping zones + rates
+- `apps/storefront/src/app/admin/inventory/` — Stock alerts + trade-ins
+- `apps/storefront/src/app/admin/page.tsx` — Dashboard with action bell + heatmap
+- `packages/shared/lib/events.js` — Added ORDER_DISPATCHED topic
+- `apps/notif-service/src/index.ts` — ORDER_DISPATCHED handler + 3 scheduled job endpoints
+- `infra/pubsub-topics.yaml` — All topics + subscriptions spec
+- `infra/setup-pubsub.sh` — One-shot GCP Pub/Sub provisioning script
+- `infra/scheduler-jobs.yaml` — Cloud Scheduler jobs spec
+- `infra/setup-scheduler.sh` — One-shot Cloud Scheduler provisioning script
+- `supabase/migrations/20260316000001_fulfillment_riders.sql`
+- `supabase/migrations/20260316000002_marketing_tables.sql`
+- `supabase/migrations/20260316000003_shipping_zones.sql`
+- `supabase/migrations/20260316000004_trade_ins.sql`
 
 ---
 
@@ -50,3 +57,6 @@ cd apps/storefront && pnpm dev
 | Seed pgvector embeddings | `fix/seed-embeddings` | 2026-03-15 |
 | Fix WhatsApp phone number | `fix/whatsapp-number` | 2026-03-15 |
 | Add CLAUDE.md + current-feature.md | `fix/whatsapp-number` | 2026-03-15 |
+| Write ENGINEERING_BRIEF.md (Apple Store standard) | `fix/storefront-production` | 2026-03-16 |
+| Apple Store storefront rebuild (all 22 steps) | `feature/apple-store-storefront` | 2026-03-16 |
+| Admin dashboard + GCP infrastructure (all 13 steps) | `fix/storefront-production` | 2026-03-16 |

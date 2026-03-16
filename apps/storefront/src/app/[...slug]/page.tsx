@@ -70,14 +70,14 @@ export default async function CMSPageRoute({ params }: PageProps) {
 
     const supabase = await createSupabaseServerClient();
 
-    const { data: page, error } = await supabase
+    const { data: page } = await supabase
       .from("cms_pages")
       .select("*")
       .eq("slug", fullSlug)
       .eq("status", "published")
-      .single();
+      .maybeSingle();
 
-    if (error || !page) {
+    if (!page) {
       notFound();
     }
 
@@ -94,10 +94,14 @@ export default async function CMSPageRoute({ params }: PageProps) {
         </main>
       </div>
     );
-  } catch (err) {
+  } catch (err: any) {
+    // Re-throw Next.js navigation errors (notFound, redirect, etc.)
+    if (err?.message?.startsWith("NEXT_") || err?.digest) {
+      throw err;
+    }
     console.error("CMS Page Error:", err);
     return (
-      <ErrorPage 
+      <ErrorPage
         title="Page Unavailable"
         message="We encountered an error while loading this page. Our team has been notified."
       />
