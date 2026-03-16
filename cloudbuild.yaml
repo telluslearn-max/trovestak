@@ -7,11 +7,13 @@ steps:
     '--build-arg', 'NEXT_PUBLIC_SUPABASE_URL=$_SUPABASE_URL',
     '--build-arg', 'NEXT_PUBLIC_SUPABASE_ANON_KEY=$_SUPABASE_ANON_KEY',
     '--build-arg', 'NEXT_PUBLIC_APP_URL=$_APP_URL',
+    '--build-arg', 'NEXT_PUBLIC_AGENT_WS_URL=$_AGENT_WS_URL',
     '.'
   ]
 substitutions:
   _SUPABASE_URL: ''
   _SUPABASE_ANON_KEY: ''
   _APP_URL: ''
+  _AGENT_WS_URL: ''
 images:
 - '$_IMAGE'
