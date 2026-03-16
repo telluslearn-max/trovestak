@@ -2,6 +2,8 @@ import http from "http";
 import "dotenv/config";
 import { PubSub } from "@google-cloud/pubsub";
 import { createClient } from "@supabase/supabase-js";
+import { Resend } from "resend";
+import africastalking from "africastalking";
 import {
     createLogger,
     validateEnv,
@@ -10,7 +12,8 @@ import {
     createEvent,
     OrderCreatedEvent,
     PaymentConfirmedEvent,
-    StockLowEvent
+    StockLowEvent,
+    normalizePhone,
 } from "@trovestak/shared";
 
 interface OrderDispatchedEvent {
@@ -55,16 +58,66 @@ const supabase = supabaseUrl && supabaseServiceKey
     ? createClient(supabaseUrl, supabaseServiceKey)
     : null;
 
+// ── Resend email client ───────────────────────────────────────────────────────
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Trovestak <noreply@trovestak.com>';
+
+// ── Africa's Talking SMS client ───────────────────────────────────────────────
+const atClient = (process.env.AT_API_KEY && process.env.AT_USERNAME)
+    ? africastalking({ apiKey: process.env.AT_API_KEY, username: process.env.AT_USERNAME })
+    : null;
+const AT_SENDER = process.env.AT_SENDER_ID || 'TROVESTAK';
+
+async function sendSms(to: string | null, message: string): Promise<void> {
+    if (!to) return;
+    const phone = normalizePhone(to);
+    if (!phone) { log.warn('sendSms: invalid phone number', { to }); return; }
+    if (!atClient) { log.info('sendSms: Africa\'s Talking not configured — skipping', { to: phone, message }); return; }
+    try {
+        await atClient.SMS.send({ to: [phone], message, from: AT_SENDER });
+        log.info('SMS sent', { to: phone });
+    } catch (e) {
+        log.error('sendSms failed', { to: phone, error: e });
+    }
+}
+
+async function sendEmail(to: string | null, subject: string, html: string): Promise<void> {
+    if (!to) return;
+    if (!resend) { log.info('sendEmail: Resend not configured — skipping', { to, subject }); return; }
+    try {
+        await resend.emails.send({ from: FROM_EMAIL, to, subject, html });
+        log.info('Email sent', { to, subject });
+    } catch (e) {
+        log.error('sendEmail failed', { to, error: e });
+    }
+}
+
 // 2. Event Handlers
 async function handleOrderCreated(event: OrderCreatedEvent) {
     const { data } = event;
     // Stock decrement is handled by catalog-service (order.created → catalog-order-created subscription)
-    log.info("Order confirmation email logged (Resend skipped)", { order: data.order_id, to: data.email });
+    log.info('handleOrderCreated', { order: data.order_id, to: data.email });
+
+    await sendEmail(
+        data.email,
+        `Order Confirmation — #${data.order_id.slice(0, 8).toUpperCase()}`,
+        `<h2>Thank you for your order!</h2>
+<p>Hi ${data.customer_name || 'there'},</p>
+<p>Your order <strong>#${data.order_id.slice(0, 8).toUpperCase()}</strong> has been received and is being processed.</p>
+<p><strong>Total: KES ${data.total_amount?.toLocaleString() ?? '—'}</strong></p>
+<p>We'll notify you when your order is dispatched. Track your order at <a href="https://trovestak.com">trovestak.com</a>.</p>
+<p>— The Trovestak Team</p>`
+    );
 }
 
 async function handlePaymentConfirmed(event: PaymentConfirmedEvent) {
     const { data } = event;
-    log.info("Payment receipt email logged (Resend skipped)", { order: data.order_id, phone: data.phone });
+    log.info('handlePaymentConfirmed', { order: data.order_id, phone: data.phone });
+
+    await sendSms(
+        data.phone,
+        `Trovestak: Payment of KES ${data.amount_kes?.toLocaleString() ?? '—'} confirmed for order #${data.order_id.slice(0, 8).toUpperCase()}. We'll dispatch your order shortly. Track at trovestak.com`
+    );
 }
 
 async function handleStockLow(event: StockLowEvent) {
@@ -74,22 +127,44 @@ async function handleStockLow(event: StockLowEvent) {
 
 async function handleOrderUpdated(event: { data: { order_id: string; status: string; updated_at: string } }) {
     const { data } = event;
-    log.info("Order status updated — SMS notification logged (Africa's Talking skipped)", {
-        order: data.order_id,
-        status: data.status,
-    });
+    log.info('handleOrderUpdated', { order: data.order_id, status: data.status });
+
+    const statusLabels: Record<string, string> = {
+        processing: 'being processed',
+        packing: 'being packed',
+        dispatched: 'on its way to you',
+        completed: 'delivered',
+        cancelled: 'cancelled',
+    };
+    const label = statusLabels[data.status] || data.status;
+
+    // Fetch customer phone from DB for SMS
+    if (supabase) {
+        const { data: order } = await supabase
+            .from('orders')
+            .select('customer_phone, customer_name')
+            .eq('id', data.order_id)
+            .maybeSingle();
+
+        if (order?.customer_phone) {
+            await sendSms(
+                order.customer_phone,
+                `Trovestak: Hi ${order.customer_name || 'there'}, your order #${data.order_id.slice(0, 8).toUpperCase()} is now ${label}. Visit trovestak.com for details.`
+            );
+        }
+    }
 }
 
 async function handleOrderDispatched(event: OrderDispatchedEvent) {
     const { data } = event;
     const address = data.shipping_address;
-    const locality = address?.county || address?.city || address?.town || "your location";
-    log.info("Order dispatched — SMS notification logged (Africa's Talking skipped)", {
-        order: data.order_id,
-        phone: data.customer_phone,
-        rider: data.rider_name,
-        message: `Hi ${data.customer_name || "there"}, your order has been dispatched to ${locality}. Your rider ${data.rider_name || "is on the way"}. Track your delivery in the Trovestak app.`,
-    });
+    const locality = address?.county || address?.city || address?.town || 'your location';
+    log.info('handleOrderDispatched', { order: data.order_id, phone: data.customer_phone });
+
+    await sendSms(
+        data.customer_phone,
+        `Trovestak: Hi ${data.customer_name || 'there'}, your order #${data.order_id.slice(0, 8).toUpperCase()} has been dispatched to ${locality}. Your rider ${data.rider_name ? `(${data.rider_name})` : ''} is on the way. Track at trovestak.com`
+    );
 }
 
 // 3. Subscription Management
