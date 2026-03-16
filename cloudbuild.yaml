@@ -1,94 +1,103 @@
+# CI/CD pipeline — triggers on push to main via Cloud Build GitHub trigger
+# Builds each service from its Dockerfile and deploys to Cloud Run.
+# All secrets are passed as Cloud Build substitution variables (set in the trigger config).
+#
+# Required substitutions (set in the Cloud Build trigger, not here):
+#   _SUPABASE_ANON_KEY, _GEMINI_API_KEY
+# Optional runtime env vars are set per-service in the deploy steps below.
+
+substitutions:
+  _REGISTRY: us-central1-docker.pkg.dev/trovestak/trovestak-repo
+  _SUPABASE_URL: https://lgxqlgyciazmlllowhel.supabase.co
+  _APP_URL: https://trovestak.com
+  _AGENT_WS_URL: wss://agent-service-d6zoalodha-uc.a.run.app
+  _SUPABASE_ANON_KEY: ''  # set in trigger
+  _GEMINI_API_KEY: ''      # set in trigger
+
 steps:
-  # User-facing services (public)
+  # ── Build images ──────────────────────────────────────────────────────────
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build-storefront
+    args:
+      - build
+      - -t
+      - $_REGISTRY/storefront:$COMMIT_SHA
+      - -t
+      - $_REGISTRY/storefront:latest
+      - -f
+      - apps/storefront/Dockerfile
+      - --build-arg
+      - NEXT_PUBLIC_SUPABASE_URL=$_SUPABASE_URL
+      - --build-arg
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=$_SUPABASE_ANON_KEY
+      - --build-arg
+      - NEXT_PUBLIC_APP_URL=$_APP_URL
+      - --build-arg
+      - NEXT_PUBLIC_AGENT_WS_URL=$_AGENT_WS_URL
+      - --build-arg
+      - NEXT_PUBLIC_GEMINI_API_KEY=$_GEMINI_API_KEY
+      - .
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build-agent-service
+    args:
+      - build
+      - -t
+      - $_REGISTRY/agent-service:$COMMIT_SHA
+      - -t
+      - $_REGISTRY/agent-service:latest
+      - -f
+      - apps/agent-service/Dockerfile
+      - .
+
+  # ── Push images ───────────────────────────────────────────────────────────
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: push-storefront
+    waitFor: ['build-storefront']
+    args: ['push', '--all-tags', '$_REGISTRY/storefront']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: push-agent-service
+    waitFor: ['build-agent-service']
+    args: ['push', '--all-tags', '$_REGISTRY/agent-service']
+
+  # ── Deploy to Cloud Run ───────────────────────────────────────────────────
+
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: deploy-storefront
+    waitFor: ['push-storefront']
+    entrypoint: gcloud
     args:
       - run
       - deploy
       - storefront
-      - --source=apps/storefront
+      - --image=$_REGISTRY/storefront:$COMMIT_SHA
       - --region=us-central1
       - --project=trovestak
       - --allow-unauthenticated
+      - --cpu=2
+      - --memory=1Gi
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: deploy-agent-service
+    waitFor: ['push-agent-service']
+    entrypoint: gcloud
     args:
       - run
       - deploy
       - agent-service
-      - --source=apps/agent-service
+      - --image=$_REGISTRY/agent-service:$COMMIT_SHA
       - --region=us-central1
       - --project=trovestak
       - --allow-unauthenticated
 
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: deploy-gateway
-    args:
-      - run
-      - deploy
-      - gateway
-      - --source=apps/gateway
-      - --region=us-central1
-      - --project=trovestak
-      - --allow-unauthenticated
+images:
+  - $_REGISTRY/storefront:$COMMIT_SHA
+  - $_REGISTRY/agent-service:$COMMIT_SHA
 
-  # Internal services (authenticated only)
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: deploy-order-service
-    args:
-      - run
-      - deploy
-      - order-service
-      - --source=apps/order-service
-      - --region=us-central1
-      - --project=trovestak
-      - --no-allow-unauthenticated
-
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: deploy-catalog-service
-    args:
-      - run
-      - deploy
-      - catalog-service
-      - --source=apps/catalog-service
-      - --region=us-central1
-      - --project=trovestak
-      - --no-allow-unauthenticated
-
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: deploy-mpesa-service
-    args:
-      - run
-      - deploy
-      - mpesa-service
-      - --source=apps/mpesa-service
-      - --region=us-central1
-      - --project=trovestak
-      - --no-allow-unauthenticated
-
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: deploy-notif-service
-    args:
-      - run
-      - deploy
-      - notif-service
-      - --source=apps/notif-service
-      - --region=us-central1
-      - --project=trovestak
-      - --no-allow-unauthenticated
-
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: deploy-ml-service
-    args:
-      - run
-      - deploy
-      - ml-service
-      - --source=apps/ml-service
-      - --region=us-central1
-      - --project=trovestak
-      - --no-allow-unauthenticated
-
-timeout: '1800s'
+timeout: '2400s'
 options:
   logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
