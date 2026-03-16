@@ -130,19 +130,6 @@ const CONCIERGE_TOOL_DECLARATIONS = [
     },
   },
   {
-    name: "initiate_checkout",
-    description: "Create an order and initiate an M-Pesa STK Push payment for the shopper's cart.",
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        phone:      { type: "STRING", description: "M-Pesa phone number e.g. 0712345678" },
-        amount_kes: { type: "NUMBER", description: "Total order amount in KES" },
-        items:      { type: "STRING", description: "JSON array of cart items: [{product_id, variant_id, name, quantity, unit_price}]" },
-      },
-      required: ["phone", "amount_kes", "items"],
-    },
-  },
-  {
     name: "whatsapp_handoff",
     description: "Escalate to a human agent on WhatsApp for delivery queries, bulk orders, or warranty specifics.",
     parameters: {
@@ -190,10 +177,6 @@ export interface PageContext {
 export interface ConciergeStripProps {
   /** Page context injected as silent user turn on connect */
   pageContext?: PageContext;
-  /** Called when initiate_checkout tool resolves */
-  onCheckout?: (orderId: string) => void;
-  /** Called when whatsapp_handoff tool resolves */
-  onWhatsApp?: (url: string) => void;
   /** Optional override for bottom positioning */
   bottom?: number;
 }
@@ -327,8 +310,6 @@ const StopIcon: React.FC = () => (
 
 export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
   pageContext,
-  onCheckout,
-  onWhatsApp,
   bottom = 24,
 }) => {
   const [state, dispatch] = useReducer(reducer, initial);
@@ -378,17 +359,34 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
             body: JSON.stringify(call.args),
           });
           response = await res.json();
+        } else if (call.name === "compare_products") {
+          const res = await fetch("/api/concierge/compare", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(call.args),
+          });
+          response = await res.json();
+        } else if (call.name === "get_concierge_context") {
+          const res = await fetch("/api/concierge/context", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(call.args),
+          });
+          response = await res.json();
+        } else if (call.name === "get_ml_recommendations") {
+          const res = await fetch("/api/concierge/recommendations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(call.args),
+          });
+          response = await res.json();
         } else if (call.name === "whatsapp_handoff") {
           const url = `https://wa.me/254700000000?text=${encodeURIComponent(
             `Hi TroveStack! I need help with: ${call.args?.context_summary ?? ""}`
           )}`;
-          onWhatsApp?.(url);
-          response = { url };
-        } else if (call.name === "initiate_checkout") {
-          onCheckout?.(call.args?.product_id ?? "");
-          response = { success: true };
+          window.open(url, "_blank", "noopener,noreferrer");
+          response = { url, message: "I've prepared a WhatsApp link — our team will assist you within minutes." };
         } else if (call.name === "research_agent") {
-          // Fallback: build queries from the raw query text
           const q = call.args?.query ?? "";
           response = {
             queries: [
@@ -411,7 +409,7 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
       // session may have closed
     }
     dispatch({ type: "LISTENING" });
-  }, [onCheckout, onWhatsApp]);
+  }, []);
 
   // ── Connect ───────────────────────────────────────────────
   const connect = useCallback(async () => {
