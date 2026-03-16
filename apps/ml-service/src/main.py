@@ -5,8 +5,10 @@ FastAPI application for TensorFlow-powered recommendations.
 
 import json
 import os
+import uuid
 import zlib
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import FastAPI
@@ -147,4 +149,27 @@ async def get_recommendations(req: RecommendRequest):
         results.append({"category_id": cat_id, "score": score})
 
     results.sort(key=lambda x: x["score"], reverse=True)
+
+    # Publish recommendation.ready (fire-and-forget)
+    project = os.environ.get("GOOGLE_CLOUD_PROJECT")
+    if project:
+        try:
+            from google.cloud import pubsub_v1
+            publisher = pubsub_v1.PublisherClient()
+            topic_path = publisher.topic_path(project, "recommendation.ready")
+            payload = json.dumps({
+                "id": str(uuid.uuid4()),
+                "topic": "recommendation.ready",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "source": "ml-service",
+                "version": "1.0",
+                "data": {
+                    "user_id": req.user_id,
+                    "recommendations": results,
+                },
+            }).encode("utf-8")
+            publisher.publish(topic_path, payload)
+        except Exception as e:
+            log.error("Failed to publish recommendation.ready", {"error": str(e)})
+
     return {"user_id": req.user_id, "recommendations": results}

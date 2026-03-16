@@ -183,33 +183,44 @@ export const compareProductsTool = {
 // ─── §9.4 INITIATE CHECKOUT ──────────────────────────────────────────────────
 export const initiateCheckoutTool = {
     name: "initiate_checkout",
-    description: "Initiate an M-Pesa STK Push payment for the shopper's cart.",
+    description: "Create an order and initiate an M-Pesa STK Push payment for the shopper's cart.",
     parameters: {
         type: "OBJECT",
         properties: {
             phone:      { type: "STRING", description: "M-Pesa phone number e.g. 0712345678" },
-            amount_kes: { type: "NUMBER", description: "Amount in KES" },
-            order_id:   { type: "STRING", description: "Order ID from Supabase" },
+            amount_kes: { type: "NUMBER", description: "Total order amount in KES" },
+            items:      { type: "STRING", description: "JSON array of cart items: [{product_id, variant_id, name, quantity, unit_price}]" },
         },
-        required: ["phone", "amount_kes", "order_id"]
+        required: ["phone", "amount_kes", "items"]
     },
     execute: async (input: any) => {
-        const mpesaUrl = process.env.MPESA_SERVICE_URL || "https://mpesa-service-293424180731.us-central1.run.app";
+        const orderServiceUrl = process.env.ORDER_SERVICE_URL || "http://localhost:8082";
         try {
-            const response = await fetch(`${mpesaUrl}/stk-push`, {
+            let parsedItems: unknown[] = [];
+            try { parsedItems = JSON.parse(input.items); } catch (_) { parsedItems = []; }
+
+            const response = await fetch(`${orderServiceUrl}/orders`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(input),
+                body: JSON.stringify({
+                    phone: input.phone,
+                    amount: input.amount_kes,
+                    orderData: {
+                        source: "voice_agent",
+                        items: parsedItems,
+                    },
+                }),
             });
             const result = await response.json();
             return {
-                status: result.success ? "stk_push_sent" : "failed",
-                message: result.success
+                status: result.orderId ? "stk_push_sent" : "failed",
+                order_id: result.orderId || null,
+                message: result.orderId
                     ? `M-Pesa prompt sent to ${input.phone}. Please enter your PIN to complete payment.`
-                    : `Payment initiation failed: ${result.error}`,
+                    : `Payment initiation failed: ${result.error || "Unknown error"}`,
             };
         } catch (err: any) {
-            return { status: "failed", message: `Could not reach M-Pesa service: ${err.message}` };
+            return { status: "failed", message: `Could not reach order service: ${err.message}` };
         }
     }
 };
