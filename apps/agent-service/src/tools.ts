@@ -87,26 +87,37 @@ export const getConciergeContextTool = {
         properties: { session_id: { type: "STRING" } },
     },
     execute: async (input: any) => {
+        const { session_id } = input;
         const supabase = createSupabaseAdminClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         );
-        const { data } = await supabase
-            .from("user_preferences")
-            .select("*")
-            .eq("session_id", input.session_id)
-            .single();
 
-        return {
-            preferences: data || {
-                categories: [],
-                brands: [],
-                budget_min: null,
-                budget_max: null,
-                past_purchases: [],
-                location: "Nairobi, Kenya",
-            }
-        };
+        // Read raw events (last 50)
+        const { data: events } = await supabase
+            .from("user_events")
+            .select("category_id, product_id")
+            .eq("session_id", session_id)
+            .order("created_at", { ascending: false })
+            .limit(50);
+
+        // Tally categories
+        const counts: Record<string, number> = {};
+        for (const e of events ?? []) {
+            if (e.category_id) counts[e.category_id] = (counts[e.category_id] ?? 0) + 1;
+        }
+        const topCategories = Object.entries(counts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([c]) => c);
+
+        // Upsert derived preferences
+        await supabase.from("user_preferences").upsert(
+            { session_id, categories: topCategories, updated_at: new Date().toISOString() },
+            { onConflict: "session_id" }
+        );
+
+        return { categories: topCategories, event_count: events?.length ?? 0 };
     }
 };
 
@@ -184,7 +195,7 @@ export const initiateCheckoutTool = {
 // ─── §7.4 GET ML RECOMMENDATIONS ─────────────────────────────────────────────
 export const getMlRecommendationsTool = {
     name: "get_ml_recommendations",
-    description: "Fetch TensorFlow-powered personalised product recommendations based on the shopper's taste profile.",
+    description: "Fetch personalised product recommendations based on the shopper's browsing history.",
     parameters: {
         type: "OBJECT",
         properties: {
@@ -194,21 +205,14 @@ export const getMlRecommendationsTool = {
         required: ["session_id"]
     },
     execute: async (input: any) => {
-        const mlUrl = process.env.ML_SERVICE_URL || "https://ml-service-293424180731.us-central1.run.app";
-        try {
-            const response = await fetch(`${mlUrl}/recommend`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    user_id: input.session_id,
-                    limit: input.limit || 5,
-                }),
-            });
-            if (!response.ok) throw new Error(`ML service error: ${response.status}`);
-            return await response.json();
-        } catch (e) {
-            return { recommendations: [], error: "ML service unavailable — falling back to popular items" };
-        }
+        const supabase = createSupabaseAdminClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+        const { data, error } = await supabase
+            .rpc("get_recommendations", { p_session_id: input.session_id, p_limit: input.limit || 5 });
+        if (error) return { recommendations: [] };
+        return { recommendations: data };
     }
 };
 

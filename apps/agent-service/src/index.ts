@@ -52,6 +52,7 @@ async function bootstrap() {
             log.info(`New connection: ${sessionId}`);
 
             let liveSession: any = null;
+            let sessionContext: Record<string, string> = {};
             // Small buffer only for audio that arrives in the ~1 second before Gemini opens.
             // The client does NOT send audio until it receives status:ready, so this should be empty.
             let pendingAudio: Buffer[] = [];
@@ -96,6 +97,22 @@ async function bootstrap() {
                                     try {
                                         clientWs.send(JSON.stringify({ type: "status", content: "ready" }));
                                     } catch (e) {}
+
+                                    // Inject page context as silent system turn so agent knows what product user is on
+                                    if (Object.keys(sessionContext).length > 0 && liveSession) {
+                                        try {
+                                            liveSession.sendClientContent({
+                                                turns: [{ role: "user", parts: [{ text:
+                                                    `[Context: User is on ${sessionContext.pageType} page.${
+                                                        sessionContext.productName
+                                                            ? ` Currently viewing: ${sessionContext.productName}${sessionContext.category ? ` (${sessionContext.category})` : ''}.`
+                                                            : ''
+                                                    } Session: ${sessionId}]`
+                                                }] }],
+                                                turnComplete: false
+                                            });
+                                        } catch (e) {}
+                                    }
 
                                     // Flush any audio that slipped in before setup completed
                                     if (pendingAudio.length > 0) {
@@ -166,6 +183,7 @@ async function bootstrap() {
                                             if (tool) {
                                                 try {
                                                     response = await (tool as any).execute(fc.args || {});
+                                                    log.info(`Tool: ${fc.name}`, { args: fc.args, keys: Object.keys(response ?? {}) });
                                                 } catch (e: any) {
                                                     response = { error: e.message };
                                                 }
@@ -237,6 +255,11 @@ async function bootstrap() {
                 } else {
                     try {
                         const msg = JSON.parse(data.toString());
+                        if (msg.type === "context") {
+                            sessionContext = msg;
+                            log.info("Session context received", sessionContext);
+                            return;
+                        }
                         if (msg.type === "text" && msg.content && liveSession) {
                             liveSession.sendClientContent({
                                 turns: [{ role: "user", parts: [{ text: msg.content }] }]

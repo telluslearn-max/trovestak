@@ -82,7 +82,7 @@ export default function ProductPageClient({
     specs,
     addons,
 }: ProductPageClientProps) {
-    useConciergeTracker({ productId: product.id })
+    useConciergeTracker({ productId: product.id, categoryId: product.nav_category ?? undefined })
 
     const pricingData = pricing && pricing.sell_price > 0 ? pricing : null
     const features = typeof product.content_features === 'string'

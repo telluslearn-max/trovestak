@@ -15,8 +15,16 @@ export interface AudioPipelineControls {
     stop: () => void;
 }
 
+export interface PageContext {
+    pageType: string;
+    productId?: string;
+    productName?: string;
+    category?: string;
+}
+
 export function useAudioPipeline(
     sessionId: string,
+    pageContext?: PageContext,
     onText?: (text: string) => void
 ): AudioPipelineState & AudioPipelineControls {
     const [isConnecting, setIsConnecting] = useState(false);
@@ -111,6 +119,9 @@ export function useAudioPipeline(
 
             ws.onopen = () => {
                 if (!isActive.current) { ws.close(1000); return; }
+                if (pageContext) {
+                    ws.send(JSON.stringify({ type: "context", ...pageContext }));
+                }
                 setIsConnecting(false);
                 setTranscription("Waking up TroveVoice...");
             };
@@ -170,7 +181,7 @@ export function useAudioPipeline(
                 setIsConnecting(false);
             }
         }
-    }, [sessionId, onText]);
+    }, [sessionId, pageContext, onText]);
 
     const start = useCallback(async () => {
         if (isActive.current) return;

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, X, ShoppingCart, Zap } from "lucide-react";
-import { useAudioPipeline } from "@/hooks/useAudioPipeline";
+import { useAudioPipeline, PageContext } from "@/hooks/useAudioPipeline";
 import { useSessionId } from "@/hooks/useSessionId";
 import { supabase } from "@/lib/supabase";
 
@@ -115,7 +115,13 @@ export function ConciergeStrip() {
         setNudgeMessage(text);
     }, []);
 
-    const audio = useAudioPipeline(sessionId, handleAgentText);
+    const audioPageContext: PageContext = {
+        pageType: pageContext.type,
+        productId: pageContext.productId,
+        productName: pageContext.productName,
+        category: pageContext.category,
+    };
+    const audio = useAudioPipeline(sessionId, audioPageContext, handleAgentText);
 
     // Update page context on route change
     useEffect(() => {

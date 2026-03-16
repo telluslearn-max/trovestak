@@ -1,52 +1,36 @@
 # Current Feature
 
-## Active Task: Admin Dashboard + GCP Infrastructure
+## Active Task: Concierge & ML Handover
 
 **Status:** Complete — ready for review
-**Branch:** `fix/storefront-production`
-**Priority:** P1 — Operations readiness
+**Branch:** `feature/store-upgrade`
+**Priority:** P1 — TroveVoice memory + recommendations
 
 ### What We Built
 
-Full admin panel implementation (13 steps) and GCP Pub/Sub + Cloud Scheduler infrastructure.
+Fixed all broken TroveVoice concierge functionality: behavioral tracking, taste memory, ML recommendations, and page-context awareness.
 
 ### Step Progress
 
 | Step | Description | Status |
 |------|-------------|--------|
-| 1 | Create branch + update current-feature.md | ✅ Done |
-| 2 | DB cleanup migration | ✅ Done |
-| 3 | Update CLAUDE.md with modus workflow | ✅ Done |
-| 4 | Port ProductNew.jsx → product-form.tsx | ✅ Done |
-| 5 | orders/fulfillment — dispatch queue | ✅ Done |
-| 6 | finance/reconciliation + finance/actions.ts | ✅ Done |
-| 7 | finance/transactions + finance/invoices | ✅ Done |
-| 8 | marketing/actions.ts + promotions + flash-sales | ✅ Done |
-| 9 | analytics/traffic — Kenya county heatmap | ✅ Done |
-| 10 | shipping/zones | ✅ Done |
-| 11 | inventory/alerts + inventory/trade-ins | ✅ Done |
-| 12 | admin/page.tsx — order bell + delivery counties | ✅ Done |
-| 13 | GCP Pub/Sub topics + Cloud Scheduler | ✅ Done |
+| 1 | Create 3 missing Supabase tables (user_events, user_preferences, user_taste_profiles) | ✅ Done |
+| 2 | Replace Python ML service with pgvector SQL RPC + update getMlRecommendationsTool | ✅ Done |
+| 3 | Wire pageContext into WebSocket (useAudioPipeline, ConciergeStrip, index.ts) | ✅ Done |
+| 4 | Fix CategoryTracker + pass categoryId in ProductPageClient | ✅ Done |
+| 5 | getConciergeContextTool derives preferences from user_events | ✅ Done |
+| 6 | Add tool call logging in index.ts | ✅ Done |
 
 ### Key Files
 
-- `apps/storefront/src/app/admin/orders/fulfillment/` — Dispatch queue + rider assignment
-- `apps/storefront/src/app/admin/finance/` — Reconciliation, transactions, invoices
-- `apps/storefront/src/app/admin/marketing/` — Promotions + flash sales
-- `apps/storefront/src/app/admin/analytics/traffic/` — Kenya county delivery heatmap
-- `apps/storefront/src/app/admin/shipping/zones/` — Shipping zones + rates
-- `apps/storefront/src/app/admin/inventory/` — Stock alerts + trade-ins
-- `apps/storefront/src/app/admin/page.tsx` — Dashboard with action bell + heatmap
-- `packages/shared/lib/events.js` — Added ORDER_DISPATCHED topic
-- `apps/notif-service/src/index.ts` — ORDER_DISPATCHED handler + 3 scheduled job endpoints
-- `infra/pubsub-topics.yaml` — All topics + subscriptions spec
-- `infra/setup-pubsub.sh` — One-shot GCP Pub/Sub provisioning script
-- `infra/scheduler-jobs.yaml` — Cloud Scheduler jobs spec
-- `infra/setup-scheduler.sh` — One-shot Cloud Scheduler provisioning script
-- `supabase/migrations/20260316000001_fulfillment_riders.sql`
-- `supabase/migrations/20260316000002_marketing_tables.sql`
-- `supabase/migrations/20260316000003_shipping_zones.sql`
-- `supabase/migrations/20260316000004_trade_ins.sql`
+- `supabase/migrations/20260317000000_add_user_tracking.sql` — 3 missing tables
+- `supabase/migrations/20260317000001_add_recommendations_rpc.sql` — pgvector SQL recommendations
+- `apps/agent-service/src/tools.ts` — getMlRecommendationsTool → Supabase RPC; getConciergeContextTool → derive from events
+- `apps/agent-service/src/index.ts` — context message handler; Gemini context injection; tool logging
+- `apps/storefront/src/hooks/useAudioPipeline.ts` — pageContext param; send on WS open
+- `apps/storefront/src/components/concierge/ConciergeStrip.tsx` — pass pageContext to useAudioPipeline
+- `apps/storefront/src/components/concierge/CategoryTracker.tsx` — accept productId prop
+- `apps/storefront/src/app/products/[slug]/ProductPageClient.tsx` — pass categoryId to useConciergeTracker
 
 ---
 
@@ -60,3 +44,4 @@ Full admin panel implementation (13 steps) and GCP Pub/Sub + Cloud Scheduler inf
 | Write ENGINEERING_BRIEF.md (Apple Store standard) | `fix/storefront-production` | 2026-03-16 |
 | Apple Store storefront rebuild (all 22 steps) | `feature/apple-store-storefront` | 2026-03-16 |
 | Admin dashboard + GCP infrastructure (all 13 steps) | `fix/storefront-production` | 2026-03-16 |
+| Concierge & ML handover (all 6 steps) | `feature/store-upgrade` | 2026-03-17 |
