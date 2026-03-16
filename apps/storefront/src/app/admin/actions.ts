@@ -388,6 +388,61 @@ export async function getCategoryDetail(categoryId: string) {
 
 
 
+/**
+ * ACTION ITEMS — for the dashboard order bell
+ * Returns counts of things that need immediate attention
+ */
+export async function getActionItems() {
+    const supabase = createSupabaseAdminClient();
+
+    const [dispatchRes, criticalStockRes, tradeInsRes, countyRes] = await Promise.all([
+        // Paid orders waiting for dispatch
+        supabase
+            .from("orders")
+            .select("id", { count: "exact", head: true })
+            .eq("payment_status", "paid")
+            .in("status", ["processing", "packing"]),
+        // Critical stock (below 3 units)
+        supabase
+            .from("products")
+            .select("id", { count: "exact", head: true })
+            .lte("stock_quantity", 3)
+            .eq("status", "published"),
+        // Pending trade-ins
+        supabase
+            .from("trade_ins")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "pending"),
+        // Top counties from orders
+        supabase
+            .from("orders")
+            .select("shipping_address, total_amount")
+            .eq("payment_status", "paid")
+            .limit(500),
+    ]);
+
+    // Aggregate county data
+    const countyMap: Record<string, { orders: number; revenue: number }> = {};
+    for (const row of (countyRes.data || [])) {
+        const addr = row.shipping_address as Record<string, string> | null;
+        const county = addr?.county?.trim() || addr?.city?.trim() || "Unknown";
+        if (!countyMap[county]) countyMap[county] = { orders: 0, revenue: 0 };
+        countyMap[county].orders += 1;
+        countyMap[county].revenue += row.total_amount || 0;
+    }
+    const topCounties = Object.entries(countyMap)
+        .map(([county, v]) => ({ county, ...v }))
+        .sort((a, b) => b.orders - a.orders)
+        .slice(0, 5);
+
+    return {
+        dispatchQueue: dispatchRes.count || 0,
+        criticalStock: criticalStockRes.count || 0,
+        tradeInsPending: tradeInsRes.count || 0,
+        topCounties,
+    };
+}
+
 export async function getBrands() {
     await ensureAdmin("support");
     const supabase = await createSupabaseServerClient();

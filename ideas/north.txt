@@ -1,0 +1,41 @@
+Based on everything we've built and discussed, here's the complete picture of Trove Stack's AI features:
+
+**1. TroveVoice — The Shopping Concierge (Core Feature)**
+
+This is the floating bubble on every page of the store. When a shopper clicks it, they can either type or speak naturally — "I'm looking for a laptop for university under 80K" — and TroveVoice responds in real time with voice and text. It's powered by Gemini Live API with bidirectional audio streaming, meaning it feels like talking to a real person, not a chatbot. It can be interrupted mid-sentence, it handles natural conversation flow, and it remembers context within the session. This is the feature that moves Trove Stack from a normal e-commerce site to an immersive shopping experience.
+
+**2. Intent-Driven Product Search**
+
+This is the intelligence layer behind TroveVoice's product recommendations. When a shopper says something vague like "birthday gift for my tech-savvy dad", the system doesn't just search for those words. It uses the research agent pattern from the Kaz Sato notebook — Gemini first expands that intent into 5 targeted queries like "premium wireless earbuds", "smart home devices", "portable power bank" — then runs all 5 against your product catalog simultaneously and returns the most relevant results. This is what makes the concierge feel genuinely intelligent rather than just a keyword search bar.
+
+**3. Semantic Product Search with pgvector**
+
+Every product in your Supabase catalog gets converted into a mathematical vector — a numerical representation of its meaning, not just its keywords. When a shopper searches for something, the query is also converted to a vector and the system finds products that are conceptually similar, even if the exact words don't match. So "noise cancelling headphones for the gym" finds Sony WH-1000XM5 even if that product description never says "gym". This is the foundation that makes all search on Trove Stack feel smart.
+
+**4. Personalised Taste Profile**
+
+Every interaction a shopper has on Trove Stack builds their taste profile stored in Supabase. What they browse, what they add to cart, what they buy, how they respond to the concierge's suggestions — all of this feeds a persistent profile. When they return to the site, the concierge already knows they prefer Samsung over Apple, tend to buy mid-range not budget, and recently bought a phone so probably needs accessories. The longer they use Trove Stack, the more personal it becomes.
+
+**5. TensorFlow ML Recommendations**
+
+On top of the taste profile, your ML service runs a collaborative filtering model — it finds shoppers with similar taste profiles to the current user and surfaces products those similar shoppers loved. This is the "people like you also bought" feature but genuinely personalised rather than generic. The ML service is already deployed on Cloud Run and the concierge calls it via `getMlRecommendationsTool` to pull these ranked recommendations into the conversation.
+
+**6. Spec Intelligence and Comparison**
+
+When a shopper is deciding between two products — say a Samsung Galaxy S25 Ultra vs iPhone 17 — they can ask the concierge to compare them. TroveVoice pulls the full specs from your product catalog and explains the differences in plain English relevant to that shopper's use case. Not just "this one has more RAM" but "for video editing, the Samsung's 12GB RAM handles 4K timelines more smoothly than the iPhone's unified memory architecture."
+
+**7. Voice-Guided Checkout**
+
+The concierge doesn't just help with product discovery — it walks the shopper all the way through to purchase. Once they've decided, they can say "add that to my cart" or "I want to buy it now" and TroveVoice triggers the checkout flow, initiates an M-Pesa STK push to their phone, and confirms the order — all without the shopper ever leaving the conversation. This is the `initiate_checkout` tool in your agent service.
+
+**8. AI-Assisted Product Entry (Admin Feature)**
+
+On the admin side, when uploading new products, the admin can type a product name like "Samsung Galaxy S25 Ultra 256GB" and Gemini automatically fills in the full product description, feature highlights, specs table, SEO meta title and description, and what's in the box — pulling from its knowledge of the actual product. This is the AI autofill panel in the `ProductNew.jsx` we just built.
+
+---
+
+**What's fully built:** TroveVoice backend with audio streaming, agent service with search and ML tools, semantic search infrastructure, AI product entry admin panel.
+
+**What needs to be connected:** The concierge widget on the storefront frontend, the pgvector embeddings for the 175 products, and the end-to-end voice-to-checkout demo flow.
+
+**The hackathon pitch in one sentence:** Trove Stack is the infrastructure layer that turns any e-commerce store into a voice-first, AI-powered personal shopping experience — and TroveVoice is the proof.

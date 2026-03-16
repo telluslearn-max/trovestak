@@ -19,7 +19,12 @@ export default function OrdersPage() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
+
+    const setSearchAndReset = (v: string) => { setSearch(v); setPage(1); };
+    const setStatusAndReset = (v: string) => { setStatusFilter(v); setPage(1); };
     const [isPending, startTransition] = useTransition();
+    const [page, setPage] = useState(1);
+    const PAGE_SIZE = 20;
 
     const fetchOrders = async () => {
         try {
@@ -46,13 +51,17 @@ export default function OrdersPage() {
     const filteredOrders = orders.filter(o => {
         const matchesSearch =
             o.id.toLowerCase().includes(search.toLowerCase()) ||
-            (o.profiles?.full_name || "").toLowerCase().includes(search.toLowerCase()) ||
-            (o.profiles?.email || "").toLowerCase().includes(search.toLowerCase());
+            (o.customer_name || o.profiles?.full_name || "").toLowerCase().includes(search.toLowerCase()) ||
+            (o.customer_email || o.profiles?.email || "").toLowerCase().includes(search.toLowerCase());
 
         const matchesStatus = statusFilter === "all" || o.status === statusFilter;
 
         return matchesSearch && matchesStatus;
     });
+
+    const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
+    const paginatedOrders = filteredOrders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    const handlePageChange = (newPage: number) => setPage(Math.max(1, Math.min(newPage, totalPages)));
 
     return (
         <div className="p-8 space-y-10 max-w-[1600px] mx-auto">
@@ -79,7 +88,7 @@ export default function OrdersPage() {
                         <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
                         <SInput
                             value={search}
-                            onChange={setSearch}
+                            onChange={setSearchAndReset}
                             placeholder="Filter by Order ID, Customer name or Email..."
                             className="pl-12 h-11"
                         />
@@ -89,7 +98,7 @@ export default function OrdersPage() {
                         {["all", "pending", "processing", "shipped", "delivered", "cancelled"].map(s => (
                             <button
                                 key={s}
-                                onClick={() => setStatusFilter(s)}
+                                onClick={() => setStatusAndReset(s)}
                                 className={cn(
                                     "px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap",
                                     statusFilter === s
@@ -128,8 +137,8 @@ export default function OrdersPage() {
                                             <TD />
                                         </div>
                                     ))
-                                ) : filteredOrders.length > 0 ? (
-                                    filteredOrders.map((o) => (
+                                ) : paginatedOrders.length > 0 ? (
+                                    paginatedOrders.map((o) => (
                                         <motion.div
                                             key={o.id}
                                             layout
@@ -148,10 +157,10 @@ export default function OrdersPage() {
                                             </TD>
                                             <TD>
                                                 <div className="flex items-center gap-3">
-                                                    <Av l={o.profiles?.full_name || "G"} />
+                                                    <Av l={(o.customer_name || o.profiles?.full_name || "G")[0]} />
                                                     <div className="flex flex-col">
-                                                        <span className="font-bold">{o.profiles?.full_name || "Guest Checkout"}</span>
-                                                        <span className="text-[10px] text-muted-foreground">{o.profiles?.email || "No email"}</span>
+                                                        <span className="font-bold">{o.customer_name || o.profiles?.full_name || "Guest Checkout"}</span>
+                                                        <span className="text-[10px] text-muted-foreground">{o.customer_email || o.profiles?.email || "No email"}</span>
                                                     </div>
                                                 </div>
                                             </TD>
@@ -194,11 +203,12 @@ export default function OrdersPage() {
                 {/* Footer */}
                 <div className="p-6 border-t border-border/50 bg-muted/10 flex justify-between items-center text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
                     <div>
-                        Showing <span className="text-foreground">{filteredOrders.length}</span> of <span className="text-foreground">{orders.length}</span> active records
+                        Showing <span className="text-foreground">{Math.min((page - 1) * PAGE_SIZE + 1, filteredOrders.length)}–{Math.min(page * PAGE_SIZE, filteredOrders.length)}</span> of <span className="text-foreground">{filteredOrders.length}</span> records
                     </div>
-                    <div className="flex gap-2">
-                        <Btn variant="ghost" small disabled>Previous</Btn>
-                        <Btn variant="ghost" small disabled>Next</Btn>
+                    <div className="flex items-center gap-2">
+                        <Btn variant="ghost" small disabled={page <= 1} onClick={() => handlePageChange(page - 1)}>Previous</Btn>
+                        <span className="text-foreground">{page} / {totalPages}</span>
+                        <Btn variant="ghost" small disabled={page >= totalPages} onClick={() => handlePageChange(page + 1)}>Next</Btn>
                     </div>
                 </div>
             </Card>

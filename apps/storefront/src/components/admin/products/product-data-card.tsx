@@ -16,18 +16,20 @@ export interface ProductData {
   name?: string;
   slug?: string;
   description?: string;
+  short_description?: string;
   cost_price?: number;
-  regular_price?: number;
   sell_price?: number;
-  sale_price_start?: string;
-  sale_price_end?: string;
+  sale_price?: number;          // compare-at / anchor price (strikethrough)
   product_type?: string;
   sku?: string;
+  barcode?: string;
   stock_quantity?: number;
   stock_status?: string;
   low_stock_threshold?: number;
   allow_backorders?: string;
+  warehouse?: string;
   brand?: string;
+  nav_category?: string;
   tags?: string[];
   thumbnail_url?: string;
   images?: string[];
@@ -36,8 +38,22 @@ export interface ProductData {
   purchase_note?: string;
   menu_order?: number;
   is_active?: boolean;
+  // Shipping
+  weight?: number;
+  length?: number;
+  width?: number;
+  height?: number;
+  shipping_class?: string;
+  country_of_origin?: string;
+  hs_code?: string;
+  // SEO
+  seo_title?: string;
+  seo_description?: string;
+  seo_canonical?: string;
   attributes?: { name: string; value: string }[];
   upsell_ids?: string[];
+  sale_price_start?: string;
+  sale_price_end?: string;
 }
 
 interface ProductDataCardProps {
@@ -137,14 +153,14 @@ function GeneralTab({ product, onChange }: { product: ProductData; onChange: (da
         </div>
 
         <div className="grid gap-2">
-          <Label>Regular Price (KES)</Label>
+          <Label>Compare-at Price (KES)</Label>
           <Input
             type="number"
-            value={product.regular_price || ""}
-            onChange={(e) => onChange({ regular_price: Number(e.target.value) || undefined })}
+            value={product.sale_price || ""}
+            onChange={(e) => onChange({ sale_price: Number(e.target.value) || undefined })}
             placeholder="0"
           />
-          <p className="text-xs text-gray-500">Original price before sale</p>
+          <p className="text-xs text-gray-500">Original price shown as strikethrough</p>
         </div>
 
         <div className="grid gap-2">

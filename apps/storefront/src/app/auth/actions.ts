@@ -53,6 +53,40 @@ export async function signUpAction(formData: FormData) {
 }
 
 /**
+ * Send password reset email
+ */
+export async function resetPasswordAction(formData: FormData) {
+    const email = formData.get("email") as string;
+    const supabase = await createSupabaseServerClient();
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`,
+    });
+
+    if (error) {
+        return { error: error.message };
+    }
+
+    return { success: true };
+}
+
+/**
+ * Update password (after reset email link)
+ */
+export async function updatePasswordAction(formData: FormData) {
+    const password = formData.get("password") as string;
+    const supabase = await createSupabaseServerClient();
+
+    const { error } = await supabase.auth.updateUser({ password });
+
+    if (error) {
+        return { error: error.message };
+    }
+
+    return { success: true };
+}
+
+/**
  * Sign out
  */
 export async function signOutAction() {

@@ -1,6 +1,6 @@
-import { createSupabaseServerClient } from "@/lib/supabase-server";
-import InvoicesClient from "./invoices-client";
 import { Metadata } from "next";
+import InvoicesClient from "./invoices-client";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export const metadata: Metadata = {
     title: "Invoices | Trovestak Admin",
@@ -10,17 +10,13 @@ export const metadata: Metadata = {
 export default async function FinanceInvoicesPage() {
     const supabase = await createSupabaseServerClient();
 
-    const { data: orders, error } = await supabase
+    const { data, error } = await supabase
         .from("orders")
-        .select("id, customer_name, total_amount, status, created_at")
+        .select("id, customer_name, customer_phone, total_amount, payment_status, payment_method, status, created_at")
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(200);
 
-    if (error) {
-        console.error("Error fetching orders for invoices:", error);
-    }
+    if (error) console.error("Error fetching orders for invoices:", error);
 
-    return (
-        <InvoicesClient initialOrders={orders || []} />
-    );
+    return <InvoicesClient initialOrders={(data || []) as any[]} />;
 }

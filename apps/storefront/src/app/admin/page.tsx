@@ -7,7 +7,8 @@ import {
   getRevenueTrend,
   getRecentOrders,
   getTopProducts,
-  getLowStockItems
+  getLowStockItems,
+  getActionItems
 } from "./actions";
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
@@ -15,6 +16,7 @@ import {
   PieChart, Pie, Cell
 } from "recharts";
 import { T, StatCard, Card, PageHeader, Av, Chip, fmt, fmtK } from "@/components/admin/ui-pro";
+import { Bell, Truck, AlertTriangle, RefreshCw, MapPin } from "lucide-react";
 
 // Removed StatusBadge and KpiCard in favor of ui-pro components
 
@@ -23,6 +25,12 @@ export default function AdminDashboard() {
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [topProducts, setTopProducts] = useState<any[]>([]);
   const [lowStockItems, setLowStockItems] = useState<any[]>([]);
+  const [actionItems, setActionItems] = useState<{
+    dispatchQueue: number;
+    criticalStock: number;
+    tradeInsPending: number;
+    topCounties: { county: string; orders: number; revenue: number }[];
+  }>({ dispatchQueue: 0, criticalStock: 0, tradeInsPending: 0, topCounties: [] });
   const [stats, setStats] = useState({
     revenueToday: 0,
     ordersToday: 0,
@@ -44,12 +52,13 @@ export default function AdminDashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const [statsData, trendData, ordersData, topData, lowData] = await Promise.all([
+      const [statsData, trendData, ordersData, topData, lowData, actionData] = await Promise.all([
         getDashboardStats(),
         getRevenueTrend(),
         getRecentOrders(),
         getTopProducts(),
-        getLowStockItems()
+        getLowStockItems(),
+        getActionItems().catch(() => ({ dispatchQueue: 0, criticalStock: 0, tradeInsPending: 0, topCounties: [] })),
       ]);
 
       setStats(statsData);
@@ -57,15 +66,43 @@ export default function AdminDashboard() {
       setRecentOrders(ordersData);
       setTopProducts(topData);
       setLowStockItems(lowData);
+      setActionItems(actionData);
     } catch (e) {
       console.error("Dashboard Fetch Error:", e);
     }
   };
 
 
+  const totalActions = actionItems.dispatchQueue + actionItems.criticalStock + actionItems.tradeInsPending;
+
   return (
     <div className="page-enter">
-      <PageHeader title="Good morning, Admin 👋" sub="Here's a high-fidelity overview of your performace today." />
+      <PageHeader title="Good morning, Admin" sub="Here's a high-fidelity overview of your performance today." />
+
+      {/* Order Bell — Needs Action Banner */}
+      {totalActions > 0 && (
+        <div style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--admin-surface)", border: "1px solid var(--admin-border)", borderLeft: "3px solid var(--admin-orange)", borderRadius: 10, padding: "14px 20px", marginBottom: 24 }}>
+          <Bell size={16} style={{ color: T.orange, flexShrink: 0 }} />
+          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: T.text }}>{totalActions} item{totalActions > 1 ? "s" : ""} need your attention</span>
+            {actionItems.dispatchQueue > 0 && (
+              <Link href="/admin/orders/fulfillment" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: T.orange, textDecoration: "none", fontWeight: 600 }}>
+                <Truck size={13} /> {actionItems.dispatchQueue} ready to dispatch
+              </Link>
+            )}
+            {actionItems.criticalStock > 0 && (
+              <Link href="/admin/inventory/alerts" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: T.red, textDecoration: "none", fontWeight: 600 }}>
+                <AlertTriangle size={13} /> {actionItems.criticalStock} critical stock
+              </Link>
+            )}
+            {actionItems.tradeInsPending > 0 && (
+              <Link href="/admin/inventory/trade-ins" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: T.blue, textDecoration: "none", fontWeight: 600 }}>
+                <RefreshCw size={13} /> {actionItems.tradeInsPending} trade-ins pending
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* KPI Row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16, marginBottom: 28 }}>
@@ -133,7 +170,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Lists Row */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
         <Card>
           <div style={{ padding: "20px 24px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Recent Orders</div>
@@ -174,6 +211,41 @@ export default function AdminDashboard() {
               <div style={{ padding: "40px 24px", textAlign: "center", color: T.textMuted, fontSize: 12 }}>
                 All stock levels are optimal.
               </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Mini Kenya Heatmap */}
+        <Card>
+          <div style={{ padding: "20px 24px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>Top Delivery Counties</div>
+            <Link href="/admin/analytics/traffic" style={{ fontSize: 11, color: T.blue, textDecoration: "none" }}>Full Map</Link>
+          </div>
+          <div style={{ padding: "12px 24px 20px" }}>
+            {actionItems.topCounties.length === 0 ? (
+              <div style={{ padding: "32px 0", textAlign: "center", color: T.textMuted, fontSize: 12 }}>
+                No paid orders yet.
+              </div>
+            ) : (
+              actionItems.topCounties.map((c, i) => {
+                const maxOrders = actionItems.topCounties[0]?.orders || 1;
+                const pct = Math.round((c.orders / maxOrders) * 100);
+                return (
+                  <div key={c.county} style={{ marginBottom: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 10, fontFamily: "var(--font-jetbrains), monospace", color: T.textMuted, width: 14 }}>{i + 1}</span>
+                        <MapPin size={11} style={{ color: T.textMuted }} />
+                        <span style={{ fontSize: 12, fontWeight: 600, color: T.text }}>{c.county}</span>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: T.text, fontFamily: "var(--font-jetbrains), monospace" }}>{c.orders}</span>
+                    </div>
+                    <div style={{ height: 3, background: T.surface, borderRadius: 3, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: T.blue, borderRadius: 3, opacity: 0.4 + (pct / 100) * 0.6 }} />
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </Card>

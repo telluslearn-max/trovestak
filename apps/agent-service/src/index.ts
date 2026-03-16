@@ -15,10 +15,10 @@ async function bootstrap() {
             try { const { config } = await import("dotenv"); config(); } catch (e) {}
         }
 
+        // ── Phase 1: fast core imports + HTTP bind (Cloud Run health check must pass quickly) ──
+        const { createServer } = await import("http");
         const { WebSocketServer } = await import("ws");
         const { createLogger } = await import("@trovestak/shared");
-        const { GoogleGenAI, Modality } = await import("@google/genai");
-        const { CONCIERGE_INSTRUCTIONS, getGenAITools, conciergeTools } = await import("./agent.js");
 
         const log = createLogger("agent-service");
         const PORT = parseInt(process.env.PORT || "8088");
@@ -29,9 +29,22 @@ async function bootstrap() {
             process.exit(1);
         }
 
-        const wss = new WebSocketServer({ port: PORT });
-        wss.on("listening", () => log.info(`TroveVoice listening on port ${PORT}`));
+        // HTTP server handles Cloud Run health checks (GET /) and hosts the WS server.
+        // Must bind to PORT before any slow imports so the startup probe passes.
+        const httpServer = createServer((req, res) => {
+            res.writeHead(200, { "Content-Type": "text/plain" });
+            res.end("TroveVoice OK");
+        });
+
+        const wss = new WebSocketServer({ server: httpServer });
         wss.on("error", (err) => log.error("WSS Error", { err }));
+        httpServer.listen(PORT, () => log.info(`TroveVoice listening on port ${PORT}`));
+
+        // ── Phase 2: heavy AI deps (load after port is bound) ────────────────────────
+        const { GoogleGenAI, Modality } = await import("@google/genai");
+        const { CONCIERGE_INSTRUCTIONS, getGenAITools } = await import("./agent.js");
+        const { conciergeTools } = await import("./tools.js");
+        log.info("AI modules loaded — ready for connections");
 
         wss.on("connection", async (clientWs, req) => {
             const url = new URL(req.url || "/", `http://${req.headers.host}`);
@@ -54,7 +67,7 @@ async function bootstrap() {
                         // Fix #1: correct model — the only stable Live API model with native audio I/O
                         model: "gemini-2.5-flash-native-audio-preview-12-2025",
                         config: {
-                            systemInstruction: CONCIERGE_INSTRUCTIONS,
+                            systemInstruction: String(CONCIERGE_INSTRUCTIONS),
                             tools: [{ functionDeclarations: getGenAITools() }],
                             // Fix #2: Use Modality enum, not raw string
                             responseModalities: [Modality.AUDIO],
@@ -152,7 +165,7 @@ async function bootstrap() {
                                             let response: any;
                                             if (tool) {
                                                 try {
-                                                    response = await tool.execute(fc.args || {});
+                                                    response = await (tool as any).execute(fc.args || {});
                                                 } catch (e: any) {
                                                     response = { error: e.message };
                                                 }

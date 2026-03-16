@@ -68,6 +68,13 @@ const config: Config = {
         },
       },
       fontSize: {
+        // Apple type scale
+        display: ["80px", { lineHeight: "1.05", fontWeight: "700", letterSpacing: "-0.015em" }],
+        headline: ["48px", { lineHeight: "1.1", fontWeight: "700", letterSpacing: "-0.01em" }],
+        title: ["32px", { lineHeight: "1.2", fontWeight: "600", letterSpacing: "-0.005em" }],
+        "body-apple": ["17px", { lineHeight: "1.6", fontWeight: "400" }],
+        caption: ["12px", { lineHeight: "1.4", fontWeight: "400" }],
+        // Legacy scale
         h1: ["2.5rem", { lineHeight: "1.2", fontWeight: "700" }],
         h2: ["2rem", { lineHeight: "1.25", fontWeight: "700" }],
         h3: ["1.5rem", { lineHeight: "1.3", fontWeight: "600" }],

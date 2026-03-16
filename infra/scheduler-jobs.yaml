@@ -1,0 +1,63 @@
+# ============================================================
+# TROVESTAK — GCP Cloud Scheduler Jobs
+# Apply with: bash infra/setup-scheduler.sh
+#
+# All jobs call internal Cloud Run service URLs via HTTP.
+# ============================================================
+
+jobs:
+  # Daily stock alert scan — check all variants below threshold
+  # Publishes stock.low events for notif-service to consume
+  - name: trovestak-stock-alert-daily
+    description: "Scan product variants below low_stock_threshold and publish stock.low events"
+    schedule: "0 8 * * *"   # 08:00 EAT (05:00 UTC) every day
+    timezone: Africa/Nairobi
+    target:
+      type: http
+      uri: "${NOTIF_SERVICE_URL}/jobs/stock-alerts"
+      method: POST
+      oidc_token: true
+    retry_config:
+      retry_count: 3
+      min_backoff_duration: 30s
+
+  # Daily revenue digest — send admin summary at 09:00 EAT
+  - name: trovestak-revenue-digest-daily
+    description: "Generate and log daily revenue summary"
+    schedule: "0 9 * * *"   # 09:00 EAT (06:00 UTC)
+    timezone: Africa/Nairobi
+    target:
+      type: http
+      uri: "${NOTIF_SERVICE_URL}/jobs/revenue-digest"
+      method: POST
+      oidc_token: true
+    retry_config:
+      retry_count: 2
+      min_backoff_duration: 60s
+
+  # Hourly M-Pesa reconciliation check — flag unmatched payments
+  - name: trovestak-mpesa-reconcile-hourly
+    description: "Check for paid orders without mpesa_receipt_number and log for manual review"
+    schedule: "0 * * * *"   # Every hour
+    timezone: Africa/Nairobi
+    target:
+      type: http
+      uri: "${NOTIF_SERVICE_URL}/jobs/mpesa-reconcile"
+      method: POST
+      oidc_token: true
+    retry_config:
+      retry_count: 1
+      min_backoff_duration: 30s
+
+  # Weekly top products re-embedding — refresh pgvector embeddings
+  - name: trovestak-reembed-weekly
+    description: "Re-generate Gemini embeddings for products modified in the last 7 days"
+    schedule: "0 2 * * 0"   # 02:00 UTC Sunday (05:00 EAT)
+    timezone: UTC
+    target:
+      type: pubsub
+      topic: projects/${GOOGLE_CLOUD_PROJECT}/topics/product.import
+      message_body: '{"trigger":"scheduled_reembed","scope":"modified_7d"}'
+    retry_config:
+      retry_count: 2
+      min_backoff_duration: 120s

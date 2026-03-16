@@ -7,6 +7,7 @@
 export const TOPICS = {
     ORDER_CREATED: "order.created",
     ORDER_UPDATED: "order.updated",
+    ORDER_DISPATCHED: "order.dispatched",
     PAYMENT_INITIATE: "payment.initiate",
     PAYMENT_CONFIRMED: "payment.confirmed",
     PAYMENT_FAILED: "payment.failed",
@@ -47,6 +48,20 @@ export interface OrderCreatedData {
 }
 
 export type OrderCreatedEvent = BaseEvent<OrderCreatedData>;
+
+// ── order.dispatched ──────────────────────────────────────────────────────────
+
+export interface OrderDispatchedData {
+    order_id: string;
+    customer_name?: string | null;
+    customer_phone?: string | null;
+    rider_name?: string | null;
+    total_amount: number;
+    shipping_address?: string | null;
+    dispatched_at: string;
+}
+
+export type OrderDispatchedEvent = BaseEvent<OrderDispatchedData>;
 
 // ── payment.initiate ──────────────────────────────────────────────────────────
 

@@ -1,0 +1,80 @@
+# ============================================================
+# TROVESTAK — GCP Pub/Sub Topics & Subscriptions
+# Apply with: gcloud pubsub topics create / subscriptions create
+#
+# One-time setup script equivalent:
+#   bash infra/setup-pubsub.sh
+# ============================================================
+
+topics:
+  - name: order.created
+    description: "Fired when a new order is placed"
+
+  - name: order.updated
+    description: "Fired when order status changes"
+
+  - name: order.dispatched
+    description: "Fired when admin marks an order as dispatched (→ customer SMS)"
+
+  - name: payment.initiate
+    description: "Fired to trigger M-Pesa STK Push"
+
+  - name: payment.confirmed
+    description: "Fired when M-Pesa payment callback received"
+
+  - name: payment.failed
+    description: "Fired when M-Pesa payment fails or times out"
+
+  - name: stock.low
+    description: "Fired when variant stock drops below low_stock_threshold"
+
+  - name: stock.updated
+    description: "Fired when stock quantity changes (restock / sale)"
+
+  - name: agent.intent
+    description: "Fired by TroveVoice agent for product search intents"
+
+  - name: recommendation.ready
+    description: "Fired by ml-service with personalised product IDs"
+
+  - name: product.import
+    description: "Fired to trigger batch product import pipeline"
+
+subscriptions:
+  # notif-service subscriptions
+  - name: notif-order-created
+    topic: order.created
+    ack_deadline_seconds: 60
+    subscriber: notif-service
+
+  - name: notif-payment-confirmed
+    topic: payment.confirmed
+    ack_deadline_seconds: 60
+    subscriber: notif-service
+
+  - name: notif-stock-low
+    topic: stock.low
+    ack_deadline_seconds: 60
+    subscriber: notif-service
+
+  - name: notif-order-dispatched
+    topic: order.dispatched
+    ack_deadline_seconds: 60
+    subscriber: notif-service
+
+  # mpesa-service subscriptions
+  - name: mpesa-payment-initiate
+    topic: payment.initiate
+    ack_deadline_seconds: 120
+    subscriber: mpesa-service
+
+  # ml-service subscriptions
+  - name: ml-agent-intent
+    topic: agent.intent
+    ack_deadline_seconds: 30
+    subscriber: ml-service
+
+  - name: ml-product-import
+    topic: product.import
+    ack_deadline_seconds: 300
+    subscriber: ml-service

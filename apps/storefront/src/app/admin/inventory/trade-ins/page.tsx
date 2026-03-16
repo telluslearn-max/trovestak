@@ -1,6 +1,6 @@
-import { createSupabaseServerClient } from "@/lib/supabase-server";
-import TradeInsClient from "./trade-ins-client";
 import { Metadata } from "next";
+import TradeInsClient from "./trade-ins-client";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 export const metadata: Metadata = {
     title: "Trade-in Intake | Trovestak Admin",
@@ -10,30 +10,13 @@ export const metadata: Metadata = {
 export default async function TradeInsPage() {
     const supabase = await createSupabaseServerClient();
 
-    // Fetch trade-ins with customer profile data
-    const { data: tradeIns, error: tradeInError } = await supabase
+    const { data: tradeIns, error } = await supabase
         .from("trade_ins")
-        .select("*, customer:profiles(full_name, email)")
-        .order("created_at", { ascending: false });
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
 
-    if (tradeInError) {
-        console.error("Error fetching trade-ins:", tradeInError);
-    }
+    if (error) console.error("Error fetching trade-ins:", error);
 
-    // Fetch recent customers for intake form
-    const { data: customers, error: customerError } = await supabase
-        .from("profiles")
-        .select("id, full_name, email")
-        .limit(20);
-
-    if (customerError) {
-        console.error("Error fetching customers for trade-ins:", customerError);
-    }
-
-    return (
-        <TradeInsClient
-            initialTradeIns={tradeIns || []}
-            customers={customers || []}
-        />
-    );
+    return <TradeInsClient initialTradeIns={(tradeIns || []) as any[]} />;
 }
