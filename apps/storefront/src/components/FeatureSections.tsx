@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { scrollReveal } from '@/lib/motion';
 import { formatKES } from '@/lib/formatters';
-import { ArrowRight } from 'lucide-react';
 
 interface FeaturedProduct {
     name: string;
@@ -13,10 +12,16 @@ interface FeaturedProduct {
     short_desc?: string | null;
     thumbnail_url?: string | null;
     min_price?: number;
+    created_at?: string | null;
 }
 
 interface FeatureSectionsProps {
     products: FeaturedProduct[];
+}
+
+function isNew(createdAt?: string | null): boolean {
+    if (!createdAt) return false;
+    return Date.now() - new Date(createdAt).getTime() < 7 * 24 * 60 * 60 * 1000;
 }
 
 export function FeatureSections({ products }: FeatureSectionsProps) {
@@ -29,7 +34,7 @@ export function FeatureSections({ products }: FeatureSectionsProps) {
                 return (
                     <div
                         key={product.slug}
-                        className={`${isEven ? 'bg-white' : 'bg-[#1d1d1f]'} py-20 px-4`}
+                        className={`${isEven ? 'bg-white' : 'bg-[#1d1d1f]'} py-20 px-6`}
                     >
                         <motion.div
                             {...scrollReveal}
@@ -43,19 +48,24 @@ export function FeatureSections({ products }: FeatureSectionsProps) {
                                         src={product.thumbnail_url}
                                         alt={product.name}
                                         fill
-                                        className="object-contain"
+                                        className="object-contain p-6"
                                         sizes="(max-width: 768px) 100vw, 50vw"
                                     />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center">
-                                        <div className="w-20 h-20 rounded-full bg-gray-200" />
+                                        <div className="w-20 h-20 rounded-full bg-[#e5e5ea]" />
                                     </div>
                                 )}
                             </div>
 
                             {/* Text */}
                             <div className="flex-1 max-w-md">
-                                <h2 className={`text-[48px] font-bold tracking-tight leading-[1.1] mb-4 ${isEven ? 'text-[#1d1d1f]' : 'text-white'}`}>
+                                {isNew(product.created_at) && (
+                                    <span className="inline-block bg-[#f59e0b] text-white text-[11px] font-semibold px-2.5 py-0.5 rounded-full mb-3">
+                                        NEW
+                                    </span>
+                                )}
+                                <h2 className={`text-[44px] font-bold tracking-tight leading-[1.1] mb-4 ${isEven ? 'text-[#1d1d1f]' : 'text-white'}`}>
                                     {product.name}
                                 </h2>
                                 {product.short_desc && (
@@ -70,9 +80,9 @@ export function FeatureSections({ products }: FeatureSectionsProps) {
                                 )}
                                 <Link
                                     href={`/products/${product.slug}`}
-                                    className={`inline-flex items-center gap-2 text-[17px] font-medium ${isEven ? 'text-[#0071e3] hover:underline' : 'text-[#2997ff] hover:underline'}`}
+                                    className={`text-[17px] font-medium ${isEven ? 'text-[#0071e3] hover:underline' : 'text-[#2997ff] hover:underline'}`}
                                 >
-                                    Shop {product.name} <ArrowRight className="w-4 h-4" />
+                                    Shop {product.name} ›
                                 </Link>
                             </div>
                         </motion.div>

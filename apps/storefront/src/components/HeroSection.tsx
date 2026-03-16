@@ -3,8 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
-import { formatKES } from '@/lib/formatters';
+import { Mic } from 'lucide-react';
 
 interface HeroProduct {
     name: string;
@@ -15,106 +14,85 @@ interface HeroProduct {
 }
 
 interface HeroSectionProps {
-    product: HeroProduct;
+    product?: HeroProduct | null;
 }
 
 export function HeroSection({ product }: HeroSectionProps) {
-    const isDark = true; // product photography determines this; default to dark
-
     return (
-        <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-[#1d1d1f]">
-            {/* Background image */}
-            {product.thumbnail_url && (
-                <div className="absolute inset-0">
-                    <Image
-                        src={product.thumbnail_url}
-                        alt={product.name}
-                        fill
-                        priority
-                        className="object-cover opacity-40"
-                        sizes="100vw"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#1d1d1f]" />
+        <section className="bg-[#f5f5f7] overflow-hidden">
+            <div className="max-w-7xl mx-auto px-6 py-24 md:py-32 flex flex-col md:flex-row items-center gap-12 min-h-[60vh]">
+                {/* Text */}
+                <div className="flex-1 text-center md:text-left">
+                    <motion.p
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.05, duration: 0.5 }}
+                        className="text-sm font-semibold uppercase tracking-[0.18em] text-[#86868b] mb-4"
+                    >
+                        Trovestak Store
+                    </motion.p>
+
+                    <motion.h1
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.15, duration: 0.55 }}
+                        className="text-[48px] md:text-[64px] font-bold tracking-tight leading-[1.05] text-[#1d1d1f] mb-5"
+                    >
+                        The best way to buy<br className="hidden md:block" /> premium electronics<br className="hidden md:block" /> in Kenya.
+                    </motion.h1>
+
+                    <motion.p
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.22, duration: 0.55 }}
+                        className="text-[18px] text-[#6e6e73] mb-8 max-w-md"
+                    >
+                        Shop by voice, pay with M-Pesa, delivered across Kenya.
+                    </motion.p>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3, duration: 0.5 }}
+                        className="flex flex-col sm:flex-row items-center md:items-start gap-3"
+                    >
+                        <Link
+                            href="/store"
+                            className="px-8 py-3 bg-[#0071e3] text-white text-[17px] font-medium rounded-full hover:bg-[#0077ed] transition-colors"
+                        >
+                            Shop now
+                        </Link>
+                        <button
+                            id="trove-voice-cta"
+                            className="inline-flex items-center gap-2 px-8 py-3 border border-[#1d1d1f]/20 text-[#1d1d1f] text-[17px] font-medium rounded-full hover:bg-[#1d1d1f]/5 transition-colors"
+                        >
+                            <Mic className="w-4 h-4" />
+                            Talk to TroveVoice
+                        </button>
+                    </motion.div>
                 </div>
-            )}
 
-            {/* Content */}
-            <div className="relative z-10 text-center px-6 max-w-3xl mx-auto">
-                <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1, duration: 0.6 }}
-                    className="text-sm font-semibold uppercase tracking-[0.2em] text-[rgba(245,245,247,0.6)] mb-4"
-                >
-                    New
-                </motion.p>
-
-                <motion.h1
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2, duration: 0.6 }}
-                    className="text-[40px] md:text-[72px] font-bold tracking-tight leading-[1.05] text-white mb-4"
-                >
-                    {product.name}
-                </motion.h1>
-
-                {product.short_desc && (
-                    <motion.p
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3, duration: 0.6 }}
-                        className="text-xl md:text-2xl text-[rgba(245,245,247,0.6)] mb-2 max-w-xl mx-auto"
+                {/* Product image — most recently featured product */}
+                {product?.thumbnail_url && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.2, duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
+                        className="flex-1 flex justify-center md:justify-end"
                     >
-                        {product.short_desc}
-                    </motion.p>
+                        <div className="relative w-[320px] h-[320px] md:w-[420px] md:h-[420px]">
+                            <Image
+                                src={product.thumbnail_url}
+                                alt={product.name}
+                                fill
+                                priority
+                                className="object-contain"
+                                sizes="(max-width: 768px) 320px, 420px"
+                            />
+                        </div>
+                    </motion.div>
                 )}
-
-                {product.min_price && product.min_price > 0 && (
-                    <motion.p
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.35, duration: 0.6 }}
-                        className="text-base text-[rgba(245,245,247,0.5)] mb-8"
-                    >
-                        From {formatKES(product.min_price)}
-                    </motion.p>
-                )}
-
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4, duration: 0.6 }}
-                    className="flex items-center justify-center gap-4"
-                >
-                    <Link
-                        href={`/products/${product.slug}`}
-                        className="px-8 py-3 bg-white text-[#1d1d1f] text-[17px] font-medium rounded-full hover:bg-white/90 transition-colors"
-                    >
-                        Shop now
-                    </Link>
-                    <Link
-                        href={`/products/${product.slug}`}
-                        className="px-8 py-3 border border-white/30 text-white text-[17px] font-medium rounded-full hover:bg-white/10 transition-colors"
-                    >
-                        Learn more
-                    </Link>
-                </motion.div>
             </div>
-
-            {/* Scroll indicator */}
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8, duration: 0.6 }}
-                className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10"
-            >
-                <motion.div
-                    animate={{ y: [0, 6, 0] }}
-                    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                >
-                    <ChevronDown className="w-6 h-6 text-[rgba(245,245,247,0.4)]" />
-                </motion.div>
-            </motion.div>
         </section>
     );
 }
