@@ -51,7 +51,6 @@ export function ConciergeVoice({ onClose }: Props) {
     };
     const initConcierge = async () => {
         try {
-            console.log("[Concierge] Requesting microphone access FIRST (user gesture)...");
             const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
             audioContextRef.current = audioContext;
 
@@ -62,7 +61,6 @@ export function ConciergeVoice({ onClose }: Props) {
             }
             streamRef.current = stream;
 
-            console.log("[Concierge] Loading audio worklet modules...");
             await Promise.all([
                 audioContext.audioWorklet.addModule("/audio-processors/pcm-player-processor.js"),
                 audioContext.audioWorklet.addModule("/audio-processors/pcm-recorder-processor.js")
@@ -83,23 +81,19 @@ export function ConciergeVoice({ onClose }: Props) {
             source.connect(recorderNode);
             recorderNodeRef.current = recorderNode;
 
-            console.log("[Concierge] Audio worklets loaded. Initializing player...");
             const playerNode = new AudioWorkletNode(audioContext, "pcm-player-processor");
             playerNode.connect(audioContext.destination);
             playerNodeRef.current = playerNode;
 
             // Pause it until connection and setup is complete
             await audioContext.suspend();
-            console.log("[Concierge] Microphone accessed and suspended. Connecting to WS...");
 
             const wsUrl = process.env.NEXT_PUBLIC_AGENT_WS_URL || "ws://localhost:8088";
-            console.log("[Concierge] Connecting to:", wsUrl);
             const ws = new WebSocket(`${wsUrl}?session_id=${sessionId}`);
             ws.binaryType = "arraybuffer";
             wsRef.current = ws;
 
             ws.onopen = async () => {
-                console.log("[Concierge] WebSocket Connected.");
                 setIsConnecting(false);
                 setTranscription("Waiting for TroveVoice to wake up...");
                 // Recording will start when server sends { type: "status", content: "ready" }
@@ -123,7 +117,6 @@ export function ConciergeVoice({ onClose }: Props) {
                             setAgentSpeaking(false);
                         } else if (msg.type === "status") {
                             if (msg.content === "ready") {
-                                console.log("[Concierge] Gemini ready — resuming audio context now.");
                                 geminiReadyRef.current = true;
                                 setGeminiReadyState(true);
                                 setIsListening(true);
@@ -138,19 +131,15 @@ export function ConciergeVoice({ onClose }: Props) {
                         } else if (msg.type === "error") {
                             setError(msg.content || "Connection error.");
                         }
-                    } catch (e) {
-                        console.log("[Concierge] Raw message:", event.data);
-                    }
+                    } catch (e) {}
                 }
             };
 
-            ws.onerror = (err) => {
-                console.warn("[Concierge] WebSocket error:", err);
+            ws.onerror = () => {
                 setError("Failed to connect to concierge.");
             };
             
             ws.onclose = (event) => {
-                console.log("[Concierge] WebSocket Closed:", event.code, event.reason);
                 // Normal close (user dismissed) — don't reconnect
                 if (!isMounted.current || event.code === 1000 || event.code === 1001) {
                     onClose();
@@ -170,7 +159,6 @@ export function ConciergeVoice({ onClose }: Props) {
             };
 
         } catch (err: any) {
-            console.error("[Concierge] Init error:", err);
             setError(err.message || "Microphone access denied.");
             setIsConnecting(false);
         }
@@ -203,7 +191,7 @@ export function ConciergeVoice({ onClose }: Props) {
                         </div>
                         <div>
                             <h2 className="font-bold text-lg">TroveVoice</h2>
-                            <p className="text-xs text-muted-foreground">ADK Intelligence Active</p>
+                            <p className="text-xs text-muted-foreground">Gemini Live Active</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-muted rounded-full transition-colors">
@@ -273,7 +261,7 @@ export function ConciergeVoice({ onClose }: Props) {
 
                 {/* Footer Tip */}
                 <div className="p-4 bg-muted/30 text-center text-[10px] text-muted-foreground uppercase tracking-widest border-t border-border/30">
-                    ADK Voice Protocol v1.0
+                    Gemini Live v1.0
                 </div>
             </div>
         </motion.div>
