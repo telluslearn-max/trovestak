@@ -1,8 +1,8 @@
 # Current Feature
 
-## Active Task: Microservices Migration — Phase 5 (notif-service delivery)
+## Active Task: Microservices Migration — Complete
 
-**Status:** Phase 5 next
+**Status:** All phases done ✅
 **Branch:** `feature/store-upgrade`
 **Priority:** P2 — architectural hardening post-competition
 
@@ -51,17 +51,18 @@
 | `agent.intent` | agent-service/tools.ts (search_products) | ml-service | ✅ Active |
 | `product.import` | catalog-service (/products/bulk/upsert) | ml-service | ✅ Active |
 | `stock.updated` | catalog-service (handleOrderCreated) | ml-service | ✅ Active |
-| `recommendation.ready` | ml-service (Python) | agent-service | Declared — ml-service Phase 5+ |
+| `recommendation.ready` | ml-service (/recommend endpoint) | agent-service | ✅ Active |
 
-All new subscriptions added to `infra/pubsub-topics.yaml`.
+All new subscriptions added to `infra/pubsub-topics.yaml` and `infra/setup-pubsub.sh`.
 
----
+### Phase 5 — notif-service real delivery + cleanup (2026-03-17) ✅
 
-## Next: Phase 5 — notif-service delivery
-
-Replace all `log.info("... skipped")` stubs with real provider calls:
-- **Resend API** — order confirmation email (`handleOrderCreated`), payment receipt (`handlePaymentConfirmed`)
-- **Africa's Talking** — payment confirmed SMS, dispatch SMS, order status update SMS (`handleOrderUpdated`)
+- Resend email: order confirmation on `order.created`
+- Africa's Talking SMS: payment confirmed, order dispatched, order status updates
+- `initiateCheckoutTool` in agent-service → calls order-service `POST /orders` (not mpesa-service)
+- `infra/setup-pubsub.sh` updated with all 6 new subscriptions from Phase 2-5
+- `africastalking.d.ts` module declaration added (no published types)
+- `normalizePhone` from shared package wired into SMS sender
 
 ---
 
@@ -81,3 +82,4 @@ Replace all `log.info("... skipped")` stubs with real provider calls:
 | Phase 2 — catalog-service extraction | `feature/store-upgrade` | 2026-03-17 |
 | Phase 3 — API gateway (nginx) | `feature/store-upgrade` | 2026-03-17 |
 | Phase 4 — activate unused Pub/Sub topics | `feature/store-upgrade` | 2026-03-17 |
+| Phase 5 — notif-service delivery + final wiring | `feature/store-upgrade` | 2026-03-17 |
