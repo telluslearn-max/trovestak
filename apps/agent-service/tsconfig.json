@@ -1,17 +1,13 @@
 {
     "compilerOptions": {
-        "baseUrl": ".",
         "target": "ES2022",
-        "module": "ESNext",
-        "moduleResolution": "bundler",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
         "strict": true,
+        "rootDir": "src",
         "outDir": "dist",
-        // "rootDir": "src",
         "esModuleInterop": true,
-        "skipLibCheck": true,
-        "paths": {
-            "@trovestak/shared": ["../../packages/shared/lib/index.ts"]
-        }
+        "skipLibCheck": true
     },
     "include": [
         "src"

@@ -6,7 +6,9 @@ import { ThemeProvider as NextThemesProvider } from "next-themes";
 import Navbar from "@/components/navbar";
 import { Footer } from "@/components/Footer";
 import { CompareBar } from "@/components/CompareDrawer";
-import { ChatWidget } from "@/components/ChatWidget";
+import { ConciergeStrip } from "@/components/concierge/ConciergeStrip";
+import { CartDrawer } from "@/components/CartDrawer";
+import { SearchOverlay } from "@/components/SearchOverlay";
 
 export function StorefrontWrapper({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -26,11 +28,13 @@ export function StorefrontWrapper({ children }: { children: React.ReactNode }) {
             disableTransitionOnChange={false}
         >
             <Navbar />
+            <CartDrawer />
+            <SearchOverlay />
             <main className="min-h-screen">
                 {children}
             </main>
             <CompareBar />
-            <ChatWidget />
+            <ConciergeStrip />
             <Footer />
         </NextThemesProvider>
     );
