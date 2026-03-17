@@ -1,85 +1,52 @@
 # Current Feature
 
-## Active Task: Microservices Migration — Complete
+## Active Task: Website Copy Implementation — Phase 1 Complete
 
-**Status:** All phases done ✅
-**Branch:** `feature/store-upgrade`
-**Priority:** P2 — architectural hardening post-competition
-
----
-
-## Completed Phases
-
-### Phase 0 — Live defect fixes (2026-03-17) ✅
-
-| Fix | File | Status |
-|-----|------|--------|
-| Transcription crash | `agent-service/src/index.ts:169` | ✅ Done |
-| M-Pesa amount /100 | `mpesa-service/src/index.ts:187` | ✅ Done |
-| Stock decrement | `notif-service/src/index.ts` + migration `20260317000002` | ✅ Done |
-| "in cents" comment | `shared/lib/events.ts:41` | ✅ Done |
-
-### Phase 1 — Extract order-service (2026-03-17) ✅
-
-- `apps/order-service/` created (Express/TS, port 8082)
-- 13 REST endpoints: checkout, fulfillment, cart validation, shipping rates, discount codes
-- Subscribes to `payment.confirmed` / `payment.failed` Pub/Sub
-- Publishes `order.created`, `payment.initiate`, `order.dispatched`, `order.updated`
-- Storefront checkout + admin order actions → thin HTTP dispatchers
-
-### Phase 2 — Extract catalog-service (2026-03-17) ✅
-
-- `apps/catalog-service/` created (Express/TS, port 8083)
-- 65+ REST endpoints: products, variants, relations, attributes, templates, bundles, marketing, brands, categories, suppliers, trade-ins
-- Subscribes to `order.created` → stock decrement (replaced notif-service temp fix)
-- Publishes `stock.updated` (after decrement), `product.import` (after bulk upsert)
-- 9 storefront admin action files → thin HTTP dispatchers
-
-### Phase 3 — API Gateway (2026-03-17) ✅
-
-- `apps/gateway/` created (nginx, port 8080)
-- `limit_req_zone` rate limiting: payment=5r/m, admin=60r/m, general=300r/m
-- WebSocket upgrade support for agent-service
-- `X-Request-ID` injection for distributed tracing
-- Env-var-driven upstream config (envsubst at container start)
-
-### Phase 4 — Activate unused Pub/Sub topics (2026-03-17) ✅
-
-| Topic | Producer | Consumer | Status |
-|-------|----------|----------|--------|
-| `order.updated` | order-service (on status change) | notif-service (SMS) | ✅ Active |
-| `agent.intent` | agent-service/tools.ts (search_products) | ml-service | ✅ Active |
-| `product.import` | catalog-service (/products/bulk/upsert) | ml-service | ✅ Active |
-| `stock.updated` | catalog-service (handleOrderCreated) | ml-service | ✅ Active |
-| `recommendation.ready` | ml-service (/recommend endpoint) | agent-service | ✅ Active |
-
-All new subscriptions added to `infra/pubsub-topics.yaml` and `infra/setup-pubsub.sh`.
-
-### Phase 5 — notif-service real delivery + cleanup (2026-03-17) ✅
-
-- Resend email: order confirmation on `order.created`
-- Africa's Talking SMS: payment confirmed, order dispatched, order status updates
-- `initiateCheckoutTool` in agent-service → calls order-service `POST /orders` (not mpesa-service)
-- `infra/setup-pubsub.sh` updated with all 6 new subscriptions from Phase 2-5
-- `africastalking.d.ts` module declaration added (no published types)
-- `normalizePhone` from shared package wired into SMS sender
+**Status:** 10 of 13 tasks done. Ready for commit.
+**Branch:** `feature/website-copy`
+**Priority:** P1 — brand alignment + customer-facing accuracy
+**Context:** Plan file: `WEBSITE_COPY_BRIEF.md`
 
 ---
 
-## Completed Tasks (pre-migration)
+## Task Checklist
 
-| Task | Branch | Date |
-|------|--------|------|
-| Seed pgvector embeddings | `fix/seed-embeddings` | 2026-03-15 |
-| Fix WhatsApp phone number | `fix/whatsapp-number` | 2026-03-15 |
-| Add CLAUDE.md + current-feature.md | `fix/whatsapp-number` | 2026-03-15 |
-| Write ENGINEERING_BRIEF.md (Apple Store standard) | `fix/storefront-production` | 2026-03-16 |
-| Apple Store storefront rebuild (all 22 steps) | `feature/apple-store-storefront` | 2026-03-16 |
-| Admin dashboard + GCP infrastructure (all 13 steps) | `fix/storefront-production` | 2026-03-16 |
-| Concierge & ML handover (all 6 steps) | `feature/store-upgrade` | 2026-03-17 |
-| Phase 0 live defect fixes | `feature/store-upgrade` | 2026-03-17 |
-| Phase 1 — order-service extraction | `feature/store-upgrade` | 2026-03-17 |
-| Phase 2 — catalog-service extraction | `feature/store-upgrade` | 2026-03-17 |
-| Phase 3 — API gateway (nginx) | `feature/store-upgrade` | 2026-03-17 |
-| Phase 4 — activate unused Pub/Sub topics | `feature/store-upgrade` | 2026-03-17 |
-| Phase 5 — notif-service delivery + final wiring | `feature/store-upgrade` | 2026-03-17 |
+### Completed (10/13)
+- [x] Update HeroSection.tsx line 31: Fallback subline → "Genuine products. AI guidance. Zero risk."
+- [x] Update layout.tsx line 10: Metadata description → outcome-led copy + "Shop and Save"
+- [x] Delete MpesaStrip component entirely
+- [x] Rewrite PromoPair.tsx (Trade-In: "coming soon" + TroveXP: "coming soon")
+- [x] Remove TroveVoice card from ExploreCarousel.tsx
+- [x] Fix ConciergeStrip.tsx: Change "TroveStack" → "Trovestak" throughout system prompt (5 instances)
+- [x] Remove `useWakeword` hook and wake-word copy from ConciergeStrip.tsx (push-to-talk only)
+- [x] Update account/page.tsx metadata (title: "My Trove", description: clean consumer copy)
+- [x] Update account/devices/page.tsx metadata (description: clean consumer copy)
+- [x] Fix Footer.tsx: Remove LinkedIn, add TikTok + Medium to social links
+- [x] Update deals/page.tsx metadata: Remove fake urgency ("Today's deals. Tomorrow's are different.")
+- [x] Wire hero theme CTAs in HeroSection.tsx (primaryCta/secondaryCta from theme now active)
+
+### Not Started (2 remaining — Phase 2)
+- [ ] Create "Coming to Trovestak" section component (new products + new arrivals)
+- [ ] Create Saves feature (rename /wishlist, bookmark icon, price-drop alerts via in-app + WhatsApp + email)
+
+---
+
+## Testing
+- ✅ tsc --noEmit: PASSED (no type errors)
+- 🔄 pnpm install: Running in background
+- [ ] Browser test: All pages render correctly
+- [ ] Copy review: All metadata and copy changes applied correctly
+
+---
+
+## Next Steps
+1. Complete pnpm install
+2. Review all code changes
+3. Commit Phase 1 with message
+4. Begin Phase 2 (two new components)
+
+---
+
+## Previous Work (Microservices Migration)
+
+See git log for `feature/store-upgrade` (2026-03-17). All phases complete: order-service, catalog-service, API gateway, Pub/Sub activation, notif-service delivery.

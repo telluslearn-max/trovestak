@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 import DevicesClient from "./devices-client";
 import { Metadata } from "next";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
     title: "My Devices | Trovestak",
-    description: "Real-time status and technical matrix for your active mesh equipment.",
+    description: "Manage your registered devices, warranty products, and TroveVoice preferences.",
 };
 
 export default async function MyDevicesPage() {

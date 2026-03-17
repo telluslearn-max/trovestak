@@ -2,221 +2,150 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Mail, Phone, MapPin, Send, Loader2, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { ChevronDown } from "lucide-react";
 
-const shopLinks = [
-    { label: "Mobile Phones", href: "/category/mobile" },
-    { label: "Computing", href: "/category/computing" },
-    { label: "Audio", href: "/category/audio" },
-    { label: "Gaming", href: "/category/gaming" },
-    { label: "Cameras", href: "/category/cameras" },
-    { label: "Wearables", href: "/category/wearables" },
-    { label: "Smart Home", href: "/category/smart-home" },
-    { label: "Deals", href: "/deals" },
+const COLUMNS = [
+    {
+        title: "Shop and Learn",
+        links: [
+            { label: "Mobile Phones", href: "/category/mobile" },
+            { label: "Computing", href: "/category/computing" },
+            { label: "Tablets", href: "/category/tablets" },
+            { label: "Audio", href: "/category/audio" },
+            { label: "Gaming", href: "/category/gaming" },
+            { label: "Cameras", href: "/category/cameras" },
+            { label: "Wearables", href: "/category/wearables" },
+            { label: "Smart Home", href: "/category/smart-home" },
+            { label: "Deals", href: "/deals" },
+        ],
+    },
+    {
+        title: "Payments",
+        links: [
+            { label: "M-Pesa Lipa Na", href: "/payments/mpesa" },
+            { label: "M-Pesa Fuliza", href: "/payments/fuliza" },
+            { label: "3-Month Installments", href: "/payments/installments" },
+            { label: "6-Month Installments", href: "/payments/installments" },
+            { label: "12-Month Installments", href: "/payments/installments" },
+            { label: "Trade-In Program", href: "/trade-in" },
+        ],
+    },
+    {
+        title: "Trovestak Store",
+        links: [
+            { label: "Find a Product", href: "/store" },
+            { label: "Today at Trovestak", href: "/store" },
+            { label: "Deals", href: "/deals" },
+            { label: "TroveVoice", href: "/#trove-voice-cta" },
+            { label: "Order Status", href: "/orders/track" },
+            { label: "Shopping Help", href: "/support" },
+        ],
+    },
+    {
+        title: "Support",
+        links: [
+            { label: "Help Center", href: "/support" },
+            { label: "Track Order", href: "/orders/track" },
+            { label: "Returns & Refunds", href: "/returns" },
+            { label: "Warranty Information", href: "/warranty" },
+            { label: "Contact Us", href: "/contact" },
+            { label: "WhatsApp Support", href: "https://wa.me/254700000000" },
+        ],
+    },
+    {
+        title: "About Trovestak",
+        links: [
+            { label: "About Us", href: "/about" },
+            { label: "Newsroom", href: "/blog" },
+            { label: "Careers", href: "/careers" },
+            { label: "TikTok", href: "https://tiktok.com/@trovestak" },
+            { label: "Twitter / X", href: "https://x.com/trovestak" },
+            { label: "Instagram", href: "https://instagram.com/trovestak" },
+            { label: "Medium", href: "https://medium.com/trovestak" },
+            { label: "WhatsApp", href: "https://wa.me/254700000000" },
+        ],
+    },
 ];
 
-const supportLinks = [
-    { label: "Help Center", href: "/support" },
-    { label: "Track Order", href: "/orders/track" },
-    { label: "Returns & Refunds", href: "/returns" },
-    { label: "Warranty Info", href: "/warranty" },
-    { label: "Trade-In Program", href: "/trade-in" },
-    { label: "Contact Us", href: "/contact" },
-];
-
-const companyLinks = [
-    { label: "About Trovestak", href: "/about" },
-    { label: "Careers", href: "/careers" },
-    { label: "Blog", href: "/blog" },
-    { label: "Terms of Service", href: "/terms" },
+const LEGAL_LINKS = [
     { label: "Privacy Policy", href: "/privacy" },
+    { label: "Terms of Use", href: "/terms" },
+    { label: "Cookie Policy", href: "/privacy#cookies" },
+    { label: "Sales & Refunds", href: "/returns" },
+    { label: "Legal", href: "/terms" },
 ];
 
-const socialLinks = [
-    { label: "WhatsApp", href: "https://wa.me/254700000000" },
-    { label: "Instagram", href: "https://instagram.com/trovestak" },
-    { label: "Twitter", href: "https://x.com/trovestak" },
-    { label: "LinkedIn", href: "https://linkedin.com/company/trovestak" },
-];
+function FooterColumn({ title, links }: { title: string; links: { label: string; href: string }[] }) {
+    const [open, setOpen] = useState(false);
 
-import { subscribeToNewsletter } from "@/app/actions";
+    return (
+        <div className="border-b border-[#D2D2D7] sm:border-none">
+            {/* Mobile: accordion header */}
+            <button
+                className="w-full flex items-center justify-between py-3 text-left sm:hidden"
+                onClick={() => setOpen((v) => !v)}
+                aria-expanded={open}
+            >
+                <span className="text-[12px] font-semibold text-[#1d1d1f]">{title}</span>
+                <ChevronDown
+                    className={`w-3.5 h-3.5 text-[#6e6e73] transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+                />
+            </button>
+
+            {/* Desktop: always visible header */}
+            <p className="hidden sm:block text-[12px] font-semibold text-[#1d1d1f] mb-3">{title}</p>
+
+            {/* Links — hidden on mobile unless open */}
+            <ul className={`space-y-2 pb-3 sm:pb-0 ${open ? 'block' : 'hidden sm:block'}`}>
+                {links.map((link) => (
+                    <li key={link.href + link.label}>
+                        <Link
+                            href={link.href}
+                            className="text-[12px] text-[#6e6e73] hover:text-[#1d1d1f] transition-colors leading-relaxed"
+                        >
+                            {link.label}
+                        </Link>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
 
 export function Footer() {
-    const [email, setEmail] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [subscribed, setSubscribed] = useState(false);
-
-    const handleSubscribe = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!email) return;
-
-        setIsSubmitting(true);
-
-        try {
-            const result = await subscribeToNewsletter(email);
-            if (result.success) {
-                setSubscribed(true);
-                setEmail("");
-            }
-        } catch (err) {
-            console.error("Newsletter error:", err);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
     const currentYear = new Date().getFullYear();
 
     return (
-        <footer className="bg-background border-t border-border">
-            {/* Newsletter Section */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-                <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
-                    <div className="text-center lg:text-left max-w-lg">
-                        <h3 className="text-xl font-semibold text-foreground">
-                            Stay updated
-                        </h3>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            Subscribe for updates on new products and exclusive offers.
-                        </p>
-                    </div>
+        <footer className="bg-[#F5F5F7]">
+            {/* Top divider */}
+            <div className="max-w-[980px] mx-auto border-t border-[#D2D2D7]" />
 
-                    <form onSubmit={handleSubscribe} className="flex w-full max-w-md">
-                        {subscribed ? (
-                            <p className="text-sm text-green-600 font-medium">
-                                Thanks for subscribing!
-                            </p>
-                        ) : (
-                            <>
-                                <Input
-                                    type="email"
-                                    placeholder="Enter your email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                    className="rounded-r-none border-r-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                                />
-                                <Button
-                                    type="submit"
-                                    disabled={isSubmitting}
-                                    className="rounded-l-none px-6"
-                                >
-                                    {isSubmitting ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                    ) : (
-                                        <Send className="w-4 h-4" />
-                                    )}
-                                </Button>
-                            </>
-                        )}
-                    </form>
+            {/* Main columns */}
+            <div className="max-w-[980px] mx-auto px-4 md:px-6 py-6 md:py-12">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-0 sm:gap-8">
+                    {COLUMNS.map((col) => (
+                        <FooterColumn key={col.title} title={col.title} links={col.links} />
+                    ))}
                 </div>
             </div>
 
-            {/* Main Footer Content */}
-            <div className="border-t border-border">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
-                        {/* Logo & Description */}
-                        <div className="col-span-2">
-                            <Link href="/" className="inline-block">
-                                <span className="text-xl font-bold tracking-tight">
-                                    Trovestak
-                                </span>
+            {/* Legal bar */}
+            <div className="max-w-[980px] mx-auto border-t border-[#D2D2D7]" />
+            <div className="max-w-[980px] mx-auto px-4 md:px-6 py-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <p className="text-[12px] text-[#6e6e73]">
+                        Copyright © {currentYear} Trovestak Ltd. All rights reserved.
+                    </p>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        {LEGAL_LINKS.map((link) => (
+                            <Link
+                                key={link.href + link.label}
+                                href={link.href}
+                                className="text-[12px] text-[#6e6e73] hover:text-[#1d1d1f] transition-colors"
+                            >
+                                {link.label}
                             </Link>
-                            <p className="mt-3 text-sm text-muted-foreground max-w-xs">
-                                Kenya&apos;s trusted source for premium electronics with official warranties.
-                            </p>
-                            <div className="mt-6 flex gap-6">
-                                {socialLinks.map((link) => (
-                                    <a
-                                        key={link.label}
-                                        href={link.href}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-muted-foreground hover:text-foreground transition-colors text-sm"
-                                    >
-                                        {link.label}
-                                    </a>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Shop Links */}
-                        <div>
-                            <h4 className="text-sm font-medium text-foreground mb-4">
-                                Shop
-                            </h4>
-                            <ul className="space-y-2.5">
-                                {shopLinks.map((link) => (
-                                    <li key={link.href}>
-                                        <Link
-                                            href={link.href}
-                                            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                                        >
-                                            {link.label}
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        {/* Support Links */}
-                        <div>
-                            <h4 className="text-sm font-medium text-foreground mb-4">
-                                Support
-                            </h4>
-                            <ul className="space-y-2.5">
-                                {supportLinks.map((link) => (
-                                    <li key={link.href}>
-                                        <Link
-                                            href={link.href}
-                                            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                                        >
-                                            {link.label}
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        {/* Company Links */}
-                        <div>
-                            <h4 className="text-sm font-medium text-foreground mb-4">
-                                Company
-                            </h4>
-                            <ul className="space-y-2.5">
-                                {companyLinks.map((link) => (
-                                    <li key={link.href}>
-                                        <Link
-                                            href={link.href}
-                                            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                                        >
-                                            {link.label}
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Bottom Bar */}
-            <div className="border-t border-border">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-                        <p>© {currentYear} Trovestak Kenya. All rights reserved.</p>
-                        <div className="flex items-center gap-6">
-                            <a href="tel:+254700000000" className="hover:text-foreground transition-colors">
-                                +254 700 000 000
-                            </a>
-                            <a href="mailto:hello@trovestak.com" className="hover:text-foreground transition-colors">
-                                hello@trovestak.com
-                            </a>
-                        </div>
+                        ))}
                     </div>
                 </div>
             </div>

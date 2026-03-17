@@ -4,7 +4,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
     title: "Deals | Trovestak",
-    description: "Unbeatable prices on premium tech. Deals expire daily — grab them before they're gone.",
+    description: "Today's deals. Tomorrow's are different.",
 };
 
 interface Product {
@@ -18,7 +18,6 @@ interface Product {
 }
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 60; // Cache for 60 seconds
 
 export default async function DealsPage() {
     const supabase = await createSupabaseServerClient();

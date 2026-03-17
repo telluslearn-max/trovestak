@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 import AccountClient from "./account-client";
 import { Metadata } from "next";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
-    title: "Prime Account | Trovestak",
-    description: "Command center for your acquisitions, registered equipment, and security mesh.",
+    title: "My Trove | Trovestak",
+    description: "Your orders, saves, devices and account settings.",
 };
 
 export default async function AccountPage() {

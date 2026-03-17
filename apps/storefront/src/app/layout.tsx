@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import { Inter, DM_Sans } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { StorefrontWrapper } from "@/components/layout/storefront-wrapper";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans" });
 
 export const metadata: Metadata = {
   title: "Trovestak - Premium Electronics",
-  description: "Your trusted source for premium electronics in Kenya",
+  description: "Kenya's voice-powered electronics store. Genuine products, AI-guided shopping, same-day delivery. Shop and Save.",
 };
 
 export default function RootLayout({
@@ -17,8 +16,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${dmSans.variable}`}>
-      <body className="antialiased font-sans bg-background text-foreground">
+    <html lang="en" suppressHydrationWarning className={inter.variable}>
+      <body className="antialiased font-sf bg-background text-foreground">
         <StorefrontWrapper>
           {children}
         </StorefrontWrapper>

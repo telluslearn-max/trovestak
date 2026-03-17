@@ -3,7 +3,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Mic } from 'lucide-react';
+import { formatKES } from '@/lib/formatters';
+import type { HomepageTheme } from '@/lib/homepage-theme';
 
 interface HeroProduct {
     name: string;
@@ -11,88 +12,119 @@ interface HeroProduct {
     thumbnail_url: string | null;
     short_desc?: string | null;
     min_price?: number;
+    nav_category?: string | null;
 }
 
 interface HeroSectionProps {
     product?: HeroProduct | null;
+    theme: HomepageTheme;
 }
 
-export function HeroSection({ product }: HeroSectionProps) {
+const DELAY = [0.05, 0.13, 0.20, 0.27, 0.32];
+
+export function HeroSection({ product, theme }: HeroSectionProps) {
+    const isDark = theme.palette === 'dark';
+
+    const eyebrow = theme.hero?.eyebrow ?? product?.nav_category ?? 'Trovestak Store';
+    const headline = product?.name ?? "Kenya's Best Electronics Store";
+    const subline = (() => {
+        if (!product?.short_desc) return 'Genuine products. AI guidance. Zero risk.';
+        return product.short_desc.length <= 80
+            ? product.short_desc
+            : product.short_desc.slice(0, product.short_desc.lastIndexOf(' ', 80)) || product.short_desc.slice(0, 80);
+    })();
+
+    const productHref = product ? `/products/${product.slug}` : '/store';
+
     return (
-        <section className="bg-[#f5f5f7] overflow-hidden">
-            <div className="max-w-7xl mx-auto px-6 py-24 md:py-32 flex flex-col md:flex-row items-center gap-12 min-h-[60vh]">
-                {/* Text */}
-                <div className="flex-1 text-center md:text-left">
+        <section
+            className="relative w-full min-h-[600px] md:min-h-[680px] flex flex-col items-center overflow-hidden"
+            style={{ background: isDark ? '#000000' : '#ffffff' }}
+        >
+            {/* Text block — top, centered */}
+            <div className="relative z-10 w-full flex flex-col items-center text-center px-6 pt-16 md:pt-20 pb-8">
+                <motion.p
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: DELAY[0], duration: 0.45 }}
+                    className={`text-[12px] font-medium uppercase tracking-widest mb-3 ${isDark ? 'text-apple-blue' : 'text-apple-blue'}`}
+                >
+                    {eyebrow}
+                </motion.p>
+
+                <motion.h1
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: DELAY[1], duration: 0.5 }}
+                    className={`text-[48px] md:text-[56px] font-bold leading-[1.05] tracking-tight ${isDark ? 'text-white' : 'text-apple-text'}`}
+                >
+                    {headline}
+                </motion.h1>
+
+                <motion.p
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: DELAY[2], duration: 0.5 }}
+                    className={`text-[19px] leading-relaxed max-w-[500px] mt-3 ${isDark ? 'text-white/60' : 'text-apple-text-tertiary'}`}
+                >
+                    {subline}
+                </motion.p>
+
+                {product?.min_price && product.min_price > 0 && (
                     <motion.p
-                        initial={{ opacity: 0, y: 16 }}
+                        initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.05, duration: 0.5 }}
-                        className="text-sm font-semibold uppercase tracking-[0.18em] text-[#86868b] mb-4"
+                        transition={{ delay: DELAY[3], duration: 0.45 }}
+                        className={`text-[19px] mt-1 ${isDark ? 'text-white/50' : 'text-apple-text-tertiary'}`}
                     >
-                        Trovestak Store
+                        From {formatKES(product.min_price)}
                     </motion.p>
-
-                    <motion.h1
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.15, duration: 0.55 }}
-                        className="text-[48px] md:text-[64px] font-bold tracking-tight leading-[1.05] text-[#1d1d1f] mb-5"
-                    >
-                        The best way to buy<br className="hidden md:block" /> premium electronics<br className="hidden md:block" /> in Kenya.
-                    </motion.h1>
-
-                    <motion.p
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.22, duration: 0.55 }}
-                        className="text-[18px] text-[#6e6e73] mb-8 max-w-md"
-                    >
-                        Shop by voice, pay with M-Pesa, delivered across Kenya.
-                    </motion.p>
-
-                    <motion.div
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3, duration: 0.5 }}
-                        className="flex flex-col sm:flex-row items-center md:items-start gap-3"
-                    >
-                        <Link
-                            href="/store"
-                            className="px-8 py-3 bg-[#0071e3] text-white text-[17px] font-medium rounded-full hover:bg-[#0077ed] transition-colors"
-                        >
-                            Shop now
-                        </Link>
-                        <button
-                            id="trove-voice-cta"
-                            className="inline-flex items-center gap-2 px-8 py-3 border border-[#1d1d1f]/20 text-[#1d1d1f] text-[17px] font-medium rounded-full hover:bg-[#1d1d1f]/5 transition-colors"
-                        >
-                            <Mic className="w-4 h-4" />
-                            Talk to TroveVoice
-                        </button>
-                    </motion.div>
-                </div>
-
-                {/* Product image — most recently featured product */}
-                {product?.thumbnail_url && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.96 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 0.2, duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
-                        className="flex-1 flex justify-center md:justify-end"
-                    >
-                        <div className="relative w-[320px] h-[320px] md:w-[420px] md:h-[420px]">
-                            <Image
-                                src={product.thumbnail_url}
-                                alt={product.name}
-                                fill
-                                priority
-                                className="object-contain"
-                                sizes="(max-width: 768px) 320px, 420px"
-                            />
-                        </div>
-                    </motion.div>
                 )}
+
+                {/* CTAs — text links only, Apple style */}
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: DELAY[4], duration: 0.45 }}
+                    className="flex items-center gap-6 mt-6"
+                >
+                    <Link
+                        href={`${productHref}#details`}
+                        className="text-[19px] text-apple-blue hover:underline"
+                    >
+                        {theme.hero?.secondaryCta ? `${theme.hero.secondaryCta} ›` : 'Learn more ›'}
+                    </Link>
+                    <Link
+                        href={productHref}
+                        className="text-[19px] text-apple-blue hover:underline"
+                    >
+                        {theme.hero?.primaryCta ? `${theme.hero.primaryCta} ›` : (product ? `Shop ${product.name} ›` : 'Shop now ›')}
+                    </Link>
+                </motion.div>
             </div>
+
+            {/* Image block — flex-1, centered, bottom of tile */}
+            <motion.div
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.15, duration: 0.9, ease: [0.25, 0.1, 0.25, 1] }}
+                className="relative flex-1 w-full max-w-2xl mx-auto min-h-[260px] md:min-h-[340px]"
+            >
+                {product?.thumbnail_url ? (
+                    <Image
+                        src={product.thumbnail_url}
+                        alt={product.name}
+                        fill
+                        priority
+                        className="object-contain p-8"
+                        sizes="(max-width: 768px) 100vw, 672px"
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                        <div className="w-32 h-32 rounded-full bg-white/5" />
+                    </div>
+                )}
+            </motion.div>
         </section>
     );
 }

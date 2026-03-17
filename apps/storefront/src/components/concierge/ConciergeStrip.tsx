@@ -29,7 +29,6 @@ import React, {
 } from "react";
 import { GoogleGenAI, Modality } from "@google/genai";
 import { LiveAudioHandler } from "@/services/liveAudioHandler";
-import { useWakeword } from "@/hooks/useWakeword";
 import { useCartStore } from "@/stores/cart";
 import { useRouter } from "next/navigation";
 
@@ -37,16 +36,14 @@ import { useRouter } from "next/navigation";
 // Gemini Live config (copied from agent-service)
 // ─────────────────────────────────────────────
 
-const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY! });
-
 const CONCIERGE_SYSTEM_PROMPT = `
-You are TroveVoice — TroveStack's expert sales concierge and the most knowledgeable
+You are TroveVoice — Trovestak's expert sales concierge and the most knowledgeable
 tech advisor in East Africa. You are not just helpful; you are a world-class salesperson
 who genuinely loves technology and wants every customer to walk away with the perfect device.
 
 IDENTITY:
 - Name: TroveVoice
-- Store: TroveStack (trovestak.com) — premium electronics, Kenya
+- Store: Trovestak (trovestak.com) — premium electronics, Kenya
 - Market: Kenya — prices in KES. Budget tiers: entry <20K, mid 20–60K, premium 60K+
 - Brands in market: Samsung, Apple, Tecno, Infinix, Huawei, HP, Dell, Lenovo, Sony, JBL
 
@@ -75,7 +72,7 @@ WORKFLOW — PRODUCT DISCOVERY:
 5. Upsell one tier up. Cross-sell one accessory. Ask one clarifying question.
 
 WORKFLOW — CATALOG GROUNDING (STRICT):
-- At session start you receive the full TroveStack product catalog in your context.
+- At session start you receive the full Trovestak product catalog in your context.
 - You may ONLY recommend or describe products that appear in that catalog.
 - If a customer asks for a product NOT in the catalog:
   1. Say: "That's not something we stock right now, but I can get our team to source it for you."
@@ -109,7 +106,7 @@ CONSTRAINTS:
 
 CART & CHECKOUT:
 - Use add_to_cart ONLY after the customer explicitly confirms ("yes", "add that", "put it in my bag").
-- Use view_cart before initiating checkout to confirm cart contents with the customer.
+- Use view_cart before initiating checkout to confirm bag contents with the customer.
 - Use remove_from_cart if the customer changes their mind about an item.
 
 PRE-CHECKOUT (required before calling initiate_checkout for ANY method):
@@ -131,7 +128,7 @@ CHECKOUT REDIRECT:
 const CONCIERGE_TOOL_DECLARATIONS = [
   {
     name: "search_products",
-    description: "Search TroveStack catalog. For vague queries, first call research_agent to expand intent into specific queries, then call this tool with each query.",
+    description: "Search Trovestak catalog. For vague queries, first call research_agent to expand intent into specific queries, then call this tool with each query.",
     parameters: {
       type: "OBJECT",
       properties: {
@@ -393,9 +390,9 @@ const ToolBadge: React.FC<{ name: string }> = ({ name }) => {
     get_concierge_context: "Reading your taste profile",
     compare_products: "Comparing specs",
     get_ml_recommendations: "Personalising picks",
-    add_to_cart: "Adding to cart",
-    remove_from_cart: "Updating cart",
-    view_cart: "Checking your cart",
+    add_to_cart: "Adding to your bag",
+    remove_from_cart: "Updating your bag",
+    view_cart: "Checking your bag",
     initiate_checkout: "Initiating checkout",
     whatsapp_handoff: "Connecting to agent",
     research_agent: "Researching intent",
@@ -415,7 +412,7 @@ const ProductCardView: React.FC<{ product: ProductCard }> = ({ product }) => {
       <div style={cardCategoryTag}>{product.nav_category}</div>
       <div style={cardName}>{product.name}</div>
       {product.brand && <div style={cardBrand}>{product.brand}</div>}
-      <div style={cardPrice}>KES {product.sell_price.toLocaleString()}</div>
+      <div style={cardPrice}>KES {(product.sell_price ?? 0).toLocaleString()}</div>
       {product.availability && (
         <div style={{
           ...cardAvail,
@@ -484,15 +481,10 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
   const [sessionId] = useState(() => crypto.randomUUID());
   const sessionRef = useRef<any>(null);
   const audioHandlerRef = useRef<LiveAudioHandler | null>(null);
+  const aiRef = useRef<GoogleGenAI | null>(null);
 
-  // Stable ref so wakeword hook doesn't re-subscribe when connect() re-creates
+  // Stable ref for connect function
   const connectRef = useRef<() => void>(() => {});
-
-  // Wakeword listener — only active while session is idle
-  const { listening: wakeListening, supported: wakeSupported } = useWakeword({
-    onWakeword: useCallback(() => connectRef.current(), []),
-    enabled: state.phase === "idle",
-  });
 
   // ── Animate transcription text in character by character ──
   const [displayedTranscription, setDisplayedTranscription] = useState("");
@@ -565,7 +557,7 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
           response = await res.json();
         } else if (call.name === "whatsapp_handoff") {
           const url = `https://wa.me/254700000000?text=${encodeURIComponent(
-            `Hi TroveStack! I need help with: ${call.args?.context_summary ?? ""}`
+            `Hi Trovestak! I need help with: ${call.args?.context_summary ?? ""}`
           )}`;
           window.open(url, "_blank", "noopener,noreferrer");
           response = { url, message: "I've prepared a WhatsApp link — our team will assist you within minutes." };
@@ -609,12 +601,13 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
               unit_price: product.sell_price,
               thumbnail: product.thumbnail_url ?? undefined,
             });
+            routerRef.current?.push('/cart');
             const count = getCartCount();
             response = {
               added: product.name,
               unit_price: product.sell_price,
               cart_count: count,
-              message: `${product.name} added to your cart. You now have ${count} item${count !== 1 ? "s" : ""} in your cart.`,
+              message: `${product.name} is in your bag. You now have ${count} item${count !== 1 ? "s" : ""} in your bag.`,
             };
           }
         } else if (call.name === "remove_from_cart") {
@@ -622,14 +615,14 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
           const item = cart?.items.find(i => i.product_id === (call.args?.product_id ?? ""));
           if (item) {
             removeItem(item.id);
-            response = { removed: true, name: item.title, message: `${item.title} removed from your cart.` };
+            response = { removed: true, name: item.title, message: `${item.title} removed from your bag.` };
           } else {
-            response = { removed: false, message: "That item is not in your cart." };
+            response = { removed: false, message: "That item is not in your bag." };
           }
         } else if (call.name === "view_cart") {
           const { cart, getCartCount } = useCartStore.getState();
           if (!cart?.items.length) {
-            response = { items: [], total: 0, message: "Your cart is empty." };
+            response = { items: [], total: 0, message: "Your bag is empty." };
           } else {
             response = {
               items: cart.items.map(i => ({
@@ -685,6 +678,9 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
       dispatch({ type: "ERROR", msg: "NEXT_PUBLIC_GEMINI_API_KEY not set" });
       return;
     }
+    if (!aiRef.current) {
+      aiRef.current = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY });
+    }
     dispatch({ type: "CONNECT" });
     try {
       // Fetch full product catalog (before audio — non-blocking if it fails)
@@ -714,11 +710,11 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
 
       // Build system instruction with catalog baked in (sent as part of connection setup)
       const systemWithCatalog = catalogText
-        ? `${CONCIERGE_SYSTEM_PROMPT}\n\nPRODUCT CATALOG (the ONLY products TroveStack stocks — never recommend anything outside this list):\n${catalogText}`
+        ? `${CONCIERGE_SYSTEM_PROMPT}\n\nPRODUCT CATALOG (the ONLY products Trovestak stocks — never recommend anything outside this list):\n${catalogText}`
         : CONCIERGE_SYSTEM_PROMPT;
 
       // Connect to Gemini Live directly from browser
-      const session = await ai.live.connect({
+      const session = await aiRef.current!.live.connect({
         model: "gemini-2.5-flash-native-audio-preview-09-2025",
         callbacks: {
           onopen: () => {},
@@ -839,17 +835,13 @@ export const ConciergeStrip: React.FC<ConciergeStripProps> = ({
             style={collapsedPill}
             onClick={connect}
             aria-label="Start TroveVoice"
-            className={`cs-collapsed-pill${wakeSupported ? " cs-wake-active" : ""}`}
+            className="cs-collapsed-pill"
           >
-            <span style={{
-              ...pillMicWrap,
-              ...(wakeSupported ? pillMicWrapWake : {}),
-            }}>
+            <span style={pillMicWrap}>
               <MicIcon size={16} />
-              {wakeSupported && <span style={wakeDot} className={wakeListening ? "cs-wake-dot" : ""} />}
             </span>
             <span style={pillLabel}>
-              {wakeSupported ? "Say \"Hey TroveVoice\"" : "Ask TroveVoice"}
+              Ask TroveVoice
             </span>
           </button>
         )}
@@ -1128,22 +1120,6 @@ const pillLabel: React.CSSProperties = {
   color: "#6b6b68",
   letterSpacing: "-0.01em",
   paddingRight: 2,
-};
-
-const pillMicWrapWake: React.CSSProperties = {
-  background: "rgba(45,143,114,0.08)",
-  color: "#2d8f72",
-};
-
-const wakeDot: React.CSSProperties = {
-  position: "absolute",
-  top: 4,
-  right: 4,
-  width: 6,
-  height: 6,
-  borderRadius: "50%",
-  background: "#2d8f72",
-  border: "1.5px solid #ffffff",
 };
 
 const activeStrip: React.CSSProperties = {
