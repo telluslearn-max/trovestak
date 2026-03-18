@@ -1,52 +1,110 @@
 # Current Feature
 
-## Active Task: Website Copy Implementation — Phase 1 Complete
+## Active Task: Website Copy Implementation — Phase 2
 
-**Status:** 10 of 13 tasks done. Ready for commit.
+**Status:** Started (Phase 1 committed, Phase 2 in progress)
 **Branch:** `feature/website-copy`
-**Priority:** P1 — brand alignment + customer-facing accuracy
+**Priority:** P1 — new components + feature completion
 **Context:** Plan file: `WEBSITE_COPY_BRIEF.md`
 
 ---
 
-## Task Checklist
+## Phase 1 Summary (Completed ✅)
 
-### Completed (10/13)
-- [x] Update HeroSection.tsx line 31: Fallback subline → "Genuine products. AI guidance. Zero risk."
-- [x] Update layout.tsx line 10: Metadata description → outcome-led copy + "Shop and Save"
-- [x] Delete MpesaStrip component entirely
-- [x] Rewrite PromoPair.tsx (Trade-In: "coming soon" + TroveXP: "coming soon")
-- [x] Remove TroveVoice card from ExploreCarousel.tsx
-- [x] Fix ConciergeStrip.tsx: Change "TroveStack" → "Trovestak" throughout system prompt (5 instances)
-- [x] Remove `useWakeword` hook and wake-word copy from ConciergeStrip.tsx (push-to-talk only)
-- [x] Update account/page.tsx metadata (title: "My Trove", description: clean consumer copy)
-- [x] Update account/devices/page.tsx metadata (description: clean consumer copy)
-- [x] Fix Footer.tsx: Remove LinkedIn, add TikTok + Medium to social links
-- [x] Update deals/page.tsx metadata: Remove fake urgency ("Today's deals. Tomorrow's are different.")
-- [x] Wire hero theme CTAs in HeroSection.tsx (primaryCta/secondaryCta from theme now active)
+Commit `576a186`: 12 files modified, all copy/metadata/UI fixes
+- HeroSection, PromoPair, ExploreCarousel, ConciergeStrip, Footer, Account pages, Deals page
+- Type check: PASSED
+- Database: HEALTHY (tested + verified)
 
-### Not Started (2 remaining — Phase 2)
-- [ ] Create "Coming to Trovestak" section component (new products + new arrivals)
-- [ ] Create Saves feature (rename /wishlist, bookmark icon, price-drop alerts via in-app + WhatsApp + email)
+---
+
+## Phase 2 Task Checklist
+
+### Task 1: Create "Coming to Trovestak" Section Component
+**Purpose:** Display upcoming products + new arrivals with specs, notifications, pre-order CTAs
+
+**Component:** `apps/storefront/src/components/ComingToTrovestak.tsx`
+
+**Requirements:**
+- [ ] Create new React component (client-side for interactivity)
+- [ ] Two card types: Upcoming Products + New Arrivals
+- [ ] Upcoming product card:
+  - Product image + name + key spec
+  - "Read specs ›" CTA (→ `/products/[slug]#specs`)
+  - "Notify me" CTA (subscribe to price/availability alerts)
+  - "Pre-order" CTA (Pro members only, shows lock icon for non-Pro)
+  - Expected availability date if known
+- [ ] New arrivals card:
+  - Product image + name
+  - "New" badge (top-right corner)
+  - "Shop now ›" CTA
+- [ ] Section heading: "Coming to Trovestak."
+- [ ] Grid layout (responsive: 1 col mobile, 2-3 cols desktop)
+- [ ] Motion animations (fade-in on scroll)
+
+**Data source:**
+- Upcoming products: `metadata->is_coming_soon = true`
+- New arrivals: Created within last 7 days + `status = 'published'`
+- Query: Fetch from products table with filters
+
+**Placement:** Homepage, after PromoPair, before ExploreCarousel
+
+---
+
+### Task 2: Create Saves Feature (Wishlist Rename)
+**Purpose:** Bookmark/save products for later, with price-drop alerts
+
+**Changes needed:**
+
+#### A. Rename Route & Update UI
+- [ ] Route: `/wishlist` → keep URL but rename in UI to "Saves"
+- [ ] Icon: Heart ❤️ → Bookmark 🔖 (change lucide icon)
+- [ ] Label: "Wishlist" → "Saves" everywhere in UI
+- [ ] Update navbar: Cart label "Bag", Wishlist label "Saves"
+
+#### B. Update Page Metadata
+- [ ] `/app/wishlist/page.tsx` title: "Saves | Trovestak"
+- [ ] Description: "Your saved products and price-drop alerts."
+
+#### C. Price-Drop Notifications
+- [ ] Add price-drop alert logic (compare current price vs. saved price)
+- [ ] Notification channels:
+  - In-app: Badge/bell icon on Saves
+  - WhatsApp: Auto message via notif-service
+  - Email: Auto email via Resend (in notif-service)
+- [ ] Trigger: Price drops by 5%+ from when saved
+
+#### D. Component Updates
+- [ ] PDP (product detail page): Change heart icon → bookmark icon
+- [ ] Update add-to-wishlist → add-to-saves
+- [ ] Account page: "Wishlist" → "Saves" in navigation
 
 ---
 
 ## Testing
-- ✅ tsc --noEmit: PASSED (no type errors)
-- 🔄 pnpm install: Running in background
-- [ ] Browser test: All pages render correctly
-- [ ] Copy review: All metadata and copy changes applied correctly
+
+- [ ] ComingToTrovestak component renders without errors
+- [ ] Upcoming products cards display correctly
+- [ ] New arrivals cards display correctly
+- [ ] Responsive layout on mobile/tablet/desktop
+- [ ] Saves icon changed everywhere (heart → bookmark)
+- [ ] Saves page loads + displays saved products
+- [ ] Type check: `pnpm tsc --noEmit` (no errors)
+- [ ] Git diff review (all changes correct)
 
 ---
 
 ## Next Steps
-1. Complete pnpm install
-2. Review all code changes
-3. Commit Phase 1 with message
-4. Begin Phase 2 (two new components)
+
+1. **Task 1:** Build ComingToTrovestak component
+2. **Task 2:** Build Saves feature (rename + icon + notifications)
+3. **Test:** Type check + manual verification
+4. **Commit:** Phase 2 complete
+5. **Merge:** feature/website-copy → main
 
 ---
 
-## Previous Work (Microservices Migration)
+## Previous Work
 
-See git log for `feature/store-upgrade` (2026-03-17). All phases complete: order-service, catalog-service, API gateway, Pub/Sub activation, notif-service delivery.
+**Phase 1 (Committed):** Copy alignment, metadata fixes, component rewrites (576a186)
+**Microservices (Completed):** Order/catalog/gateway services, Pub/Sub, notifications (feature/store-upgrade)

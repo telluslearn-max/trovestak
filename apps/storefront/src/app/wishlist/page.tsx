@@ -3,8 +3,8 @@ import WishlistClient from "./wishlist-client";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Wishlist | Trovestak",
-    description: "Save items you love and prepare for your next deployment.",
+    title: "Saves | Trovestak",
+    description: "Your saved products and price-drop alerts.",
 };
 
 export default async function WishlistPage() {

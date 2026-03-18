@@ -1,131 +1,146 @@
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { getActiveTheme } from "@/lib/homepage-theme";
 import { HeroSection } from "@/components/HeroSection";
-import { CategoryGrid } from "@/components/CategoryGrid";
-import { MpesaStrip } from "@/components/MpesaStrip";
-import { ProductShelf } from "@/components/ProductShelf";
-import { TroveVoiceStrip } from "@/components/TroveVoiceStrip";
-import { FeatureSections } from "@/components/FeatureSections";
+import { AnnouncementBanner } from "@/components/AnnouncementBanner";
+import { FeatureTile } from "@/components/FeatureTile";
+import { FeaturedPair } from "@/components/FeaturedPair";
+import { ExploreCarousel } from "@/components/ExploreCarousel";
+import { PromoPair } from "@/components/PromoPair";
+import { ComingToTrovestak } from "@/components/ComingToTrovestak";
 
 export const dynamic = "force-dynamic";
 
-async function getHeroProduct() {
+type ProductRow = {
+    name: string;
+    slug: string;
+    thumbnail_url: string | null;
+    short_desc: string | null;
+    created_at: string | null;
+    nav_category: string | null;
+    product_variants: { price_kes: number }[];
+};
+
+function toProduct(p: ProductRow) {
+    const prices = (p.product_variants || []).map((v) => v.price_kes).filter((x) => x > 0);
+    return { ...p, min_price: prices.length > 0 ? Math.min(...prices) : 0 };
+}
+
+async function getFeaturedProducts(limit: number) {
     try {
         const supabase = await createSupabaseServerClient();
-        const { data } = await supabase
+
+        // Try featured first
+        const { data: featured } = await supabase
             .from("products")
-            .select("name, slug, thumbnail_url, short_desc, product_variants(price_kes)")
+            .select("name, slug, thumbnail_url, short_desc, created_at, nav_category, product_variants(price_kes)")
             .eq("status", "published")
             .eq("is_featured", true)
             .order("created_at", { ascending: false })
-            .limit(1)
-            .single();
+            .limit(limit);
 
-        if (!data) return null;
+        const results = (featured || []).map((p) => toProduct(p as ProductRow));
 
-        const prices = (data.product_variants || [])
-            .map((v: { price_kes: number }) => v.price_kes)
-            .filter((p: number) => p > 0);
-        return { ...data, min_price: prices.length > 0 ? Math.min(...prices) : 0 };
-    } catch {
-        return null;
-    }
-}
+        // Backfill from most-recent published if not enough
+        if (results.length < limit) {
+            const needed = limit - results.length;
+            const existingSlugs = results.map((p) => p.slug);
 
-async function getJustInProducts() {
-    try {
-        const supabase = await createSupabaseServerClient();
-        const { data } = await supabase
-            .from("products")
-            .select("name, slug, thumbnail_url, short_desc, created_at, product_variants(price_kes)")
-            .eq("status", "published")
-            .order("created_at", { ascending: false })
-            .limit(8);
+            const { data: recent } = await supabase
+                .from("products")
+                .select("name, slug, thumbnail_url, short_desc, created_at, nav_category, product_variants(price_kes)")
+                .eq("status", "published")
+                .not("slug", "in", `(${existingSlugs.map((s) => `"${s}"`).join(",")})`)
+                .order("created_at", { ascending: false })
+                .limit(needed);
 
-        return (data || []).map((p: {
-            name: string;
-            slug: string;
-            thumbnail_url: string | null;
-            short_desc: string | null;
-            created_at: string | null;
-            product_variants: { price_kes: number }[];
-        }) => {
-            const prices = (p.product_variants || [])
-                .map((v) => v.price_kes)
-                .filter((x) => x > 0);
-            return { ...p, min_price: prices.length > 0 ? Math.min(...prices) : 0 };
-        });
+            results.push(...(recent || []).map((p) => toProduct(p as ProductRow)));
+        }
+
+        return results.slice(0, limit);
     } catch {
         return [];
     }
 }
 
-async function getFeaturedProducts() {
+async function getComingProducts() {
     try {
         const supabase = await createSupabaseServerClient();
 
-        // Try is_featured first
-        const { data: featured } = await supabase
+        const { data } = await supabase
             .from("products")
-            .select("name, slug, thumbnail_url, short_desc, created_at, product_variants(price_kes)")
+            .select("id, name, slug, thumbnail_url, created_at, metadata, product_variants(price_kes)")
             .eq("status", "published")
-            .eq("is_featured", true)
+            .not("metadata->is_coming_soon", "is", null)
             .order("created_at", { ascending: false })
-            .limit(2);
+            .limit(6);
 
-        const toMap = (p: {
-            name: string;
-            slug: string;
-            thumbnail_url: string | null;
-            short_desc: string | null;
-            created_at: string | null;
-            product_variants: { price_kes: number }[];
-        }) => {
-            const prices = (p.product_variants || []).map((v) => v.price_kes).filter((x) => x > 0);
-            return { ...p, min_price: prices.length > 0 ? Math.min(...prices) : 0 };
-        };
+        return data || [];
+    } catch {
+        return [];
+    }
+}
 
-        if (featured && featured.length >= 2) return featured.map(toMap);
+async function getNewArrivals() {
+    try {
+        const supabase = await createSupabaseServerClient();
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-        // Fallback: 3rd and 4th most recent
-        const { data: recent } = await supabase
+        const { data } = await supabase
             .from("products")
-            .select("name, slug, thumbnail_url, short_desc, created_at, product_variants(price_kes)")
+            .select("id, name, slug, thumbnail_url, created_at, metadata, product_variants(price_kes)")
             .eq("status", "published")
+            .gt("created_at", sevenDaysAgo)
             .order("created_at", { ascending: false })
-            .range(2, 3);
+            .limit(6);
 
-        return (recent || []).map(toMap);
+        return data || [];
     } catch {
         return [];
     }
 }
 
 export default async function HomePage() {
-    const [heroProduct, justInProducts, featuredProducts] = await Promise.all([
-        getHeroProduct(),
-        getJustInProducts(),
-        getFeaturedProducts(),
+    const [products, comingProducts, newArrivals] = await Promise.all([
+        getFeaturedProducts(7),
+        getComingProducts(),
+        getNewArrivals(),
     ]);
+
+    const theme = getActiveTheme();
+
+    const [p0, p1, p2, p3, p4, p5, p6] = products;
 
     return (
         <div className="min-h-screen">
-            {/* 1. Store hero — light, Apple-style */}
-            <HeroSection product={heroProduct} />
+            {/* Announcement banner — seasonal campaigns only */}
+            {theme.banner && <AnnouncementBanner theme={theme} />}
 
-            {/* 2. Category shelf — horizontal scroll */}
-            <CategoryGrid />
+            {/* 1. Hero tile — flagship, white */}
+            <HeroSection product={p0 ?? null} theme={theme} />
 
-            {/* 3. M-Pesa financing band */}
-            <MpesaStrip />
+            {/* 2. Second product tile — gray */}
+            {p1 && <FeatureTile product={p1} background="gray" />}
 
-            {/* 4. "Just In" — 8-product discovery grid */}
-            <ProductShelf products={justInProducts} />
+            {/* 3. Third product tile — cream */}
+            {p2 && <FeatureTile product={p2} background="cream" />}
 
-            {/* 5. TroveVoice — voice concierge promo */}
-            <TroveVoiceStrip />
+            {/* 4. Side-by-side 2-up product tiles — dark left, light-blue right */}
+            {p3 && p4 && <FeaturedPair left={p3} right={p4} />}
 
-            {/* 6. Editorial feature sections — 2 hero products */}
-            <FeatureSections products={featuredProducts} />
+            {/* 5. Fourth product tile — black */}
+            {p5 && <FeatureTile product={p5} background="black" />}
+
+            {/* 6. Fifth product tile — dark */}
+            {p6 && <FeatureTile product={p6} background="dark" />}
+
+            {/* 7. 2-up promo — Trade-In + TroveXP */}
+            <PromoPair />
+
+            {/* 8. Coming to Trovestak — upcoming + new arrivals */}
+            <ComingToTrovestak upcomingProducts={comingProducts} newArrivals={newArrivals} isProMember={false} />
+
+            {/* 9. Horizontal-scroll explore carousel — black bg */}
+            <ExploreCarousel />
         </div>
     );
 }

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Star, Minus, Plus, ShoppingBag, Heart, ChevronRight, Package } from "lucide-react";
+import { X, Star, Minus, Plus, ShoppingBag, Bookmark, ChevronRight, Package } from "lucide-react";
 import { formatKES } from "@/lib/formatters";
 import { useCartStore } from "@/stores/cart";
 import { useWishlistStore } from "@/stores/wishlist";
@@ -270,10 +270,10 @@ export function QuickViewModal({ product, open, onClose }: QuickViewModalProps) 
                                 onClick={handleWishlist}
                                 className={cn(
                                     "h-12 w-12 rounded-xl",
-                                    inWishlist && "border-rose-500/50 text-rose-500"
+                                    inWishlist && "border-blue-500/50 text-blue-500"
                                 )}
                             >
-                                <Heart className={cn("w-5 h-5", inWishlist && "fill-current")} />
+                                <Bookmark className={cn("w-5 h-5", inWishlist && "fill-current")} />
                             </Button>
                         </div>
 

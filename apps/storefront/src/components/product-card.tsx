@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Heart, GitCompare, Check } from "lucide-react";
+import { Bookmark, GitCompare, Check } from "lucide-react";
 import { formatPrice } from "@/lib/formatters";
 import { useWishlistStore } from "@/stores/wishlist";
 import { useCompareStore } from "@/stores/compare";
@@ -126,11 +126,11 @@ export function ProductCard({ product, index = 0, showActions = true }: ProductC
                                 className={cn(
                                     "p-2 rounded-xl backdrop-blur-md border transition-all",
                                     inWishlist
-                                        ? "bg-rose-500/20 border-rose-500/30 text-rose-500"
-                                        : "bg-white/80 dark:bg-black/60 border-white/20 text-muted-foreground hover:text-rose-500"
+                                        ? "bg-blue-500/20 border-blue-500/30 text-blue-500"
+                                        : "bg-white/80 dark:bg-black/60 border-white/20 text-muted-foreground hover:text-blue-500"
                                 )}
                             >
-                                <Heart className={cn("w-4 h-4", inWishlist && "fill-current")} />
+                                <Bookmark className={cn("w-4 h-4", inWishlist && "fill-current")} />
                             </button>
                             <button
                                 onClick={handleCompareClick}

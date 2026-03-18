@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, Trash2, ShoppingBag, ArrowRight, Package } from "lucide-react";
+import { Bookmark, Trash2, ShoppingBag, ArrowRight, Package } from "lucide-react";
 import { useWishlistStore } from "@/stores/wishlist";
 import { useCartStore } from "@/stores/cart";
 import { formatKES } from "@/lib/formatters";
@@ -37,14 +37,14 @@ export default function WishlistClient({ initialItems }: WishlistClientProps) {
                     animate={{ opacity: 1, scale: 1 }}
                     className="max-w-md w-full text-center"
                 >
-                    <div className="w-24 h-24 bg-rose-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8">
-                        <Heart className="w-12 h-12 text-rose-500" />
+                    <div className="w-24 h-24 bg-blue-500/10 rounded-3xl flex items-center justify-center mx-auto mb-8">
+                        <Bookmark className="w-12 h-12 text-blue-500" />
                     </div>
                     <h1 className="text-4xl font-black tracking-tight text-foreground mb-4">
-                        Your Wishlist is <span className="text-muted-foreground/40 italic">Empty</span>
+                        Your Saves is <span className="text-muted-foreground/40 italic">Empty</span>
                     </h1>
                     <p className="text-muted-foreground mb-10">
-                        Save items you love by clicking the heart icon on any product.
+                        Save items you love by clicking the bookmark icon on any product.
                     </p>
                     <Link
                         href="/store"
@@ -67,9 +67,9 @@ export default function WishlistClient({ initialItems }: WishlistClientProps) {
                     className="mb-12"
                 >
                     <div className="flex items-center gap-4 mb-4">
-                        <Heart className="w-8 h-8 text-rose-500" />
+                        <Bookmark className="w-8 h-8 text-blue-500" />
                         <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-foreground">
-                            Wishlist<span className="text-rose-500">.</span>
+                            Saves<span className="text-blue-500">.</span>
                         </h1>
                     </div>
                     <p className="text-lg text-muted-foreground">
