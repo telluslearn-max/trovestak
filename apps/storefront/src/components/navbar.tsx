@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ShoppingBag, Menu, X, ChevronRight, ChevronDown } from "lucide-react";
+import { Search, ShoppingBag, Menu, X, ChevronRight, ChevronLeft, ChevronDown } from "lucide-react";
 import { useCartStore } from "@/stores/cart";
 import { useSearchStore } from "@/stores/search";
 
@@ -636,13 +636,12 @@ const navItems = [
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [scrollDir, setScrollDir] = useState<'up' | 'down'>('up');
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeMegaMenu, setActiveMegaMenu] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const { setIsOpen: setSearchOpen } = useSearchStore();
-  const [expandedMobileCategories, setExpandedMobileCategories] = useState<string[]>([]);
+  const [activeMobileCategory, setActiveMobileCategory] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
   
@@ -675,8 +674,7 @@ export default function Navbar() {
   useEffect(() => {
     const handleScroll = () => {
       const y = window.scrollY;
-      setIsScrolled(y > 0);
-      setScrollDir(y > lastScrollY && y > 44 ? 'down' : 'up');
+      setIsScrolled(y > 60);
       setLastScrollY(y);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -705,18 +703,6 @@ export default function Navbar() {
     }
   };
 
-  const toggleMobileCategory = (categoryId: string) => {
-    setExpandedMobileCategories(prev => 
-      prev.includes(categoryId) 
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
-    );
-  };
-
-  const isMobileCategoryExpanded = (categoryId: string) => {
-    return expandedMobileCategories.includes(categoryId);
-  };
-
   const currentMegaMenu = activeMegaMenu && megaMenuData[activeMegaMenu as keyof typeof megaMenuData];
 
   return (
@@ -725,9 +711,8 @@ export default function Navbar() {
         ref={navRef}
         className="fixed top-0 left-0 right-0 z-[9999] h-[44px] transition-all duration-300"
         style={{
-          backgroundColor: scrollDir === 'down' && isScrolled ? 'transparent' : "rgba(29, 29, 31, 0.92)",
-          backdropFilter: scrollDir === 'down' && isScrolled ? 'none' : "saturate(180%) blur(20px)",
-          transform: scrollDir === 'down' && isScrolled ? 'translateY(-100%)' : 'translateY(0)',
+          backgroundColor: "rgba(29, 29, 31, 0.92)",
+          backdropFilter: "saturate(180%) blur(20px)",
         }}
       >
         <div className="max-w-[980px] mx-auto px-4 h-full flex items-center justify-between">
@@ -748,7 +733,7 @@ export default function Navbar() {
               >
                 <Link
                   href={item.href}
-                  className={`text-[12px] font-normal tracking-wide transition-colors duration-300 ${
+                  className={`text-[14px] font-normal tracking-[-0.01em] transition-colors duration-300 ${
                     activeMegaMenu === item.id 
                       ? "text-white" 
                       : "text-[rgba(245,245,247,0.88)] hover:text-white"
@@ -785,7 +770,7 @@ export default function Navbar() {
 
           <button
             className="md:hidden text-[rgba(245,245,247,0.88)] hover:text-white transition-colors"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            onClick={() => { setIsMobileMenuOpen(!isMobileMenuOpen); setActiveMobileCategory(null); }}
           >
             {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -906,103 +891,130 @@ export default function Navbar() {
 
       {/* Search overlay is rendered via SearchOverlay in StorefrontWrapper */}
 
+      {/* Mobile menu — push navigation (Apple iOS Settings pattern) */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed inset-0 top-[44px] z-[9998] bg-[rgba(29,29,31,0.98)] md:hidden overflow-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 top-[44px] z-[9998] bg-[rgba(29,29,31,0.98)] md:hidden overflow-hidden"
           >
-            <div className="px-6 pt-6 pb-20">
-              <div className="relative mb-6">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                <input
-                  type="text"
-                  placeholder="Search Trovestak"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={handleMobileSearch}
-                  className="w-full pl-10 pr-4 py-3 bg-[rgba(245,245,247,0.1)] text-white text-[17px] rounded-xl outline-none placeholder-gray-500"
-                />
-              </div>
+            {/* Slide container — holds both panels side by side */}
+            <div className="relative w-full h-full overflow-hidden">
 
-              <nav className="space-y-0">
-                {navItems.map((item) => (
-                  <div key={item.id} className="border-b border-[rgba(245,245,247,0.1)]">
-                    {item.hasMegaMenu ? (
-                      <>
-                        <button
-                          onClick={() => toggleMobileCategory(item.id)}
-                          className="w-full flex items-center justify-between py-4 text-[17px] text-[rgba(245,245,247,0.88)] hover:text-white transition-colors"
-                        >
-                          <span>{item.label}</span>
-                          <ChevronDown 
-                            className={`w-5 h-5 transition-transform duration-300 ${isMobileCategoryExpanded(item.id) ? 'rotate-180' : ''}`} 
-                          />
-                        </button>
-                        
-                        <AnimatePresence>
-                          {isMobileCategoryExpanded(item.id) && megaMenuData[item.id as keyof typeof megaMenuData] && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: "auto", opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                              className="overflow-hidden"
-                            >
-                              <div className="pb-4 pl-4 space-y-4">
-                                {megaMenuData[item.id as keyof typeof megaMenuData].columns.map((column, colIdx) => (
-                                  <div key={colIdx} className="space-y-2">
-                                    <p className="text-[12px] font-semibold text-[rgba(245,245,247,0.5)] uppercase tracking-wide">
-                                      {column.title}
-                                    </p>
-                                    <div className="space-y-1">
-                                      {column.items.map((group, groupIdx) => {
-                                        const actualSlug = categorySlugMapping[group.category] || group.category.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                                        const baseHref = `/category/${item.id}/${actualSlug}`;
-                                        return (
-                                        <div key={groupIdx}>
-                                          <Link
-                                            href={baseHref}
-                                            onClick={() => setIsMobileMenuOpen(false)}
-                                            className="text-[14px] font-medium text-[rgba(245,245,247,0.7)] hover:text-white mt-2 inline-block transition-colors"
-                                          >
-                                            {group.category}
-                                          </Link>
-                                          {group.links.map((link, linkIdx) => (
-                                            <Link
-                                              key={linkIdx}
-                                              href={link.href}
-                                              onClick={() => setIsMobileMenuOpen(false)}
-                                              className="block py-2 text-[15px] text-[rgba(245,245,247,0.88)] hover:text-white transition-colors pl-2"
-                                            >
-                                              {link.name}
-                                            </Link>
-                                          ))}
-                                        </div>
-                                      );
-                                      })}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </>
-                    ) : (
-                      <Link
-                        href={item.href}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="block py-4 text-[17px] text-[rgba(245,245,247,0.88)] hover:text-white transition-colors"
-                      >
-                        {item.label}
-                      </Link>
-                    )}
+              {/* Level 1 — root list */}
+              <motion.div
+                animate={{ x: activeMobileCategory ? '-100%' : '0%' }}
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                className="absolute inset-0 overflow-y-auto"
+              >
+                <div className="px-6 pt-6 pb-20">
+                  {/* Search bar */}
+                  <div className="relative mb-6">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <input
+                      type="text"
+                      placeholder="Search Trovestak"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={handleMobileSearch}
+                      className="w-full pl-10 pr-4 py-3 bg-[rgba(245,245,247,0.1)] text-white text-[17px] rounded-xl outline-none placeholder-gray-500"
+                    />
                   </div>
-                ))}
-              </nav>
+
+                  {/* Nav items */}
+                  <nav>
+                    {navItems.map((item) => (
+                      <div key={item.id} className="border-b border-[rgba(245,245,247,0.08)]">
+                        {item.hasMegaMenu ? (
+                          <button
+                            onClick={() => setActiveMobileCategory(item.id)}
+                            className="w-full flex items-center justify-between py-4 text-[17px] text-[rgba(245,245,247,0.88)] hover:text-white transition-colors text-left"
+                          >
+                            <span>{item.label}</span>
+                            <ChevronRight className="w-4 h-4 text-[rgba(245,245,247,0.4)] shrink-0" />
+                          </button>
+                        ) : (
+                          <Link
+                            href={item.href}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="flex items-center justify-between py-4 text-[17px] text-[rgba(245,245,247,0.88)] hover:text-white transition-colors"
+                          >
+                            {item.label}
+                          </Link>
+                        )}
+                      </div>
+                    ))}
+                  </nav>
+                </div>
+              </motion.div>
+
+              {/* Level 2 — category detail */}
+              <motion.div
+                animate={{ x: activeMobileCategory ? '0%' : '100%' }}
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                className="absolute inset-0 overflow-y-auto"
+              >
+                {activeMobileCategory && (() => {
+                  const item = navItems.find(n => n.id === activeMobileCategory);
+                  const menu = megaMenuData[activeMobileCategory as keyof typeof megaMenuData];
+                  if (!item || !menu) return null;
+
+                  // Flatten all links from all columns into a single list
+                  const allLinks: { name: string; href: string }[] = [];
+                  menu.columns.forEach(col => {
+                    col.items.forEach(group => {
+                      group.links.forEach(link => allLinks.push(link));
+                    });
+                  });
+
+                  return (
+                    <div className="px-6 pt-6 pb-20">
+                      {/* Back button */}
+                      <button
+                        onClick={() => setActiveMobileCategory(null)}
+                        className="flex items-center gap-1 text-[17px] text-apple-blue mb-6 -ml-1"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                        Back
+                      </button>
+
+                      {/* Category name */}
+                      <h2 className="text-[22px] font-semibold text-white mb-1">
+                        {item.label}
+                      </h2>
+
+                      {/* Shop All link */}
+                      <div className="border-b border-[rgba(245,245,247,0.08)] py-3 mb-2">
+                        <Link
+                          href={item.href}
+                          onClick={() => { setIsMobileMenuOpen(false); setActiveMobileCategory(null); }}
+                          className="text-[17px] font-medium text-apple-blue"
+                        >
+                          Shop All {item.label} ›
+                        </Link>
+                      </div>
+
+                      {/* Flat link list */}
+                      <nav>
+                        {allLinks.map((link, idx) => (
+                          <div key={idx} className="border-b border-[rgba(245,245,247,0.06)]">
+                            <Link
+                              href={link.href}
+                              onClick={() => { setIsMobileMenuOpen(false); setActiveMobileCategory(null); }}
+                              className="block py-3 text-[17px] text-[rgba(245,245,247,0.88)] hover:text-white transition-colors"
+                            >
+                              {link.name}
+                            </Link>
+                          </div>
+                        ))}
+                      </nav>
+                    </div>
+                  );
+                })()}
+              </motion.div>
             </div>
           </motion.div>
         )}

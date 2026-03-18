@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import OrdersClient from "./orders-client";
 import { Metadata } from "next";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
     title: "Order History | Trovestak",
     description: "Detailed chronological history of your equipment deployments and transactions.",

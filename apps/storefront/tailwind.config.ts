@@ -60,6 +60,7 @@ const config: Config = {
           dark: "#000000",
           blue: "#0071E3",
           "blue-hover": "#0077ED",
+          "blue-dark": "#2997FF",
           text: "#1D1D1F",
           "text-secondary": "#86868B",
           "text-tertiary": "#6E6E73",

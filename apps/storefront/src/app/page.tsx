@@ -4,9 +4,12 @@ import { HeroSection } from "@/components/HeroSection";
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { FeatureTile } from "@/components/FeatureTile";
 import { FeaturedPair } from "@/components/FeaturedPair";
-import { ExploreCarousel } from "@/components/ExploreCarousel";
+import { EndlessEntertainment } from "@/components/EndlessEntertainment";
 import { PromoPair } from "@/components/PromoPair";
 import { ComingToTrovestak } from "@/components/ComingToTrovestak";
+import { ThreeColHero } from "@/components/ThreeColHero";
+
+const Gap = () => <div className="h-[10px]" style={{ background: '#f5f5f7' }} />;
 
 export const dynamic = "force-dynamic";
 
@@ -111,36 +114,33 @@ export default async function HomePage() {
     const [p0, p1, p2, p3, p4, p5, p6] = products;
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen bg-[#f5f5f7]">
             {/* Announcement banner — seasonal campaigns only */}
             {theme.banner && <AnnouncementBanner theme={theme} />}
 
-            {/* 1. Hero tile — flagship, white */}
+            {/* 1. Hero tile — flagship */}
             <HeroSection product={p0 ?? null} theme={theme} />
+            <Gap />
 
-            {/* 2. Second product tile — gray */}
-            {p1 && <FeatureTile product={p1} background="gray" />}
+            {/* 2. Second product tile — gray radial gradient */}
+            <FeatureTile product={p1 ?? null} background="gray" />
+            <Gap />
 
-            {/* 3. Third product tile — cream */}
-            {p2 && <FeatureTile product={p2} background="cream" />}
+            {/* 3. Third product tile — 3-column wings hero */}
+            <ThreeColHero product={p2 ?? null} />
+            <Gap />
 
-            {/* 4. Side-by-side 2-up product tiles — dark left, light-blue right */}
-            {p3 && p4 && <FeaturedPair left={p3} right={p4} />}
-
-            {/* 5. Fourth product tile — black */}
-            {p5 && <FeatureTile product={p5} background="black" />}
-
-            {/* 6. Fifth product tile — dark */}
-            {p6 && <FeatureTile product={p6} background="dark" />}
-
-            {/* 7. 2-up promo — Trade-In + TroveXP */}
+            {/* 4–6. Bento grid — 3 rows of 2 cards (6 total) */}
+            <FeaturedPair left={p3 ?? null} right={p4 ?? null} />
+            <FeaturedPair left={p5 ?? null} right={p6 ?? null} leftBg="#000000" rightBg="#f5f5f7" />
             <PromoPair />
+
+            {/* 7. Endless entertainment */}
+            <EndlessEntertainment />
+            <Gap />
 
             {/* 8. Coming to Trovestak — upcoming + new arrivals */}
             <ComingToTrovestak upcomingProducts={comingProducts} newArrivals={newArrivals} isProMember={false} />
-
-            {/* 9. Horizontal-scroll explore carousel — black bg */}
-            <ExploreCarousel />
         </div>
     );
 }

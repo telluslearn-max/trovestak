@@ -5,9 +5,12 @@ import { createClient } from "@supabase/supabase-js";
 export async function createSupabaseServerClient() {
     const cookieStore = await cookies();
 
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+    if (!anonKey) throw new Error("Supabase anon key not configured");
+
     return createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        anonKey,
         {
             cookies: {
                 get(name: string) {

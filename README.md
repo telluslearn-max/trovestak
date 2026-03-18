@@ -21,12 +21,14 @@ TroveVoice is a real-time AI shopping concierge powered by **Google Gemini Live 
 
 | Tool | What it does |
 |------|-------------|
-| `search_products` | Semantic vector search over 100+ products (pgvector, `gemini-embedding-001`) |
-| `research_agent` | Sub-agent that expands vague queries into 5 specific searches via Google Search |
+| `search_products` | Semantic vector search over 100+ products (pgvector, `gemini-embedding-001`); embedding results cached 10 min |
+| `research_agent` | Sub-agent that expands vague queries into 5 specific searches via Google Search grounding (gemini-2.0-flash) |
 | `get_ml_recommendations` | Personalized picks based on ML taste profile (TensorFlow.js) |
-| `get_concierge_context` | Loads shopper history and preferences for the session |
-| `compare_products` | Side-by-side spec comparison explained in plain language |
+| `get_concierge_context` | Loads shopper history, preferences, and returning-customer order context for the session |
+| `compare_products` | Side-by-side spec comparison explained in plain language; records comparison as behavioural signal |
 | `initiate_checkout` | Triggers M-Pesa STK Push directly from voice |
+| `check_order_status` | Looks up a customer's last 3 orders by phone number for delivery tracking queries |
+| `whatsapp_handoff` | Escalates to a human agent on WhatsApp for complex queries |
 
 ---
 
@@ -187,7 +189,7 @@ trovestak/
 
 | File | Purpose |
 |------|---------|
-| `apps/agent-service/src/tools.ts` | All 6 concierge tool implementations |
+| `apps/agent-service/src/tools.ts` | All 8 concierge tool implementations |
 | `apps/agent-service/src/agent.ts` | TroveVoice system prompt + tool declarations |
 | `apps/storefront/src/components/concierge/ConciergeVoice.tsx` | Voice UI widget |
 | `apps/storefront/src/app/checkout/actions.ts` | M-Pesa STK Push + order creation |

@@ -66,6 +66,16 @@ export default function GlobalError({
             A critical error occurred. Please try refreshing the page. If the
             problem persists, contact support.
           </p>
+          {error.message && (
+            <p style={{ fontSize: 11, color: "#666", fontFamily: "monospace", marginTop: 8, wordBreak: "break-all" }}>
+              {error.message}
+            </p>
+          )}
+          {error.digest && (
+            <p style={{ fontSize: 11, color: "#555", fontFamily: "monospace", marginTop: 4 }}>
+              ID: {error.digest}
+            </p>
+          )}
         </div>
 
         <button

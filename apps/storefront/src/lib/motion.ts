@@ -33,3 +33,30 @@ export const pageTransition = {
     exit: { opacity: 0 },
     transition: { duration: 0.2 },
 };
+
+/**
+ * Stagger child — use variants on a stagger parent.
+ * Parent: initial="hidden" whileInView="visible" viewport={{ once: true, margin: '-80px' }}
+ *         transition={{ staggerChildren: 0.06 }}
+ * Child:  variants={staggerChild.variants}
+ */
+export const staggerChild = {
+    variants: {
+        hidden: { opacity: 0, y: 24 },
+        visible: {
+            opacity: 1, y: 0,
+            transition: { duration: 0.6, ease: [0.25, 0.1, 0.25, 1] as const },
+        },
+    },
+};
+
+/**
+ * Fade up — individual scroll-triggered element.
+ * Usage: <motion.div {...fadeUp}>...</motion.div>
+ */
+export const fadeUp = {
+    initial: { opacity: 0, y: 12 },
+    whileInView: { opacity: 1, y: 0 },
+    viewport: { once: true, margin: '-80px' },
+    transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] as const },
+};

@@ -22,6 +22,10 @@ interface HeroSectionProps {
 
 const DELAY = [0.05, 0.13, 0.20, 0.27, 0.32];
 
+const BtnBlue = "inline-flex items-center justify-center rounded-full bg-[#0071e3] text-white text-[13px] font-normal px-4 py-[7px] transition-all duration-200 hover:bg-[#0077ed] hover:scale-[1.03]";
+const BtnOutline = "inline-flex items-center justify-center rounded-full text-[#0071e3] text-[13px] font-normal px-4 py-[7px] transition-all duration-200 hover:bg-[rgba(0,113,227,0.06)]";
+const BtnDarkOutline = "inline-flex items-center justify-center rounded-full text-white/85 text-[13px] font-normal px-4 py-[7px] border border-white/50 transition-all duration-200 hover:bg-white/10";
+
 export function HeroSection({ product, theme }: HeroSectionProps) {
     const isDark = theme.palette === 'dark';
 
@@ -38,16 +42,16 @@ export function HeroSection({ product, theme }: HeroSectionProps) {
 
     return (
         <section
-            className="relative w-full min-h-[600px] md:min-h-[680px] flex flex-col items-center overflow-hidden"
-            style={{ background: isDark ? '#000000' : '#ffffff' }}
+            className="relative w-full min-h-[640px] flex flex-col items-center overflow-hidden"
+            style={{ background: isDark ? '#000000' : 'linear-gradient(180deg, #f5f5f7 0%, #eaeaec 100%)' }}
         >
             {/* Text block — top, centered */}
-            <div className="relative z-10 w-full flex flex-col items-center text-center px-6 pt-16 md:pt-20 pb-8">
+            <div className="relative z-10 w-full flex flex-col items-center text-center px-5 pt-[52px] pb-8">
                 <motion.p
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: DELAY[0], duration: 0.45 }}
-                    className={`text-[12px] font-medium uppercase tracking-widest mb-3 ${isDark ? 'text-apple-blue' : 'text-apple-blue'}`}
+                    className="text-[17px] font-semibold text-[#0071e3] mb-1.5"
                 >
                     {eyebrow}
                 </motion.p>
@@ -56,7 +60,7 @@ export function HeroSection({ product, theme }: HeroSectionProps) {
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: DELAY[1], duration: 0.5 }}
-                    className={`text-[48px] md:text-[56px] font-bold leading-[1.05] tracking-tight ${isDark ? 'text-white' : 'text-apple-text'}`}
+                    className={`text-[clamp(48px,6vw,72px)] font-semibold leading-[1.05] tracking-tight ${isDark ? 'text-white' : 'text-apple-text'}`}
                 >
                     {headline}
                 </motion.h1>
@@ -65,7 +69,7 @@ export function HeroSection({ product, theme }: HeroSectionProps) {
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: DELAY[2], duration: 0.5 }}
-                    className={`text-[19px] leading-relaxed max-w-[500px] mt-3 ${isDark ? 'text-white/60' : 'text-apple-text-tertiary'}`}
+                    className={`text-[clamp(17px,2vw,24px)] leading-relaxed max-w-[560px] mt-2 ${isDark ? 'text-white/80' : 'text-apple-text'}`}
                 >
                     {subline}
                 </motion.p>
@@ -81,24 +85,24 @@ export function HeroSection({ product, theme }: HeroSectionProps) {
                     </motion.p>
                 )}
 
-                {/* CTAs — text links only, Apple style */}
+                {/* CTAs — pill buttons */}
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: DELAY[4], duration: 0.45 }}
-                    className="flex items-center gap-6 mt-6"
+                    className="flex items-center gap-3 mt-6"
                 >
                     <Link
                         href={`${productHref}#details`}
-                        className="text-[19px] text-apple-blue hover:underline"
+                        className={isDark ? BtnDarkOutline : BtnOutline}
                     >
-                        {theme.hero?.secondaryCta ? `${theme.hero.secondaryCta} ›` : 'Learn more ›'}
+                        {theme.hero?.secondaryCta ?? 'Learn more'}
                     </Link>
                     <Link
                         href={productHref}
-                        className="text-[19px] text-apple-blue hover:underline"
+                        className={BtnBlue}
                     >
-                        {theme.hero?.primaryCta ? `${theme.hero.primaryCta} ›` : (product ? `Shop ${product.name} ›` : 'Shop now ›')}
+                        {theme.hero?.primaryCta ?? (product ? `Shop ${product.name}` : 'Shop now')}
                     </Link>
                 </motion.div>
             </div>

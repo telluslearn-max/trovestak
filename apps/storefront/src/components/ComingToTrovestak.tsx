@@ -53,7 +53,7 @@ export function ComingToTrovestak({ upcomingProducts, newArrivals, isProMember =
     };
 
     return (
-        <section className="bg-white py-12 md:py-16 px-4 md:px-6">
+        <section className="bg-[#000000] py-12 md:py-16 px-4 md:px-6">
             <div className="max-w-[980px] mx-auto">
                 {/* Section heading */}
                 <motion.h2
@@ -61,7 +61,7 @@ export function ComingToTrovestak({ upcomingProducts, newArrivals, isProMember =
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true, margin: '-60px' }}
                     transition={{ duration: 0.5 }}
-                    className="text-[28px] md:text-[32px] font-semibold text-[#1d1d1f] mb-8"
+                    className="text-[40px] md:text-[48px] font-semibold text-white mb-8 tracking-tight"
                 >
                     Coming to Trovestak.
                 </motion.h2>
@@ -85,10 +85,10 @@ export function ComingToTrovestak({ upcomingProducts, newArrivals, isProMember =
                             <motion.div
                                 key={product.id}
                                 variants={itemVariants}
-                                className="rounded-lg overflow-hidden border border-[#D2D2D7] hover:shadow-md transition-shadow"
+                                className="rounded-[20px] overflow-hidden bg-[#1d1d1f] border border-[#424245] hover:shadow-md transition-shadow"
                             >
                                 {/* Product image */}
-                                <div className="relative bg-[#f5f5f7] aspect-square overflow-hidden">
+                                <div className="relative bg-[#2a2a2a] aspect-square overflow-hidden">
                                     {product.thumbnail_url ? (
                                         <Image
                                             src={product.thumbnail_url}
@@ -97,8 +97,8 @@ export function ComingToTrovestak({ upcomingProducts, newArrivals, isProMember =
                                             className="object-cover"
                                         />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-[#f5f5f7]">
-                                            <div className="w-16 h-16 rounded-full bg-[#e5e5ea]" />
+                                        <div className="w-full h-full flex items-center justify-center bg-[#2a2a2a]">
+                                            <div className="w-16 h-16 rounded-full bg-[#424245]" />
                                         </div>
                                     )}
 
@@ -114,24 +114,24 @@ export function ComingToTrovestak({ upcomingProducts, newArrivals, isProMember =
                                 <div className="p-4 md:p-6 flex flex-col justify-between min-h-[220px]">
                                     {/* Name + spec */}
                                     <div>
-                                        <h3 className="text-[17px] md:text-[19px] font-semibold text-[#1d1d1f] mb-2">
+                                        <h3 className="text-[17px] md:text-[19px] font-semibold text-white mb-2">
                                             {product.name}
                                         </h3>
 
                                         {/* Key spec or price */}
                                         {isUpcoming && product.metadata?.key_spec ? (
-                                            <p className="text-[15px] text-[#6e6e73] mb-2">
+                                            <p className="text-[15px] text-[#a1a1a6] mb-2">
                                                 {product.metadata.key_spec}
                                             </p>
                                         ) : minPrice > 0 ? (
-                                            <p className="text-[15px] text-[#6e6e73] mb-2">
+                                            <p className="text-[15px] text-[#a1a1a6] mb-2">
                                                 From {formatKES(minPrice)}
                                             </p>
                                         ) : null}
 
                                         {/* Expected availability */}
                                         {isUpcoming && product.metadata?.expected_availability && (
-                                            <p className="text-[13px] text-[#6e6e73] italic">
+                                            <p className="text-[13px] text-[#a1a1a6] italic">
                                                 Available: {product.metadata.expected_availability}
                                             </p>
                                         )}
